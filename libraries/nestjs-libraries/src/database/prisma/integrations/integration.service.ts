@@ -462,6 +462,20 @@ export class IntegrationService {
 
   // --- Inbox: komentarze i wiadomosci ---
 
+  /**
+   * Twardy limit czasu na jeden kanal. Bez tego zakladka wisi w nieskonczonosc:
+   * SocialAbstract.fetch ponawia nieudane wywolania z odczekiwaniem, wiec kanal
+   * bez uprawnien potrafi odpowiadac minutami zamiast od razu zglosic blad.
+   */
+  private withTimeout<T>(promise: Promise<T>, ms: number, label: string) {
+    return Promise.race([
+      promise,
+      new Promise<T>((_, reject) =>
+        setTimeout(() => reject(new Error(`TIMEOUT: ${label}`)), ms)
+      ),
+    ]);
+  }
+
   /** Token kanalu, odswiezony jesli wygasl. Null = kanal wymaga ponownego logowania. */
   private async freshToken(org: Organization, integration: any) {
     if (!dayjs(integration?.tokenExpiration).isBefore(dayjs())) {
@@ -496,61 +510,63 @@ export class IntegrationService {
         .filter(Boolean)
     );
 
-    const results: any[] = [];
-    for (const integration of integrations) {
-      if (integration.type !== 'social' || integration.disabled) {
-        continue;
-      }
-      const provider = this._integrationManager.getSocialIntegration(
-        integration.providerIdentifier
-      );
-      if (!provider?.recentComments) {
-        continue;
-      }
+    // Kanaly odpytujemy rownolegle - sekwencyjnie 13 kanalow trwalo minuty
+    // i zakladka wisiala na "Wczytuje...".
+    const usable = integrations.filter(
+      (i: any) =>
+        i.type === 'social' &&
+        !i.disabled &&
+        this._integrationManager.getSocialIntegration(i.providerIdentifier)
+          ?.recentComments
+    );
 
-      try {
-        const token = await this.freshToken(org, integration);
-        if (!token) {
-          results.push({
-            channel: integration.name,
-            provider: integration.providerIdentifier,
-            error: 'RELOGIN',
-            comments: [],
-          });
-          continue;
-        }
-
-        const comments = await provider.recentComments(
-          integration.internalId,
-          token,
-          { limit: 15 }
-        );
-
-        results.push({
+    return Promise.all(
+      usable.map(async (integration: any) => {
+        const base = {
           channel: integration.name,
           channelId: integration.id,
           picture: integration.picture,
           provider: integration.providerIdentifier,
-          comments: comments.filter(
-            (c) =>
-              !(c.authorId && ownIds.has(String(c.authorId))) &&
-              !(
-                c.authorName &&
-                ownHandles.has(c.authorName.replace(/^@/, '').toLowerCase())
-              )
-          ),
-        });
-      } catch (err: any) {
-        results.push({
-          channel: integration.name,
-          provider: integration.providerIdentifier,
-          error: String(err?.message || err).slice(0, 200),
-          comments: [],
-        });
-      }
-    }
+        };
 
-    return results;
+        try {
+          const token = await this.freshToken(org, integration);
+          if (!token) {
+            return { ...base, error: 'RELOGIN', comments: [] };
+          }
+
+          const provider = this._integrationManager.getSocialIntegration(
+            integration.providerIdentifier
+          );
+
+          const comments = await this.withTimeout(
+            provider.recentComments!(integration.internalId, token, {
+              limit: 8,
+            }),
+            25000,
+            integration.name
+          );
+
+          return {
+            ...base,
+            comments: comments.filter(
+              (c) =>
+                !(c.authorId && ownIds.has(String(c.authorId))) &&
+                !(
+                  c.authorName &&
+                  ownHandles.has(c.authorName.replace(/^@/, '').toLowerCase())
+                )
+            ),
+          };
+        } catch (err: any) {
+          return {
+            ...base,
+            error: String(err?.message || err).slice(0, 200),
+            comments: [],
+          };
+        }
+      })
+    );
   }
 
   async replyToComment(
@@ -582,47 +598,51 @@ export class IntegrationService {
       org.id
     );
 
-    const results: any[] = [];
-    for (const integration of integrations) {
-      if (integration.type !== 'social' || integration.disabled) {
-        continue;
-      }
-      const provider = this._integrationManager.getSocialIntegration(
-        integration.providerIdentifier
-      );
-      if (!provider?.conversations) {
-        continue;
-      }
+    const usable = integrations.filter(
+      (i: any) =>
+        i.type === 'social' &&
+        !i.disabled &&
+        this._integrationManager.getSocialIntegration(i.providerIdentifier)
+          ?.conversations
+    );
 
-      try {
-        const token = await this.freshToken(org, integration);
-        if (!token) {
-          throw new Error('RELOGIN');
-        }
-        const conversations = await provider.conversations(
-          integration.internalId,
-          token,
-          { limit: 25 }
-        );
-        results.push({
+    return Promise.all(
+      usable.map(async (integration: any) => {
+        const base = {
           channel: integration.name,
           channelId: integration.id,
           picture: integration.picture,
           provider: integration.providerIdentifier,
-          conversations,
-        });
-      } catch (err: any) {
-        results.push({
-          channel: integration.name,
-          channelId: integration.id,
-          provider: integration.providerIdentifier,
-          error: String(err?.message || err).slice(0, 200),
-          conversations: [],
-        });
-      }
-    }
+        };
 
-    return results;
+        try {
+          const token = await this.freshToken(org, integration);
+          if (!token) {
+            return { ...base, error: 'RELOGIN', conversations: [] };
+          }
+
+          const provider = this._integrationManager.getSocialIntegration(
+            integration.providerIdentifier
+          );
+
+          const conversations = await this.withTimeout(
+            provider.conversations!(integration.internalId, token, {
+              limit: 25,
+            }),
+            25000,
+            integration.name
+          );
+
+          return { ...base, conversations };
+        } catch (err: any) {
+          return {
+            ...base,
+            error: String(err?.message || err).slice(0, 200),
+            conversations: [],
+          };
+        }
+      })
+    );
   }
 
   async sendInboxMessage(

@@ -1119,19 +1119,21 @@ export class FacebookProvider extends SocialAbstract implements SocialProvider {
       )
     ).json();
 
-    const all: SocialComment[] = [];
-    for (const post of data || []) {
-      const comments = await this.comments(id, post.id, accessToken, options);
-      all.push(
-        ...comments.map((c) => ({
+    // Posty odpytujemy rownolegle - sekwencyjnie kazdy kanal trwal tyle, ile
+    // suma jego postow, i zakladka Inbox wisiala na wczytywaniu.
+    const perPost = await Promise.all(
+      (data || []).map(async (post: any) => {
+        const comments = await this.comments(id, post.id, accessToken, options);
+        return comments.map((c) => ({
           ...c,
           postId: post.id,
           postText: post.message || '',
           postUrl: post.permalink_url,
-        }))
-      );
-    }
-    return all;
+        }));
+      })
+    );
+
+    return perPost.flat();
   }
 
   // Prywatne rozmowy ze strony. Wymaga uprawnienia pages_messaging - bez niego

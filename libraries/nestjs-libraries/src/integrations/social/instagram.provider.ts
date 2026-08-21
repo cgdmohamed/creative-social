@@ -1342,19 +1342,21 @@ export class InstagramProvider
       )
     ).json();
 
-    const all: SocialComment[] = [];
-    for (const media of data || []) {
-      const comments = await this.comments(id, media.id, token, options);
-      all.push(
-        ...comments.map((c) => ({
+    // Posty odpytujemy rownolegle - sekwencyjnie kazdy kanal trwal tyle, ile
+    // suma jego postow, i zakladka Inbox wisiala na wczytywaniu.
+    const perPost = await Promise.all(
+      (data || []).map(async (media: any) => {
+        const comments = await this.comments(id, media.id, token, options);
+        return comments.map((c) => ({
           ...c,
           postId: media.id,
           postText: media.caption || '',
           postUrl: media.permalink,
-        }))
-      );
-    }
-    return all;
+        }));
+      })
+    );
+
+    return perPost.flat();
   }
 
   // Rozmowy na Instagramie ida przez powiazana strone Facebooka
