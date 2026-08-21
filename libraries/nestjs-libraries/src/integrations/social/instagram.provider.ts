@@ -2,8 +2,11 @@ import {
   AnalyticsData,
   AuthTokenDetails,
   PendingCheckResponse,
+  CommentsQuery,
   PostDetails,
   PostResponse,
+  SocialComment,
+  SocialCommentReply,
   SocialProvider,
 } from '@gitroom/nestjs-libraries/integrations/social/social.integrations.interface';
 import { makeSecureId } from '@gitroom/nestjs-libraries/services/make.secure.id';
@@ -1246,6 +1249,77 @@ export class InstagramProvider
     }
 
     return '';
+  }
+
+  // Reads comments under one of our media items. Instagram nests replies inside
+  // each top-level comment instead of returning a flat stream like Facebook, so
+  // they are flattened here and linked back through parentId.
+  async comments(
+    id: string,
+    postId: string,
+    accessToken: string,
+    options?: CommentsQuery
+  ): Promise<SocialComment[]> {
+    const limit = options?.limit ?? 100;
+
+    const { data } = await (
+      await this.fetch(
+        `https://graph.facebook.com/v20.0/${postId}/comments?access_token=${accessToken}&limit=${limit}&fields=id,text,timestamp,username,replies{id,text,timestamp,username}`,
+        {},
+        'read comments'
+      )
+    ).json();
+
+    const since = options?.since;
+
+    // Instagram identifies comment authors by handle only, and the integration
+    // name is a display name ("Buzzin: TV show"), not the handle - so there is
+    // no reliable way to flag our own comments here. Left undefined on purpose
+    // rather than guessing and hiding a real comment from the inbox.
+    const toComment = (comment: any, parentId?: string): SocialComment => ({
+      id: comment.id,
+      message: comment.text || '',
+      createdAt: dayjs(comment.timestamp).toISOString(),
+      authorName: comment.username,
+      parentId,
+    });
+
+    const flattened: SocialComment[] = [];
+    for (const comment of data || []) {
+      flattened.push(toComment(comment));
+      for (const reply of comment.replies?.data || []) {
+        flattened.push(toComment(reply, comment.id));
+      }
+    }
+
+    return flattened.filter(
+      (comment) => !since || dayjs(comment.createdAt).unix() > since
+    );
+  }
+
+  // Instagram has a dedicated replies edge, unlike Facebook where a reply is
+  // just another comment on the comment.
+  async reply(
+    id: string,
+    commentId: string,
+    message: string,
+    accessToken: string
+  ): Promise<SocialCommentReply> {
+    const data = await (
+      await this.fetch(
+        `https://graph.facebook.com/v20.0/${commentId}/replies?message=${encodeURIComponent(
+          message
+        )}&access_token=${accessToken}`,
+        {
+          method: 'POST',
+        },
+        'reply to comment'
+      )
+    ).json();
+
+    return {
+      id: data.id,
+    };
   }
 
   async analytics(

@@ -2,8 +2,11 @@ import {
   AnalyticsData,
   AuthTokenDetails,
   PendingCheckResponse,
+  CommentsQuery,
   PostDetails,
   PostResponse,
+  SocialComment,
+  SocialCommentReply,
   SocialProvider,
 } from '@gitroom/nestjs-libraries/integrations/social/social.integrations.interface';
 import { makeSecureId } from '@gitroom/nestjs-libraries/services/make.secure.id';
@@ -1024,6 +1027,78 @@ export class FacebookProvider extends SocialAbstract implements SocialProvider {
         status: 'success',
       },
     ];
+  }
+
+  // Reads comments other people left under one of our posts.
+  // `filter=stream` returns replies alongside top-level comments in one flat
+  // list, and `parent` tells them apart - the inbox rebuilds the thread from it.
+  async comments(
+    id: string,
+    postId: string,
+    accessToken: string,
+    options?: CommentsQuery
+  ): Promise<SocialComment[]> {
+    const limit = options?.limit ?? 100;
+
+    const { data } = await (
+      await this.fetch(
+        `https://graph.facebook.com/v20.0/${postId}/comments?access_token=${accessToken}&filter=stream&order=reverse_chronological&limit=${limit}&fields=id,message,created_time,permalink_url,from{id,name},parent{id}`,
+        {},
+        'read comments'
+      )
+    ).json();
+
+    // Meta ignores an unknown `since`, so the window is applied here instead of
+    // in the query - a silently unfiltered response would look like a flood of
+    // new comments on every poll.
+    const since = options?.since;
+
+    return (data || [])
+      .map(
+        (comment: any): SocialComment => ({
+          id: comment.id,
+          message: comment.message || '',
+          createdAt: dayjs(comment.created_time).toISOString(),
+          authorId: comment.from?.id,
+          authorName: comment.from?.name,
+          permalink: comment.permalink_url,
+          parentId: comment.parent?.id,
+          // `id` is the page id, so a comment from it is one of ours.
+          isOwnComment: !!comment.from?.id && comment.from.id === id,
+        })
+      )
+      .filter(
+        (comment: SocialComment) =>
+          !since || dayjs(comment.createdAt).unix() > since
+      );
+  }
+
+  // On Facebook a reply is a comment posted onto the comment itself, which is
+  // why this targets /{commentId}/comments and not /{postId}/comments.
+  async reply(
+    id: string,
+    commentId: string,
+    message: string,
+    accessToken: string
+  ): Promise<SocialCommentReply> {
+    const data = await (
+      await this.fetch(
+        `https://graph.facebook.com/v20.0/${commentId}/comments?access_token=${accessToken}&fields=id,permalink_url`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ message }),
+        },
+        'reply to comment'
+      )
+    ).json();
+
+    return {
+      id: data.id,
+      permalink: data.permalink_url,
+    };
   }
 
   async analytics(
