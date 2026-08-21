@@ -79,12 +79,12 @@ const explain = (error: any): string => {
     error = error.message || JSON.stringify(error);
   }
   const e = String(error || '');
-  if (e === 'RELOGIN') return 'Kanal wymaga ponownego zalogowania w Ustawieniach.';
-  if (e.startsWith('TIMEOUT')) return 'Platforma odpowiada zbyt wolno. Sprobuj odswiezyc.';
+  if (e === 'RELOGIN') return 'This channel needs to be reconnected in Settings.';
+  if (e.startsWith('TIMEOUT')) return 'The platform is responding too slowly. Try refreshing.';
   if (e.includes('pages_messaging') || e.includes('(#200)'))
-    return 'Brak uprawnienia do wiadomosci. Zaloguj kanal ponownie.';
+    return 'Missing messaging permission. Reconnect this channel.';
   if (e.includes('(#3)') || e.includes('capability'))
-    return 'Aplikacja Meta nie ma jeszcze zgody na wiadomosci na tym kanale.';
+    return 'The Meta app is not approved for messaging on this channel yet.';
   return e;
 };
 
@@ -218,8 +218,8 @@ export const Inbox: FC<{ mode: 'comments' | 'chats' }> = ({ mode }) => {
             out.push({
               id: c.id,
               channel,
-              who: c.authorName || 'nieznany',
-              preview: c.message || '(bez tresci)',
+              who: c.authorName || 'unknown',
+              preview: c.message || '(no content)',
               at: c.createdAt,
               comment: c,
             })
@@ -230,7 +230,7 @@ export const Inbox: FC<{ mode: 'comments' | 'chats' }> = ({ mode }) => {
             out.push({
               id: conv.id,
               channel,
-              who: conv.participantName || 'nieznany',
+              who: conv.participantName || 'unknown',
               preview: last ? `${last.isFromUs ? 'Ty: ' : ''}${last.text}` : '',
               at: conv.updatedAt,
               conversation: conv,
@@ -300,7 +300,7 @@ export const Inbox: FC<{ mode: 'comments' | 'chats' }> = ({ mode }) => {
         setText('');
         loadChannel(channel, tab, true);
       } catch {
-        toaster.show('Nie udalo sie wykonac akcji', 'warning');
+        toaster.show('Action failed', 'warning');
       } finally {
         setBusy(false);
       }
@@ -310,10 +310,10 @@ export const Inbox: FC<{ mode: 'comments' | 'chats' }> = ({ mode }) => {
 
   return (
     <div className="flex gap-[12px] h-[calc(100vh-130px)]">
-      {/* Kanaly */}
-      <div className="w-[220px] shrink-0 bg-customColor6 rounded-[12px] p-[10px] overflow-y-auto">
-        <div className="flex items-center justify-between mb-[8px] px-[2px]">
-          <span className="text-[13px] font-bold">Kanaly</span>
+      {/* Channels */}
+      <div className="w-[250px] shrink-0 border-e border-[#2a3040] pe-[12px] overflow-y-auto">
+        <div className="flex items-center justify-between mb-[14px] px-[4px]">
+          <span className="text-[18px] font-bold">Channels</span>
           <button
             className="text-[11px] text-customColor21"
             onClick={() =>
@@ -322,19 +322,19 @@ export const Inbox: FC<{ mode: 'comments' | 'chats' }> = ({ mode }) => {
               )
             }
           >
-            {selected.size === channels.length ? 'odznacz' : 'zaznacz'}
+            {selected.size === channels.length ? 'none' : 'all'}
           </button>
         </div>
 
         {channels.map((c) => {
           const supported = tab === 'comments' ? c.supportsComments : c.supportsChats;
-          const s = state[c.id];
+          const st = state[c.id];
           const n = counts[c.id] || 0;
           const on = selected.has(c.id);
           return (
             <div
               key={c.id}
-              title={on ? 'Kliknij, aby ukryc' : 'Kliknij, aby pokazac'}
+              title={on ? 'Click to hide' : 'Click to show'}
               onClick={() =>
                 setSelected((prev) => {
                   const next = new Set(prev);
@@ -342,21 +342,25 @@ export const Inbox: FC<{ mode: 'comments' | 'chats' }> = ({ mode }) => {
                   return next;
                 })
               }
-              className={`flex items-center gap-[8px] p-[7px] rounded-[8px] cursor-pointer mb-[2px] border transition-colors ${
-                on ? 'bg-customColor2 border-transparent' : 'opacity-40 border-transparent'
-              } hover:border-[#3a4150]`}
+              // Aktywny kanal jest w pelni widoczny, wylaczony przygaszony -
+              // ten sam jezyk wizualny co panel kanalow w Analytics.
+              className={`flex items-center gap-[12px] py-[9px] px-[4px] cursor-pointer transition-opacity ${
+                on ? 'opacity-100' : 'opacity-35 hover:opacity-60'
+              }`}
             >
-              <Avatar channel={c} size={28} />
+              <Avatar channel={c} size={36} />
               <div className="flex-1 min-w-0">
-                <div className="text-[12px] truncate">{c.name}</div>
-                {!supported && <div className="text-[10px] text-[#8B8B8B]">niedostepne</div>}
+                <div className={`text-[14px] truncate ${on ? '' : 'text-[#8B8B8B]'}`}>
+                  {c.name}
+                </div>
+                {!supported && <div className="text-[11px] text-[#6f7889]">not available</div>}
               </div>
-              {s?.loading ? (
+              {st?.loading ? (
                 <span className="text-[10px] text-[#8B8B8B]">...</span>
-              ) : s?.error ? (
-                <span className="text-[13px] text-[#B45309]" title={explain(s.error)}>!</span>
+              ) : st?.error ? (
+                <span className="text-[13px] text-[#B45309]" title={explain(st.error)}>!</span>
               ) : n > 0 ? (
-                <span className="text-[11px] bg-customColor21 rounded-full px-[6px] min-w-[19px] text-center">
+                <span className="text-[11px] bg-customColor21 rounded-full px-[7px] min-w-[20px] text-center">
                   {n}
                 </span>
               ) : null}
@@ -366,25 +370,25 @@ export const Inbox: FC<{ mode: 'comments' | 'chats' }> = ({ mode }) => {
       </div>
 
       {/* Lista */}
-      <div className="w-[330px] shrink-0 bg-customColor6 rounded-[12px] flex flex-col overflow-hidden">
-        <div className="flex items-center gap-[8px] p-[10px] border-b border-[#2a3040]">
+      <div className="w-[340px] shrink-0 border-e border-[#2a3040] pe-[12px] flex flex-col overflow-hidden">
+        <div className="flex items-center gap-[8px] pb-[10px] mb-[4px] border-b border-[#2a3040]">
           <button
             onClick={() => setOnlyUnread(!onlyUnread)}
             className={`text-[12px] px-[10px] py-[5px] rounded-[7px] ${
               onlyUnread ? 'bg-customColor21' : 'bg-customColor2'
             }`}
           >
-            {onlyUnread ? 'Tylko nowe' : 'Wszystkie'}
+            {onlyUnread ? 'Unread only' : 'All'}
           </button>
           <span className="text-[12px] text-[#8B8B8B]">
-            {anyLoading ? 'wczytuje...' : `${unreadCount} nowych`}
+            {anyLoading ? 'loading...' : `${unreadCount} unread`}
           </span>
           <button
             className="ms-auto text-[12px] text-customColor21"
             onClick={() => channels.forEach((c) => loadChannel(c, tab, true))}
             disabled={anyLoading}
           >
-            Odswiez
+            Refresh
           </button>
         </div>
 
@@ -396,13 +400,9 @@ export const Inbox: FC<{ mode: 'comments' | 'chats' }> = ({ mode }) => {
               <div
                 key={item.id}
                 onClick={() => open(item)}
-                className={`flex gap-[9px] p-[10px] cursor-pointer border-s-[3px] transition-colors ${
-                  isActive
-                    ? 'bg-customColor2 border-s-customColor21'
-                    : isRead
-                    ? 'border-s-transparent hover:bg-customColor2/40'
-                    : 'border-s-customColor21 hover:bg-customColor2/40'
-                }`}
+                className={`flex gap-[10px] py-[11px] px-[6px] cursor-pointer border-b border-[#232936] transition-colors ${
+                  isActive ? 'bg-customColor2/60' : 'hover:bg-customColor2/30'
+                } ${isRead ? 'opacity-60' : ''}`}
               >
                 <Avatar channel={item.channel} size={26} />
                 <div className="flex-1 min-w-0">
@@ -426,20 +426,20 @@ export const Inbox: FC<{ mode: 'comments' | 'chats' }> = ({ mode }) => {
           {!anyLoading && !shown.length && (
             <div className="text-center py-[40px] text-[#8B8B8B] text-[13px] px-[16px]">
               {onlyUnread
-                ? 'Brak nowych. Przelacz na "Wszystkie".'
+                ? 'Nothing unread. Switch to "All".'
                 : tab === 'comments'
-                ? 'Brak komentarzy. Wlasne sa pomijane.'
-                : 'Brak rozmow.'}
+                ? 'No comments. Your own are filtered out.'
+                : 'No conversations.'}
             </div>
           )}
         </div>
       </div>
 
       {/* Szczegoly */}
-      <div className="flex-1 min-w-0 bg-customColor6 rounded-[12px] p-[16px] overflow-y-auto">
+      <div className="flex-1 min-w-0 ps-[6px] overflow-y-auto">
         {!active ? (
           <div className="h-full flex items-center justify-center text-[#8B8B8B] text-[14px]">
-            Wybierz {tab === 'comments' ? 'komentarz' : 'rozmowe'} z listy
+            Select a {tab === 'comments' ? 'comment' : 'conversation'} from the list
           </div>
         ) : (
           <div className="flex flex-col gap-[14px]">
@@ -456,7 +456,7 @@ export const Inbox: FC<{ mode: 'comments' | 'chats' }> = ({ mode }) => {
                 className="ms-auto text-[12px] text-[#8B8B8B] hover:text-white shrink-0"
                 onClick={() => setReadState([active.id], !read.has(active.id))}
               >
-                {read.has(active.id) ? 'Oznacz jako nowe' : 'Oznacz przeczytane'}
+                {read.has(active.id) ? 'Mark as unread' : 'Mark as read'}
               </button>
             </div>
 
@@ -464,11 +464,11 @@ export const Inbox: FC<{ mode: 'comments' | 'chats' }> = ({ mode }) => {
               <>
                 {active.comment.postText && (
                   <div className="text-[12px] text-[#8B8B8B] bg-customColor2 rounded-[8px] p-[10px]">
-                    Pod postem: {active.comment.postText.slice(0, 160)}
+                    Under post: {active.comment.postText.slice(0, 160)}
                   </div>
                 )}
                 <div className="text-[15px] whitespace-pre-wrap break-words">
-                  {active.comment.message || <i>bez tresci</i>}
+                  {active.comment.message || <i>no content</i>}
                 </div>
 
                 <div className="flex gap-[14px] text-[13px]">
@@ -479,7 +479,7 @@ export const Inbox: FC<{ mode: 'comments' | 'chats' }> = ({ mode }) => {
                       rel="noreferrer"
                       className="text-customColor21 underline"
                     >
-                      otworz na platformie
+                      open on platform
                     </a>
                   )}
                   <button
@@ -488,27 +488,27 @@ export const Inbox: FC<{ mode: 'comments' | 'chats' }> = ({ mode }) => {
                       act(
                         `/inbox/comments/${active.channel.id}/moderate`,
                         { commentId: active.id, action: 'hide' },
-                        'Komentarz ukryty',
+                        'Comment hidden',
                         active.channel
                       )
                     }
                   >
-                    Ukryj
+                    Hide
                   </button>
                   <button
                     className="text-[#B45309]"
                     onClick={() => {
-                      if (confirm('Usunac komentarz na stale? Tego nie da sie cofnac.')) {
+                      if (confirm('Deleteac komentarz na stale? Tego nie da sie cofnac.')) {
                         act(
                           `/inbox/comments/${active.channel.id}/moderate`,
                           { commentId: active.id, action: 'delete' },
-                          'Komentarz usuniety',
+                          'Comment deleted',
                           active.channel
                         );
                       }
                     }}
                   >
-                    Usun
+                    Delete
                   </button>
                 </div>
 
@@ -517,7 +517,7 @@ export const Inbox: FC<{ mode: 'comments' | 'chats' }> = ({ mode }) => {
                     className="bg-customColor2 rounded-[8px] p-[10px] text-[14px] min-h-[90px]"
                     value={text}
                     onChange={(e) => setText(e.target.value)}
-                    placeholder="Twoja odpowiedz..."
+                    placeholder="Your reply..."
                   />
                   <button
                     className="bg-customColor21 rounded-[8px] px-[18px] py-[8px] text-[13px] self-start disabled:opacity-40"
@@ -526,12 +526,12 @@ export const Inbox: FC<{ mode: 'comments' | 'chats' }> = ({ mode }) => {
                       act(
                         `/inbox/comments/${active.channel.id}/reply`,
                         { commentId: active.id, message: text },
-                        'Odpowiedz wyslana',
+                        'Reply sent',
                         active.channel
                       )
                     }
                   >
-                    {busy ? 'Wysylam...' : 'Odpowiedz'}
+                    {busy ? 'Sending...' : 'Odpowiedz'}
                   </button>
                 </div>
               </>
@@ -555,8 +555,7 @@ export const Inbox: FC<{ mode: 'comments' | 'chats' }> = ({ mode }) => {
 
                 {active.conversation.canReplyFreely === false ? (
                   <div className="text-[13px] text-[#B45309] bg-customColor2 rounded-[8px] p-[11px]">
-                    Minelo 24h od ostatniej wiadomosci rozmowcy. Meta nie pozwala juz
-                    odpisac zwykla wiadomoscia.
+                    More than 24h since their last message. Meta no longer allows a plain reply.
                   </div>
                 ) : (
                   <div className="flex flex-col gap-[8px]">
@@ -564,7 +563,7 @@ export const Inbox: FC<{ mode: 'comments' | 'chats' }> = ({ mode }) => {
                       className="bg-customColor2 rounded-[8px] p-[10px] text-[14px] min-h-[90px]"
                       value={text}
                       onChange={(e) => setText(e.target.value)}
-                      placeholder="Napisz wiadomosc..."
+                      placeholder="Write a message..."
                     />
                     <button
                       className="bg-customColor21 rounded-[8px] px-[18px] py-[8px] text-[13px] self-start disabled:opacity-40"
@@ -576,12 +575,12 @@ export const Inbox: FC<{ mode: 'comments' | 'chats' }> = ({ mode }) => {
                             recipientId: active.conversation!.participantId,
                             message: text,
                           },
-                          'Wiadomosc wyslana',
+                          'Message sent',
                           active.channel
                         )
                       }
                     >
-                      {busy ? 'Wysylam...' : 'Wyslij'}
+                      {busy ? 'Sending...' : 'Send'}
                     </button>
                   </div>
                 )}

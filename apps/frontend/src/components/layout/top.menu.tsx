@@ -82,7 +82,7 @@ export const useMenuItem = () => {
       path: '/analytics',
     },
     {
-      name: t('comments', 'Komentarze'),
+      name: t('comments', 'Comments'),
       icon: (
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -103,7 +103,7 @@ export const useMenuItem = () => {
       path: '/comments',
     },
     {
-      name: t('messages', 'Wiadomosci'),
+      name: t('messages', 'Messages'),
       icon: (
         <svg
           xmlns="http://www.w3.org/2000/svg"
