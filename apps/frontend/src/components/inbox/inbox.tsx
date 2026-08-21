@@ -64,7 +64,11 @@ const when = (iso: string) => {
       });
 };
 
-const explain = (error: string) => {
+const explain = (error: any): string => {
+  if (error && typeof error === 'object') {
+    error = error.message || JSON.stringify(error);
+  }
+  error = String(error || '');
   if (error === 'RELOGIN')
     return 'Kanal wymaga ponownego zalogowania w Ustawieniach.';
   if (error.startsWith('TIMEOUT'))
@@ -294,9 +298,12 @@ export const Inbox: FC<{ mode: 'comments' | 'chats' }> = ({ mode }) => {
             <div
               key={c.id}
               onClick={() => toggle(c.id)}
-              className={`flex items-center gap-[9px] p-[7px] rounded-[8px] cursor-pointer mb-[3px] ${
-                selected.has(c.id) ? 'bg-customColor2' : 'opacity-45'
-              }`}
+              title={selected.has(c.id) ? 'Kliknij, aby ukryc' : 'Kliknij, aby pokazac'}
+              className={`flex items-center gap-[9px] p-[7px] rounded-[8px] cursor-pointer mb-[3px] border transition-colors ${
+                selected.has(c.id)
+                  ? 'bg-customColor2 border-transparent'
+                  : 'opacity-40 border-transparent hover:opacity-70'
+              } hover:border-[#3a4150]`}
             >
               <Avatar channel={c} />
               <div className="flex-1 min-w-0">
@@ -472,76 +479,105 @@ export const Inbox: FC<{ mode: 'comments' | 'chats' }> = ({ mode }) => {
                   ))}
 
                 {tab === 'chats' &&
-                  (items as Conversation[]).map((conv) => (
-                    <div
-                      key={conv.id}
-                      className="bg-customColor6 rounded-[10px] p-[12px] mb-[8px]"
-                    >
+                  (items as Conversation[]).map((conv) => {
+                    const open = openThread === conv.id;
+                    const last = conv.messages[conv.messages.length - 1];
+                    return (
                       <div
-                        className="flex justify-between items-center cursor-pointer"
-                        onClick={() =>
-                          setOpenThread(openThread === conv.id ? '' : conv.id)
-                        }
+                        key={conv.id}
+                        className={`bg-customColor6 rounded-[10px] mb-[8px] border transition-colors ${
+                          open
+                            ? 'border-customColor21'
+                            : 'border-transparent hover:border-[#3a4150]'
+                        }`}
                       >
-                        <span className="font-bold text-[13px]">
-                          {conv.participantName || 'nieznany'}
-                        </span>
-                        <span className="text-[12px] text-[#8B8B8B]">
-                          {when(conv.updatedAt)}
-                        </span>
-                      </div>
+                        <div
+                          className="flex items-center gap-[10px] p-[12px] cursor-pointer select-none"
+                          onClick={() => setOpenThread(open ? '' : conv.id)}
+                        >
+                          <div className="w-[32px] h-[32px] rounded-full bg-customColor2 flex items-center justify-center text-[13px] shrink-0">
+                            {(conv.participantName || '?').slice(0, 1).toUpperCase()}
+                          </div>
 
-                      {openThread === conv.id && (
-                        <div className="mt-[10px] flex flex-col gap-[6px]">
-                          {conv.messages.map((m) => (
-                            <div
-                              key={m.id}
-                              className={`text-[13px] p-[8px] rounded-[8px] max-w-[75%] ${
-                                m.isFromUs
-                                  ? 'bg-customColor21 self-end'
-                                  : 'bg-customColor2 self-start'
-                              }`}
-                            >
-                              {m.text}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-[8px]">
+                              <span className="font-bold text-[13px] truncate">
+                                {conv.participantName || 'nieznany'}
+                              </span>
+                              <span className="text-[11px] text-[#8B8B8B] shrink-0">
+                                {when(conv.updatedAt)}
+                              </span>
                             </div>
-                          ))}
+                            {/* Podglad ostatniej wiadomosci, zeby nie trzeba
+                                bylo otwierac watku, by wiedziec o co chodzi. */}
+                            {last && !open && (
+                              <div className="text-[12px] text-[#8B8B8B] truncate">
+                                {last.isFromUs ? 'Ty: ' : ''}
+                                {last.text}
+                              </div>
+                            )}
+                          </div>
 
-                          {conv.canReplyFreely === false ? (
-                            <div className="text-[12px] text-[#B45309] mt-[6px]">
-                              Minelo 24h od ostatniej wiadomosci, Meta nie
-                              pozwala juz na zwykla odpowiedz.
-                            </div>
-                          ) : (
-                            <div className="flex gap-[8px] mt-[8px]">
-                              <textarea
-                                className="bg-customColor2 rounded-[6px] p-[8px] text-[14px] flex-1 min-h-[60px]"
-                                value={text}
-                                onChange={(e) => setText(e.target.value)}
-                                placeholder="Odpowiedz..."
-                              />
-                              <button
-                                className="bg-customColor21 rounded-[6px] px-[14px] text-[13px]"
-                                disabled={busy || !text.trim()}
-                                onClick={() =>
-                                  act(
-                                    `/inbox/chats/${channel.id}/send`,
-                                    {
-                                      recipientId: conv.participantId,
-                                      message: text,
-                                    },
-                                    'Wiadomosc wyslana',
-                                    channel
-                                  )
-                                }
-                              >
-                                {busy ? '...' : 'Wyslij'}
-                              </button>
-                            </div>
-                          )}
+                          <span
+                            className="text-[#8B8B8B] text-[12px] shrink-0 transition-transform"
+                            style={{ transform: open ? 'rotate(90deg)' : 'none' }}
+                          >
+                            &#9654;
+                          </span>
                         </div>
-                      )}
-                    </div>
-                  ))}
+
+                        {open && (
+                          <div className="px-[12px] pb-[12px] flex flex-col gap-[6px]">
+                            {conv.messages.map((m) => (
+                              <div
+                                key={m.id}
+                                className={`text-[13px] p-[9px] rounded-[10px] max-w-[75%] ${
+                                  m.isFromUs
+                                    ? 'bg-customColor21 self-end'
+                                    : 'bg-customColor2 self-start'
+                                }`}
+                              >
+                                {m.text}
+                              </div>
+                            ))}
+
+                            {conv.canReplyFreely === false ? (
+                              <div className="text-[12px] text-[#B45309] mt-[6px]">
+                                Minelo 24h od ostatniej wiadomosci, Meta nie
+                                pozwala juz na zwykla odpowiedz.
+                              </div>
+                            ) : (
+                              <div className="flex gap-[8px] mt-[8px]">
+                                <textarea
+                                  className="bg-customColor2 rounded-[8px] p-[9px] text-[14px] flex-1 min-h-[60px]"
+                                  value={text}
+                                  onChange={(e) => setText(e.target.value)}
+                                  placeholder="Napisz odpowiedz..."
+                                />
+                                <button
+                                  className="bg-customColor21 rounded-[8px] px-[16px] text-[13px] disabled:opacity-40"
+                                  disabled={busy || !text.trim()}
+                                  onClick={() =>
+                                    act(
+                                      `/inbox/chats/${channel.id}/send`,
+                                      {
+                                        recipientId: conv.participantId,
+                                        message: text,
+                                      },
+                                      'Wiadomosc wyslana',
+                                      channel
+                                    )
+                                  }
+                                >
+                                  {busy ? '...' : 'Wyslij'}
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
               </div>
             );
           })}
