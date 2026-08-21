@@ -1327,6 +1327,34 @@ export class InstagramProvider
     };
   }
 
+  // Instagram uzywa pola `hide`, nie `is_hidden` jak Facebook.
+  async hideComment(
+    commentId: string,
+    hidden: boolean,
+    token: string
+  ): Promise<{ success: boolean }> {
+    const [accessToken] = token.split('___');
+    await this.fetch(
+      `https://graph.facebook.com/v20.0/${commentId}?hide=${hidden}&access_token=${accessToken}`,
+      { method: 'POST' },
+      hidden ? 'hide comment' : 'unhide comment'
+    );
+    return { success: true };
+  }
+
+  async deleteComment(
+    commentId: string,
+    token: string
+  ): Promise<{ success: boolean }> {
+    const [accessToken] = token.split('___');
+    await this.fetch(
+      `https://graph.facebook.com/v20.0/${commentId}?access_token=${accessToken}`,
+      { method: 'DELETE' },
+      'delete comment'
+    );
+    return { success: true };
+  }
+
   async recentComments(
     id: string,
     token: string,

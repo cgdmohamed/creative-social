@@ -9,6 +9,27 @@ import { IntegrationService } from '@gitroom/nestjs-libraries/database/prisma/in
 export class InboxController {
   constructor(private _integrationService: IntegrationService) {}
 
+  @Get('/channels')
+  async channels(@GetOrgFromRequest() org: Organization) {
+    return this._integrationService.getInboxChannels(org);
+  }
+
+  @Get('/channels/:id/comments')
+  async channelComments(
+    @GetOrgFromRequest() org: Organization,
+    @Param('id') id: string
+  ) {
+    return this._integrationService.getChannelComments(org, id);
+  }
+
+  @Get('/channels/:id/chats')
+  async channelChats(
+    @GetOrgFromRequest() org: Organization,
+    @Param('id') id: string
+  ) {
+    return this._integrationService.getChannelConversations(org, id);
+  }
+
   @Get('/comments')
   async comments(@GetOrgFromRequest() org: Organization) {
     return this._integrationService.getInboxComments(org);
@@ -25,6 +46,20 @@ export class InboxController {
       id,
       body.commentId,
       body.message
+    );
+  }
+
+  @Post('/comments/:id/moderate')
+  async moderateComment(
+    @GetOrgFromRequest() org: Organization,
+    @Param('id') id: string,
+    @Body() body: { commentId: string; action: 'hide' | 'unhide' | 'delete' }
+  ) {
+    return this._integrationService.moderateComment(
+      org,
+      id,
+      body.commentId,
+      body.action
     );
   }
 

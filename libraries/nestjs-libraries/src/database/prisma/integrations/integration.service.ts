@@ -9,6 +9,9 @@ import { IntegrationRepository } from '@gitroom/nestjs-libraries/database/prisma
 import { IntegrationManager } from '@gitroom/nestjs-libraries/integrations/integration.manager';
 import {
   AnalyticsData,
+  AuthTokenDetails,
+  SocialComment,
+  SocialConversation,
   SocialProvider,
 } from '@gitroom/nestjs-libraries/integrations/social/social.integrations.interface';
 import { Integration, Organization } from '@prisma/client';
@@ -487,6 +490,146 @@ export class IntegrationService {
       return null;
     }
     return data.accessToken;
+  }
+
+  /** Ukrywa albo odkrywa komentarz. Lagodniejsze od usuniecia. */
+  async moderateComment(
+    org: Organization,
+    id: string,
+    commentId: string,
+    action: 'hide' | 'unhide' | 'delete'
+  ) {
+    const integration = await this.getIntegrationById(org.id, id);
+    if (!integration) {
+      throw new Error('Invalid integration');
+    }
+    const provider = this._integrationManager.getSocialIntegration(
+      integration.providerIdentifier
+    );
+    const token = await this.freshToken(org, integration);
+    if (!token) {
+      throw new Error('RELOGIN');
+    }
+
+    if (action === 'delete') {
+      if (!provider?.deleteComment) {
+        throw new Error('Provider does not support deleting comments');
+      }
+      return provider.deleteComment(commentId, token);
+    }
+
+    if (!provider?.hideComment) {
+      throw new Error('Provider does not support hiding comments');
+    }
+    return provider.hideComment(commentId, action === 'hide', token);
+  }
+
+  /** Lista kanalow do panelu inboxa. Szybka - bez wywolan do platform. */
+  async getInboxChannels(org: Organization) {
+    const integrations = await this._integrationRepository.getIntegrationsList(
+      org.id
+    );
+
+    return integrations
+      .filter((i: any) => i.type === 'social' && !i.disabled)
+      .map((i: any) => {
+        const provider = this._integrationManager.getSocialIntegration(
+          i.providerIdentifier
+        );
+        return {
+          id: i.id,
+          name: i.name,
+          picture: i.picture,
+          provider: i.providerIdentifier,
+          profile: i.profile,
+          supportsComments: !!provider?.recentComments,
+          supportsChats: !!provider?.conversations,
+        };
+      });
+  }
+
+  /** Komentarze JEDNEGO kanalu. Frontend odpytuje kanaly osobno, dzieki czemu
+   *  wolny kanal nie blokuje calego widoku i wyniki pojawiaja sie stopniowo. */
+  async getChannelComments(org: Organization, id: string) {
+    const integration = await this.getIntegrationById(org.id, id);
+    if (!integration) {
+      throw new Error('Invalid integration');
+    }
+
+    const integrations = await this._integrationRepository.getIntegrationsList(
+      org.id
+    );
+    const ownIds = new Set(
+      integrations.map((i: any) => String(i.internalId)).filter(Boolean)
+    );
+    const ownHandles = new Set(
+      integrations
+        .map((i: any) => String(i.profile || '').replace(/^@/, '').toLowerCase())
+        .filter(Boolean)
+    );
+
+    const provider = this._integrationManager.getSocialIntegration(
+      integration.providerIdentifier
+    );
+    if (!provider?.recentComments) {
+      return { comments: [] as SocialComment[] };
+    }
+
+    const token = await this.freshToken(org, integration);
+    if (!token) {
+      return { error: 'RELOGIN', comments: [] as SocialComment[] };
+    }
+
+    try {
+      const comments = await this.withTimeout(
+        provider.recentComments(integration.internalId, token, { limit: 6 }),
+        50000,
+        integration.name
+      );
+      return {
+        comments: comments.filter(
+          (c) =>
+            !(c.authorId && ownIds.has(String(c.authorId))) &&
+            !(
+              c.authorName &&
+              ownHandles.has(c.authorName.replace(/^@/, '').toLowerCase())
+            )
+        ),
+      };
+    } catch (err: any) {
+      return { error: String(err?.message || err).slice(0, 200), comments: [] };
+    }
+  }
+
+  /** Rozmowy JEDNEGO kanalu. */
+  async getChannelConversations(org: Organization, id: string) {
+    const integration = await this.getIntegrationById(org.id, id);
+    if (!integration) {
+      throw new Error('Invalid integration');
+    }
+    const provider = this._integrationManager.getSocialIntegration(
+      integration.providerIdentifier
+    );
+    if (!provider?.conversations) {
+      return { conversations: [] as SocialConversation[] };
+    }
+    const token = await this.freshToken(org, integration);
+    if (!token) {
+      return { error: 'RELOGIN', conversations: [] as SocialConversation[] };
+    }
+    try {
+      const conversations = await this.withTimeout(
+        provider.conversations(integration.internalId, token, { limit: 25 }),
+        50000,
+        integration.name
+      );
+      return { conversations };
+    } catch (err: any) {
+      return {
+        error: String(err?.message || err).slice(0, 200),
+        conversations: [],
+      };
+    }
   }
 
   /**

@@ -1105,6 +1105,35 @@ export class FacebookProvider extends SocialAbstract implements SocialProvider {
     };
   }
 
+  async hideComment(
+    commentId: string,
+    hidden: boolean,
+    accessToken: string
+  ): Promise<{ success: boolean }> {
+    await this.fetch(
+      `https://graph.facebook.com/v23.0/${commentId}?access_token=${accessToken}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ is_hidden: hidden }),
+      },
+      hidden ? 'hide comment' : 'unhide comment'
+    );
+    return { success: true };
+  }
+
+  async deleteComment(
+    commentId: string,
+    accessToken: string
+  ): Promise<{ success: boolean }> {
+    await this.fetch(
+      `https://graph.facebook.com/v23.0/${commentId}?access_token=${accessToken}`,
+      { method: 'DELETE' },
+      'delete comment'
+    );
+    return { success: true };
+  }
+
   async recentComments(
     id: string,
     accessToken: string,

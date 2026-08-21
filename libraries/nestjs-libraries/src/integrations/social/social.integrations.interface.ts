@@ -150,6 +150,19 @@ export interface ISocialMediaIntegration {
     options?: CommentsQuery
   ): Promise<SocialComment[]>;
 
+  // Moderacja komentarzy. Ukrywanie jest lagodniejsze od usuwania: komentarz
+  // znika dla innych, ale jego autor nadal go widzi, wiec nie wraca z pretensjami.
+  hideComment?(
+    commentId: string,
+    hidden: boolean,
+    accessToken: string
+  ): Promise<{ success: boolean }>;
+
+  deleteComment?(
+    commentId: string,
+    accessToken: string
+  ): Promise<{ success: boolean }>;
+
   conversations?(
     id: string,
     accessToken: string,

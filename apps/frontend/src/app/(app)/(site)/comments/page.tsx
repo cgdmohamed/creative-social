@@ -4,10 +4,10 @@ import { Inbox } from '@gitroom/frontend/components/inbox/inbox';
 import { isGeneralServerSide } from '@gitroom/helpers/utils/is.general.server.side';
 
 export const metadata: Metadata = {
-  title: `${isGeneralServerSide() ? 'Postiz' : 'Gitroom'} Inbox`,
+  title: `${isGeneralServerSide() ? 'Postiz' : 'Gitroom'} Comments`,
   description: '',
 };
 
 export default async function Index() {
-  return <Inbox />;
+  return <Inbox mode="comments" />;
 }
