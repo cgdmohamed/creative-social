@@ -7,6 +7,8 @@ import {
   PostResponse,
   SocialComment,
   SocialCommentReply,
+  SocialConversation,
+  SocialMessage,
   SocialProvider,
 } from '@gitroom/nestjs-libraries/integrations/social/social.integrations.interface';
 import { makeSecureId } from '@gitroom/nestjs-libraries/services/make.secure.id';
@@ -45,6 +47,9 @@ export class InstagramProvider
     'instagram_content_publish',
     'instagram_manage_comments',
     'instagram_manage_insights',
+    // Wiadomosci: dodatkowo wymaga zdolnosci po stronie aplikacji Meta
+    // (App Review), samo uprawnienie w tokenie nie wystarczy.
+    'instagram_business_manage_messages',
   ];
   override maxConcurrentJob = 400;
   editor = 'normal' as const;
@@ -1320,6 +1325,116 @@ export class InstagramProvider
     return {
       id: data.id,
     };
+  }
+
+  async recentComments(
+    id: string,
+    token: string,
+    options?: CommentsQuery
+  ): Promise<SocialComment[]> {
+    const [accessToken] = token.split('___');
+    const { data } = await (
+      await this.fetch(
+        `https://graph.facebook.com/v20.0/${id}/media?fields=id,caption,permalink` +
+          `&limit=${options?.limit ?? 15}&access_token=${accessToken}`,
+        {},
+        'read media'
+      )
+    ).json();
+
+    const all: SocialComment[] = [];
+    for (const media of data || []) {
+      const comments = await this.comments(id, media.id, token, options);
+      all.push(
+        ...comments.map((c) => ({
+          ...c,
+          postId: media.id,
+          postText: media.caption || '',
+          postUrl: media.permalink,
+        }))
+      );
+    }
+    return all;
+  }
+
+  // Rozmowy na Instagramie ida przez powiazana strone Facebooka
+  // (platform=instagram). Wymaga App Review - bez niego Graph zwraca
+  // (#3) "Application does not have the capability".
+  async conversations(
+    id: string,
+    token: string,
+    options?: CommentsQuery
+  ): Promise<SocialConversation[]> {
+    const [accessToken] = token.split('___');
+    const limit = options?.limit ?? 25;
+
+    const { data } = await (
+      await this.fetch(
+        `https://graph.facebook.com/v20.0/${id}/conversations?access_token=${accessToken}` +
+          `&platform=instagram&limit=${limit}` +
+          '&fields=id,updated_time,unread_count,participants,' +
+          'messages.limit(25){id,message,created_time,from}',
+        {},
+        'read conversations'
+      )
+    ).json();
+
+    return (data || []).map((thread: any): SocialConversation => {
+      const other = (thread.participants?.data || []).find(
+        (p: any) => String(p.id) !== String(id)
+      );
+
+      const messages: SocialMessage[] = (thread.messages?.data || [])
+        .map((m: any): SocialMessage => ({
+          id: m.id,
+          text: m.message || '',
+          createdAt: dayjs(m.created_time).toISOString(),
+          fromId: m.from?.id,
+          fromName: m.from?.username || m.from?.name,
+          isFromUs: String(m.from?.id) === String(id),
+        }))
+        .reverse();
+
+      const lastFromThem = [...messages].reverse().find((m) => !m.isFromUs);
+      const canReplyFreely = !!lastFromThem &&
+        dayjs().diff(dayjs(lastFromThem.createdAt), 'hour') < 24;
+
+      return {
+        id: thread.id,
+        participantId: other?.id,
+        participantName: other?.username || other?.name,
+        updatedAt: dayjs(thread.updated_time).toISOString(),
+        unread: (thread.unread_count || 0) > 0,
+        canReplyFreely,
+        messages,
+      };
+    });
+  }
+
+  async sendMessage(
+    id: string,
+    recipientId: string,
+    message: string,
+    token: string
+  ): Promise<{ id: string }> {
+    const [accessToken] = token.split('___');
+
+    const data = await (
+      await this.fetch(
+        `https://graph.facebook.com/v20.0/${id}/messages?access_token=${accessToken}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            recipient: { id: recipientId },
+            message: { text: message },
+          }),
+        },
+        'send message'
+      )
+    ).json();
+
+    return { id: data.message_id || data.id };
   }
 
   async analytics(

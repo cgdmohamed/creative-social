@@ -7,6 +7,8 @@ import {
   PostResponse,
   SocialComment,
   SocialCommentReply,
+  SocialConversation,
+  SocialMessage,
   SocialProvider,
 } from '@gitroom/nestjs-libraries/integrations/social/social.integrations.interface';
 import { makeSecureId } from '@gitroom/nestjs-libraries/services/make.secure.id';
@@ -43,6 +45,8 @@ export class FacebookProvider extends SocialAbstract implements SocialProvider {
     'pages_manage_engagement',
     'pages_read_engagement',
     'read_insights',
+    // Wiadomosci: wymaga ponownego zalogowania kanalu, zeby token je poniosl.
+    'pages_messaging',
   ];
   override maxConcurrentJob = 500; // Facebook has reasonable rate limits
   editor = 'normal' as const;
@@ -1099,6 +1103,115 @@ export class FacebookProvider extends SocialAbstract implements SocialProvider {
       id: data.id,
       permalink: data.permalink_url,
     };
+  }
+
+  async recentComments(
+    id: string,
+    accessToken: string,
+    options?: CommentsQuery
+  ): Promise<SocialComment[]> {
+    const { data } = await (
+      await this.fetch(
+        `https://graph.facebook.com/v23.0/${id}/posts?fields=id,message,permalink_url` +
+          `&limit=${options?.limit ?? 15}&access_token=${accessToken}`,
+        {},
+        'read posts'
+      )
+    ).json();
+
+    const all: SocialComment[] = [];
+    for (const post of data || []) {
+      const comments = await this.comments(id, post.id, accessToken, options);
+      all.push(
+        ...comments.map((c) => ({
+          ...c,
+          postId: post.id,
+          postText: post.message || '',
+          postUrl: post.permalink_url,
+        }))
+      );
+    }
+    return all;
+  }
+
+  // Prywatne rozmowy ze strony. Wymaga uprawnienia pages_messaging - bez niego
+  // Graph zwraca (#200) i UI pokazuje prosbe o ponowne zalogowanie kanalu.
+  async conversations(
+    id: string,
+    accessToken: string,
+    options?: CommentsQuery
+  ): Promise<SocialConversation[]> {
+    const limit = options?.limit ?? 25;
+
+    const { data } = await (
+      await this.fetch(
+        `https://graph.facebook.com/v23.0/${id}/conversations?access_token=${accessToken}` +
+          `&platform=messenger&limit=${limit}` +
+          '&fields=id,updated_time,unread_count,participants,' +
+          'messages.limit(25){id,message,created_time,from}',
+        {},
+        'read conversations'
+      )
+    ).json();
+
+    return (data || []).map((thread: any): SocialConversation => {
+      const other = (thread.participants?.data || []).find(
+        (p: any) => String(p.id) !== String(id)
+      );
+
+      const messages: SocialMessage[] = (thread.messages?.data || [])
+        .map((m: any): SocialMessage => ({
+          id: m.id,
+          text: m.message || '',
+          createdAt: dayjs(m.created_time).toISOString(),
+          fromId: m.from?.id,
+          fromName: m.from?.name,
+          isFromUs: String(m.from?.id) === String(id),
+        }))
+        .reverse();
+
+      // Meta pozwala odpisac swobodnie tylko w ciagu 24h od ostatniej wiadomosci
+      // rozmowcy. Poza tym oknem trzeba uzyc oznaczonych typow wiadomosci,
+      // dlatego UI nie moze wtedy pokazywac zwyklego pola odpowiedzi.
+      const lastFromThem = [...messages].reverse().find((m) => !m.isFromUs);
+      const canReplyFreely = !!lastFromThem &&
+        dayjs().diff(dayjs(lastFromThem.createdAt), 'hour') < 24;
+
+      return {
+        id: thread.id,
+        participantId: other?.id,
+        participantName: other?.name,
+        updatedAt: dayjs(thread.updated_time).toISOString(),
+        unread: (thread.unread_count || 0) > 0,
+        canReplyFreely,
+        messages,
+      };
+    });
+  }
+
+  async sendMessage(
+    id: string,
+    recipientId: string,
+    message: string,
+    accessToken: string
+  ): Promise<{ id: string }> {
+    const data = await (
+      await this.fetch(
+        `https://graph.facebook.com/v23.0/${id}/messages?access_token=${accessToken}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            recipient: { id: recipientId },
+            message: { text: message },
+            messaging_type: 'RESPONSE',
+          }),
+        },
+        'send message'
+      )
+    ).json();
+
+    return { id: data.message_id || data.id };
   }
 
   async analytics(

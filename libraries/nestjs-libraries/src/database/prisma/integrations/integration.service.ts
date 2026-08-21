@@ -460,6 +460,199 @@ export class IntegrationService {
     return { success: true };
   }
 
+  // --- Inbox: komentarze i wiadomosci ---
+
+  /** Token kanalu, odswiezony jesli wygasl. Null = kanal wymaga ponownego logowania. */
+  private async freshToken(org: Organization, integration: any) {
+    if (!dayjs(integration?.tokenExpiration).isBefore(dayjs())) {
+      return integration.token;
+    }
+    const data = await this._refreshIntegrationService.refresh(integration);
+    // refresh zwraca false, gdy kanal wymaga ponownego zalogowania.
+    if (!data || typeof data === 'boolean' || !data.accessToken) {
+      return null;
+    }
+    return data.accessToken;
+  }
+
+  /**
+   * Zbiera komentarze ze wszystkich kanalow organizacji.
+   *
+   * Komentarze napisane z naszych wlasnych kanalow (np. pierwszy komentarz
+   * z linkiem, ktory Postiz dodaje przy publikacji) sa odsiewane - inbox ma
+   * pokazywac tylko to, na co trzeba odpowiedziec.
+   */
+  async getInboxComments(org: Organization) {
+    const integrations = await this._integrationRepository.getIntegrationsList(
+      org.id
+    );
+
+    const ownIds = new Set(
+      integrations.map((i: any) => String(i.internalId)).filter(Boolean)
+    );
+    const ownHandles = new Set(
+      integrations
+        .map((i: any) => String(i.profile || '').replace(/^@/, '').toLowerCase())
+        .filter(Boolean)
+    );
+
+    const results: any[] = [];
+    for (const integration of integrations) {
+      if (integration.type !== 'social' || integration.disabled) {
+        continue;
+      }
+      const provider = this._integrationManager.getSocialIntegration(
+        integration.providerIdentifier
+      );
+      if (!provider?.recentComments) {
+        continue;
+      }
+
+      try {
+        const token = await this.freshToken(org, integration);
+        if (!token) {
+          results.push({
+            channel: integration.name,
+            provider: integration.providerIdentifier,
+            error: 'RELOGIN',
+            comments: [],
+          });
+          continue;
+        }
+
+        const comments = await provider.recentComments(
+          integration.internalId,
+          token,
+          { limit: 15 }
+        );
+
+        results.push({
+          channel: integration.name,
+          channelId: integration.id,
+          picture: integration.picture,
+          provider: integration.providerIdentifier,
+          comments: comments.filter(
+            (c) =>
+              !(c.authorId && ownIds.has(String(c.authorId))) &&
+              !(
+                c.authorName &&
+                ownHandles.has(c.authorName.replace(/^@/, '').toLowerCase())
+              )
+          ),
+        });
+      } catch (err: any) {
+        results.push({
+          channel: integration.name,
+          provider: integration.providerIdentifier,
+          error: String(err?.message || err).slice(0, 200),
+          comments: [],
+        });
+      }
+    }
+
+    return results;
+  }
+
+  async replyToComment(
+    org: Organization,
+    id: string,
+    commentId: string,
+    message: string
+  ) {
+    const integration = await this.getIntegrationById(org.id, id);
+    if (!integration) {
+      throw new Error('Invalid integration');
+    }
+    const provider = this._integrationManager.getSocialIntegration(
+      integration.providerIdentifier
+    );
+    if (!provider?.reply) {
+      throw new Error('Provider does not support replies');
+    }
+    const token = await this.freshToken(org, integration);
+    if (!token) {
+      throw new Error('RELOGIN');
+    }
+    return provider.reply(integration.internalId, commentId, message, token);
+  }
+
+  /** Prywatne rozmowy. Kanaly bez uprawnien zwracaja wpis z polem error. */
+  async getInboxConversations(org: Organization) {
+    const integrations = await this._integrationRepository.getIntegrationsList(
+      org.id
+    );
+
+    const results: any[] = [];
+    for (const integration of integrations) {
+      if (integration.type !== 'social' || integration.disabled) {
+        continue;
+      }
+      const provider = this._integrationManager.getSocialIntegration(
+        integration.providerIdentifier
+      );
+      if (!provider?.conversations) {
+        continue;
+      }
+
+      try {
+        const token = await this.freshToken(org, integration);
+        if (!token) {
+          throw new Error('RELOGIN');
+        }
+        const conversations = await provider.conversations(
+          integration.internalId,
+          token,
+          { limit: 25 }
+        );
+        results.push({
+          channel: integration.name,
+          channelId: integration.id,
+          picture: integration.picture,
+          provider: integration.providerIdentifier,
+          conversations,
+        });
+      } catch (err: any) {
+        results.push({
+          channel: integration.name,
+          channelId: integration.id,
+          provider: integration.providerIdentifier,
+          error: String(err?.message || err).slice(0, 200),
+          conversations: [],
+        });
+      }
+    }
+
+    return results;
+  }
+
+  async sendInboxMessage(
+    org: Organization,
+    id: string,
+    recipientId: string,
+    message: string
+  ) {
+    const integration = await this.getIntegrationById(org.id, id);
+    if (!integration) {
+      throw new Error('Invalid integration');
+    }
+    const provider = this._integrationManager.getSocialIntegration(
+      integration.providerIdentifier
+    );
+    if (!provider?.sendMessage) {
+      throw new Error('Provider does not support messages');
+    }
+    const token = await this.freshToken(org, integration);
+    if (!token) {
+      throw new Error('RELOGIN');
+    }
+    return provider.sendMessage(
+      integration.internalId,
+      recipientId,
+      message,
+      token
+    );
+  }
+
   async checkAnalytics(
     org: Organization,
     integration: string,

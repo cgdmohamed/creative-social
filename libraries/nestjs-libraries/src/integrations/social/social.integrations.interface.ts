@@ -140,6 +140,28 @@ export interface ISocialMediaIntegration {
     message: string,
     accessToken: string
   ): Promise<SocialCommentReply>; // Answers one specific comment
+
+  // Zbiera komentarze z ostatnich publikacji kanalu. Provider sam znajduje
+  // swoje posty, bo Instagram wymaga przejscia przez /media, a Facebook przez
+  // /posts - dzieki temu warstwa nad providerem nie musi tego wiedziec.
+  recentComments?(
+    id: string,
+    accessToken: string,
+    options?: CommentsQuery
+  ): Promise<SocialComment[]>;
+
+  conversations?(
+    id: string,
+    accessToken: string,
+    options?: CommentsQuery
+  ): Promise<SocialConversation[]>; // Reads private message threads
+
+  sendMessage?(
+    id: string,
+    recipientId: string,
+    message: string,
+    accessToken: string
+  ): Promise<{ id: string }>; // Answers one conversation
 }
 
 export type CommentsQuery = {
@@ -158,11 +180,40 @@ export type SocialComment = {
   parentId?: string; // Set when this comment answers another comment
   isOwnComment?: boolean; // Undefined when the platform gives no way to tell
   replies?: SocialComment[]; // Only filled by providers that return them inline
+  postId?: string; // Publication the comment sits under, filled by recentComments
+  postText?: string;
+  postUrl?: string;
 };
 
 export type SocialCommentReply = {
   id: string; // Platform id of the reply we just created
   permalink?: string;
+};
+
+// --- Direct messages ---
+// Separate from comments: comments are public and can be answered any time,
+// while a conversation is private and platforms limit when we may reply
+// (Meta allows a free-form answer only within 24h of the person's last message).
+
+export type SocialMessage = {
+  id: string;
+  text: string;
+  createdAt: string; // ISO 8601
+  fromId?: string;
+  fromName?: string;
+  isFromUs: boolean; // true when we sent it, so the thread renders correctly
+};
+
+export type SocialConversation = {
+  id: string; // Conversation id, the handle sendMessage takes
+  participantId?: string; // Person we are talking to
+  participantName?: string;
+  updatedAt: string;
+  unread?: boolean;
+  // Whether a plain reply is still allowed. Outside the window platforms
+  // require tagged messages, so the UI must not offer a normal reply box.
+  canReplyFreely?: boolean;
+  messages: SocialMessage[];
 };
 
 export type PostResponse = {
