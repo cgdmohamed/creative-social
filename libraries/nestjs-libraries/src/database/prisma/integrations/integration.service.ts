@@ -747,14 +747,46 @@ export class IntegrationService {
   /** Czytelny opis bledu. Providery rzucaja rozne ksztalty: Error, obiekt
    *  Graph API, czasem goly string - bez tego w UI ladowalo "[object Object]". */
   private describeError(err: any): string {
-    if (!err) return 'Nieznany blad';
-    if (typeof err === 'string') return err.slice(0, 200);
+    if (!err) return 'Unknown error';
+    if (typeof err === 'string') {
+      // SocialAbstract pakuje odpowiedz platformy w {identifier, json},
+      // gdzie json to zserializowany blad Graph API - rozpakowujemy go,
+      // zeby w UI nie ladowal surowy JSON.
+      const nested = this.unwrapPlatformError(err);
+      if (nested) return nested;
+      return err.slice(0, 200);
+    }
+
+    if (typeof err.json === 'string') {
+      const nested = this.unwrapPlatformError(err.json);
+      if (nested) return nested;
+    }
+
     const direct = err.message || err.error?.message || err.body?.error?.message;
-    if (typeof direct === 'string' && direct) return direct.slice(0, 200);
+    if (typeof direct === 'string' && direct) {
+      const nested = this.unwrapPlatformError(direct);
+      return (nested || direct).slice(0, 200);
+    }
+
     try {
       return JSON.stringify(err).slice(0, 200);
     } catch {
-      return 'Nieznany blad';
+      return 'Unknown error';
+    }
+  }
+
+  /** Wyciaga error.message z zagniezdzonego JSON-a platformy. */
+  private unwrapPlatformError(text: string): string | null {
+    if (!text.includes('{')) return null;
+    try {
+      let parsed: any = JSON.parse(text.slice(text.indexOf('{')));
+      if (typeof parsed?.json === 'string') {
+        parsed = JSON.parse(parsed.json);
+      }
+      const message = parsed?.error?.message || parsed?.message;
+      return typeof message === 'string' ? message.slice(0, 200) : null;
+    } catch {
+      return null;
     }
   }
 
