@@ -696,6 +696,9 @@ export class IntegrationService {
           picture: i.picture,
           provider: i.providerIdentifier,
           profile: i.profile,
+          // Klient (customer) jest juz dociagany przez getIntegrationsList -
+          // panel grupuje po nim kanaly tak samo jak menu w kalendarzu.
+          customer: i.customer ? { id: i.customer.id, name: i.customer.name } : null,
           supportsComments: !!provider?.recentComments,
           supportsChats: !!provider?.conversations,
         };

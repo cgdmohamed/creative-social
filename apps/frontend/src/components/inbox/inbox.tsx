@@ -1,14 +1,19 @@
 'use client';
 
 import { FC, useCallback, useEffect, useMemo, useState } from 'react';
+import { groupBy, orderBy } from 'lodash';
+import Image from 'next/image';
+import ImageWithFallback from '@gitroom/react/helpers/image.with.fallback';
 import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
 import { useToaster } from '@gitroom/react/toaster/toaster';
+import { OpenClose } from '@gitroom/frontend/components/launches/launches.component';
 
 type Channel = {
   id: string;
   name: string;
   picture?: string;
   provider: string;
+  customer?: { id: string; name: string } | null;
   supportsComments: boolean;
   supportsChats: boolean;
 };
@@ -71,8 +76,10 @@ const explain = (error: any): string => {
     error = error.message || JSON.stringify(error);
   }
   const e = String(error || '');
-  if (e === 'RELOGIN') return 'This channel needs to be reconnected in Settings.';
-  if (e.startsWith('TIMEOUT')) return 'The platform is responding too slowly. Try refreshing.';
+  if (e === 'RELOGIN')
+    return 'This channel needs to be reconnected in Settings.';
+  if (e.startsWith('TIMEOUT'))
+    return 'The platform is responding too slowly. Try refreshing.';
   if (e.includes('pages_messaging') || e.includes('(#200)'))
     return 'Missing messaging permission. Reconnect this channel.';
   if (e.includes('(#3)') || e.includes('capability'))
@@ -80,32 +87,167 @@ const explain = (error: any): string => {
   return e;
 };
 
-const PROVIDER_DOT: Record<string, string> = {
-  facebook: '#1877F2',
-  instagram: '#E1306C',
-  youtube: '#FF0000',
-  discord: '#5865F2',
+// Avatar kanalu w tym samym jezyku wizualnym co menu kanalow w Launches:
+// zdjecie profilowe + realna ikona platformy w rogu, zamiast kolorowej kropki.
+// Dzieki temu od razu widac, czy pozycja jest z Facebooka, czy z Instagrama.
+const Avatar: FC<{ channel: Channel; size?: number }> = ({
+  channel,
+  size = 32,
+}) => {
+  const badge = Math.round(size / 1.95);
+  return (
+    <div className="relative shrink-0" style={{ width: size, height: size }}>
+      <ImageWithFallback
+        src={channel.picture || '/no-picture.jpg'}
+        fallbackSrc={`/icons/platforms/${channel.provider}.png`}
+        alt={channel.provider}
+        width={size}
+        height={size}
+        className="rounded-[8px] object-cover"
+      />
+      {channel.provider === 'youtube' ? (
+        <img
+          src="/icons/platforms/youtube.svg"
+          className="absolute z-10 -bottom-[3px] -end-[3px]"
+          width={badge}
+          alt="youtube"
+        />
+      ) : (
+        <Image
+          src={`/icons/platforms/${channel.provider}.png`}
+          className="rounded-[6px] absolute z-10 -bottom-[3px] -end-[3px] border border-fifth"
+          alt={channel.provider}
+          width={badge}
+          height={badge}
+        />
+      )}
+    </div>
+  );
 };
 
-const Avatar: FC<{ channel: Channel; size?: number }> = ({ channel, size = 32 }) => (
-  <div className="relative shrink-0" style={{ width: size, height: size }}>
-    {channel.picture ? (
-      <img src={channel.picture} alt="" className="rounded-full w-full h-full object-cover" />
-    ) : (
-      <div className="rounded-full w-full h-full bg-customColor2 flex items-center justify-center text-[12px]">
-        {channel.name.slice(0, 1)}
+type Group = { id: string; name: string; values: Channel[] };
+
+const ChannelRow: FC<{
+  channel: Channel;
+  on: boolean;
+  supported: boolean;
+  unread: number;
+  error?: string;
+  onClick: () => void;
+}> = ({ channel, on, supported, unread, error, onClick }) => (
+  <div
+    title={on ? 'Click to hide' : 'Click to show'}
+    onClick={onClick}
+    // Aktywny kanal jest w pelni widoczny, wylaczony przygaszony -
+    // ten sam jezyk wizualny co panel kanalow w Analytics.
+    className={`flex items-center gap-[12px] py-[9px] px-[4px] cursor-pointer transition-opacity ${
+      on ? 'opacity-100' : 'opacity-35 hover:opacity-60'
+    }`}
+  >
+    <Avatar channel={channel} size={36} />
+    <div className="flex-1 min-w-0">
+      <div className={`text-[14px] truncate ${on ? '' : 'text-[#8B8B8B]'}`}>
+        {channel.name}
       </div>
-    )}
-    <span
-      className="absolute -bottom-[2px] -end-[2px] rounded-full border-2 border-customColor6"
-      style={{
-        width: size / 2.6,
-        height: size / 2.6,
-        background: PROVIDER_DOT[channel.provider] || '#888',
-      }}
-    />
+      {!supported && (
+        <div className="text-[11px] text-[#6f7889]">not available</div>
+      )}
+    </div>
+    {error ? (
+      <span className="text-[13px] text-[#B45309]" title={explain(error)}>
+        !
+      </span>
+    ) : unread > 0 ? (
+      <span className="text-[11px] bg-customColor21 rounded-full px-[7px] min-w-[20px] text-center">
+        {unread}
+      </span>
+    ) : null}
   </div>
 );
+
+// Kanaly zebrane pod klientem, tak jak menu kanalow w kalendarzu (Launches).
+// Stan zwiniecia trzymamy w localStorage per grupa, zeby przezyl przeladowanie.
+const ChannelGroup: FC<{
+  group: Group;
+  single: boolean;
+  counts: Record<string, number>;
+  selected: Set<string>;
+  tab: 'comments' | 'chats';
+  syncError: (id: string) => string | undefined;
+  toggle: (id: string) => void;
+  toggleGroup: (group: Group) => void;
+}> = ({
+  group,
+  single,
+  counts,
+  selected,
+  tab,
+  syncError,
+  toggle,
+  toggleGroup,
+}) => {
+  const key = `inbox_group_${group.id || 'none'}_isOpen`;
+  const [isOpen, setIsOpen] = useState(true);
+
+  useEffect(() => {
+    setIsOpen(!!+(localStorage.getItem(key) || '1'));
+  }, [key]);
+
+  const changeOpenClose = useCallback(() => {
+    setIsOpen((prev) => {
+      localStorage.setItem(key, prev ? '0' : '1');
+      return !prev;
+    });
+  }, [key]);
+
+  const unread = group.values.reduce((sum, c) => sum + (counts[c.id] || 0), 0);
+  const allOn = group.values.every((c) => selected.has(c.id));
+
+  return (
+    <div className="mb-[6px]">
+      {/* Grupa bez nazwy (kanaly bez klienta) nie dostaje naglowka, jesli jest jedyna. */}
+      {(!!group.name || !single) && (
+        <div className="flex items-center gap-[6px] px-[4px] py-[6px]">
+          <div
+            className="cursor-pointer flex items-center gap-[6px] min-w-0"
+            onClick={changeOpenClose}
+          >
+            <OpenClose isOpen={isOpen} />
+            <span className="text-[12px] uppercase tracking-wide text-[#8B8B8B] truncate">
+              {group.name || 'No client'}
+            </span>
+          </div>
+          {unread > 0 && (
+            <span className="text-[10px] bg-customColor21 rounded-full px-[6px] min-w-[18px] text-center">
+              {unread}
+            </span>
+          )}
+          <button
+            className="ms-auto text-[11px] text-customColor21 shrink-0"
+            onClick={() => toggleGroup(group)}
+          >
+            {allOn ? 'none' : 'all'}
+          </button>
+        </div>
+      )}
+      <div className={isOpen ? '' : 'hidden'}>
+        {group.values.map((c) => (
+          <ChannelRow
+            key={c.id}
+            channel={c}
+            on={selected.has(c.id)}
+            supported={
+              tab === 'comments' ? c.supportsComments : c.supportsChats
+            }
+            unread={counts[c.id] || 0}
+            error={syncError(c.id)}
+            onClick={() => toggle(c.id)}
+          />
+        ))}
+      </div>
+    </div>
+  );
+};
 
 export const Inbox: FC<{ mode: 'comments' | 'chats' }> = ({ mode }) => {
   const fetch = useFetch();
@@ -146,13 +288,17 @@ export const Inbox: FC<{ mode: 'comments' | 'chats' }> = ({ mode }) => {
       try {
         const kind = tab === 'comments' ? 'comment' : 'conversation';
         const res = sync
-          ? await (await fetch(`/inbox/sync/${kind}`, { method: 'POST' })).json()
+          ? await (
+              await fetch(`/inbox/sync/${kind}`, { method: 'POST' })
+            ).json()
           : await (await fetch(`/inbox/db/${kind}`)).json();
 
         setRows(res.items || []);
         setSync(res.sync || []);
         setRead(
-          new Set((res.items || []).filter((i: any) => i.isRead).map((i: any) => i.id))
+          new Set(
+            (res.items || []).filter((i: any) => i.isRead).map((i: any) => i.id)
+          )
         );
       } catch {
         setRows([]);
@@ -170,25 +316,27 @@ export const Inbox: FC<{ mode: 'comments' | 'chats' }> = ({ mode }) => {
   // Jedna plaska lista pozycji ze wszystkich zaznaczonych kanalow, najnowsze na gorze.
   const items: Item[] = useMemo(() => {
     const byId = new Map(channels.map((c) => [c.id, c]));
-    return rows
-      // Wlasne odpowiedzi nie sa zgloszeniem do obsluzenia - pokazujemy je
-      // dopiero w watku, po otwarciu komentarza.
-      .filter((r) => selected.has(r.integrationId) && !r.isOwn)
-      .map((r) => {
-        const channel = byId.get(r.integrationId);
-        if (!channel) return null;
-        const conv = r.conversation;
-        return {
-          id: r.id,
-          channel,
-          who: r.authorName || 'unknown',
-          preview: r.message || '(no content)',
-          at: r.createdAt,
-          comment: tab === 'comments' ? r : undefined,
-          conversation: conv || undefined,
-        } as Item;
-      })
-      .filter(Boolean) as Item[];
+    return (
+      rows
+        // Wlasne odpowiedzi nie sa zgloszeniem do obsluzenia - pokazujemy je
+        // dopiero w watku, po otwarciu komentarza.
+        .filter((r) => selected.has(r.integrationId) && !r.isOwn)
+        .map((r) => {
+          const channel = byId.get(r.integrationId);
+          if (!channel) return null;
+          const conv = r.conversation;
+          return {
+            id: r.id,
+            channel,
+            who: r.authorName || 'unknown',
+            preview: r.message || '(no content)',
+            at: r.createdAt,
+            comment: tab === 'comments' ? r : undefined,
+            conversation: conv || undefined,
+          } as Item;
+        })
+        .filter(Boolean) as Item[]
+    );
   }, [rows, channels, selected, tab]);
 
   const shown = onlyUnread ? items.filter((i) => !read.has(i.id)) : items;
@@ -206,6 +354,41 @@ export const Inbox: FC<{ mode: 'comments' | 'chats' }> = ({ mode }) => {
     });
     return out;
   }, [rows, read]);
+
+  // Kanaly pogrupowane po kliencie - ta sama kolejnosc co menu w Launches:
+  // grupa bez klienta idzie pierwsza, reszta alfabetycznie.
+  const groups: Group[] = useMemo(
+    () =>
+      orderBy(
+        Object.values(groupBy(channels, (c) => c.customer?.id || '')).map(
+          (values) => ({
+            id: values[0].customer?.id || '',
+            name: values[0].customer?.name || '',
+            values: orderBy(values, ['provider', 'name'], ['asc', 'asc']),
+          })
+        ),
+        ['name'],
+        ['asc']
+      ),
+    [channels]
+  );
+
+  const toggleChannel = useCallback((id: string) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  }, []);
+
+  const toggleGroup = useCallback((group: Group) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      const allOn = group.values.every((c) => next.has(c.id));
+      group.values.forEach((c) => (allOn ? next.delete(c.id) : next.add(c.id)));
+      return next;
+    });
+  }, []);
 
   // Blad synchronizacji kanalu pokazujemy przy kanale, zeby bylo widac,
   // ktore konto wymaga uwagi.
@@ -281,7 +464,9 @@ export const Inbox: FC<{ mode: 'comments' | 'chats' }> = ({ mode }) => {
             className="text-[11px] text-customColor21"
             onClick={() =>
               setSelected(
-                selected.size === channels.length ? new Set() : new Set(channels.map((c) => c.id))
+                selected.size === channels.length
+                  ? new Set()
+                  : new Set(channels.map((c) => c.id))
               )
             }
           >
@@ -289,45 +474,19 @@ export const Inbox: FC<{ mode: 'comments' | 'chats' }> = ({ mode }) => {
           </button>
         </div>
 
-        {channels.map((c) => {
-          const supported = tab === 'comments' ? c.supportsComments : c.supportsChats;
-          const err = syncError(c.id);
-          const n = counts[c.id] || 0;
-          const on = selected.has(c.id);
-          return (
-            <div
-              key={c.id}
-              title={on ? 'Click to hide' : 'Click to show'}
-              onClick={() =>
-                setSelected((prev) => {
-                  const next = new Set(prev);
-                  next.has(c.id) ? next.delete(c.id) : next.add(c.id);
-                  return next;
-                })
-              }
-              // Aktywny kanal jest w pelni widoczny, wylaczony przygaszony -
-              // ten sam jezyk wizualny co panel kanalow w Analytics.
-              className={`flex items-center gap-[12px] py-[9px] px-[4px] cursor-pointer transition-opacity ${
-                on ? 'opacity-100' : 'opacity-35 hover:opacity-60'
-              }`}
-            >
-              <Avatar channel={c} size={36} />
-              <div className="flex-1 min-w-0">
-                <div className={`text-[14px] truncate ${on ? '' : 'text-[#8B8B8B]'}`}>
-                  {c.name}
-                </div>
-                {!supported && <div className="text-[11px] text-[#6f7889]">not available</div>}
-              </div>
-              {err ? (
-                <span className="text-[13px] text-[#B45309]" title={explain(err)}>!</span>
-              ) : n > 0 ? (
-                <span className="text-[11px] bg-customColor21 rounded-full px-[7px] min-w-[20px] text-center">
-                  {n}
-                </span>
-              ) : null}
-            </div>
-          );
-        })}
+        {groups.map((group) => (
+          <ChannelGroup
+            key={group.id || '__none__'}
+            group={group}
+            single={groups.length === 1}
+            counts={counts}
+            selected={selected}
+            tab={tab}
+            syncError={syncError}
+            toggle={toggleChannel}
+            toggleGroup={toggleGroup}
+          />
+        ))}
       </div>
 
       {/* Lista */}
@@ -361,24 +520,41 @@ export const Inbox: FC<{ mode: 'comments' | 'chats' }> = ({ mode }) => {
               <div
                 key={item.id}
                 onClick={() => open(item)}
-                className={`flex gap-[10px] py-[11px] px-[6px] cursor-pointer border-b border-[#232936] transition-colors ${
-                  isActive ? 'bg-customColor2/60' : 'hover:bg-customColor2/30'
-                } ${isRead ? 'opacity-60' : ''}`}
+                // Aktywny watek dostaje pasek akcentu i tlo - przy dlugiej liscie
+                // czatow samo przyciemnienie tla bylo za slabo widoczne.
+                className={`flex gap-[10px] py-[11px] pe-[6px] ps-[9px] cursor-pointer border-b border-[#232936] border-s-[3px] transition-colors ${
+                  isActive
+                    ? 'bg-customColor21/15 border-s-customColor21'
+                    : 'border-s-transparent hover:bg-customColor2/30'
+                } ${isRead && !isActive ? 'opacity-60' : ''}`}
               >
                 <Avatar channel={item.channel} size={26} />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-[6px]">
-                    <span className={`text-[12px] truncate ${isRead ? '' : 'font-bold'}`}>
+                    {!isRead && (
+                      <span className="w-[6px] h-[6px] rounded-full bg-customColor21 shrink-0" />
+                    )}
+                    <span
+                      className={`text-[12px] truncate ${
+                        isRead ? '' : 'font-bold'
+                      }`}
+                    >
                       {item.who}
                     </span>
                     <span className="text-[10px] text-[#8B8B8B] ms-auto shrink-0">
                       {when(item.at)}
                     </span>
                   </div>
-                  <div className={`text-[12px] truncate ${isRead ? 'text-[#8B8B8B]' : ''}`}>
+                  <div
+                    className={`text-[12px] truncate ${
+                      isRead ? 'text-[#8B8B8B]' : ''
+                    }`}
+                  >
                     {item.preview}
                   </div>
-                  <div className="text-[10px] text-[#6f7889] truncate">{item.channel.name}</div>
+                  <div className="text-[10px] text-[#6f7889] truncate">
+                    {item.channel.name}
+                  </div>
                 </div>
               </div>
             );
@@ -400,17 +576,20 @@ export const Inbox: FC<{ mode: 'comments' | 'chats' }> = ({ mode }) => {
       <div className="flex-1 min-w-0 ps-[6px] overflow-y-auto">
         {!active ? (
           <div className="h-full flex items-center justify-center text-[#8B8B8B] text-[14px]">
-            Select a {tab === 'comments' ? 'comment' : 'conversation'} from the list
+            Select a {tab === 'comments' ? 'comment' : 'conversation'} from the
+            list
           </div>
         ) : (
           <div className="flex flex-col gap-[14px]">
             <div className="flex items-center gap-[10px] pb-[12px] border-b border-[#2a3040]">
               <Avatar channel={active.channel} size={34} />
               <div className="min-w-0">
-                <div className="text-[14px] font-bold truncate">{active.who}</div>
+                <div className="text-[14px] font-bold truncate">
+                  {active.who}
+                </div>
                 <div className="text-[11px] text-[#8B8B8B] truncate">
-                  {active.channel.name} &middot; {active.channel.provider} &middot;{' '}
-                  {when(active.at)}
+                  {active.channel.name} &middot; {active.channel.provider}{' '}
+                  &middot; {when(active.at)}
                 </div>
               </div>
               <button
@@ -456,8 +635,8 @@ export const Inbox: FC<{ mode: 'comments' | 'chats' }> = ({ mode }) => {
                           }`}
                         >
                           <div className="text-[11px] text-[#8B8B8B] mb-[3px]">
-                            {t.isOwn ? 'You' : t.authorName || 'unknown'} &middot;{' '}
-                            {when(t.createdAt)}
+                            {t.isOwn ? 'You' : t.authorName || 'unknown'}{' '}
+                            &middot; {when(t.createdAt)}
                           </div>
                           <div className="whitespace-pre-wrap break-words">
                             {t.message || <i>no content</i>}
@@ -504,7 +683,11 @@ export const Inbox: FC<{ mode: 'comments' | 'chats' }> = ({ mode }) => {
                   <button
                     className="text-[#B45309]"
                     onClick={() => {
-                      if (confirm('Deleteac komentarz na stale? Tego nie da sie cofnac.')) {
+                      if (
+                        confirm(
+                          'Deleteac komentarz na stale? Tego nie da sie cofnac.'
+                        )
+                      ) {
                         act(
                           `/inbox/comments/${active.channel.id}/moderate`,
                           { commentId: active.id, action: 'delete' },
@@ -550,18 +733,23 @@ export const Inbox: FC<{ mode: 'comments' | 'chats' }> = ({ mode }) => {
                     <div
                       key={m.id}
                       className={`text-[14px] p-[10px] rounded-[12px] max-w-[80%] ${
-                        m.isFromUs ? 'bg-customColor21 self-end' : 'bg-customColor2 self-start'
+                        m.isFromUs
+                          ? 'bg-customColor21 self-end'
+                          : 'bg-customColor2 self-start'
                       }`}
                     >
                       {m.text}
-                      <div className="text-[10px] opacity-60 mt-[3px]">{when(m.createdAt)}</div>
+                      <div className="text-[10px] opacity-60 mt-[3px]">
+                        {when(m.createdAt)}
+                      </div>
                     </div>
                   ))}
                 </div>
 
                 {active.conversation.canReplyFreely === false ? (
                   <div className="text-[13px] text-[#B45309] bg-customColor2 rounded-[8px] p-[11px]">
-                    More than 24h since their last message. Meta no longer allows a plain reply.
+                    More than 24h since their last message. Meta no longer
+                    allows a plain reply.
                   </div>
                 ) : (
                   <div className="flex flex-col gap-[8px]">
