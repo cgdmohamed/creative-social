@@ -18,9 +18,10 @@ export class InboxRepository {
   list(org: string, kind: string, integrationIds?: string[]) {
     return this._items.model.inboxItem.findMany({
       where: {
+        // Wlasne komentarze TEZ pobieramy: nie trafiaja na liste, ale sa
+        // potrzebne, zeby pokazac nasza odpowiedz w watku pod komentarzem.
         organizationId: org,
         kind,
-        isOwn: false,
         ...(integrationIds?.length
           ? { integrationId: { in: integrationIds } }
           : {}),

@@ -171,7 +171,9 @@ export const Inbox: FC<{ mode: 'comments' | 'chats' }> = ({ mode }) => {
   const items: Item[] = useMemo(() => {
     const byId = new Map(channels.map((c) => [c.id, c]));
     return rows
-      .filter((r) => selected.has(r.integrationId))
+      // Wlasne odpowiedzi nie sa zgloszeniem do obsluzenia - pokazujemy je
+      // dopiero w watku, po otwarciu komentarza.
+      .filter((r) => selected.has(r.integrationId) && !r.isOwn)
       .map((r) => {
         const channel = byId.get(r.integrationId);
         if (!channel) return null;
@@ -197,6 +199,7 @@ export const Inbox: FC<{ mode: 'comments' | 'chats' }> = ({ mode }) => {
   const counts = useMemo(() => {
     const out: Record<string, number> = {};
     rows.forEach((r) => {
+      if (r.isOwn) return;
       if (!r.isRead && !read.has(r.id)) {
         out[r.integrationId] = (out[r.integrationId] || 0) + 1;
       }
@@ -420,6 +423,51 @@ export const Inbox: FC<{ mode: 'comments' | 'chats' }> = ({ mode }) => {
 
             {active.comment && (
               <>
+                {/* Watek: komentarze powiazane z tym samym, w kolejnosci
+                    czasu - dzieki temu widac nasza odpowiedz i to, co
+                    rozmowca napisal po niej. */}
+                {(() => {
+                  const thread = rows
+                    .filter(
+                      (r) =>
+                        r.integrationId === active.channel.id &&
+                        r.id !== active.id &&
+                        (r.parentId === active.id ||
+                          (active.comment?.parentId &&
+                            (r.parentId === active.comment.parentId ||
+                              r.id === active.comment.parentId)))
+                    )
+                    .sort((a, b) => (a.createdAt < b.createdAt ? -1 : 1));
+
+                  if (!thread.length) return null;
+
+                  return (
+                    <div className="flex flex-col gap-[8px] border-s-2 border-[#2a3040] ps-[12px]">
+                      <div className="text-[11px] text-[#8B8B8B] uppercase tracking-wide">
+                        Thread
+                      </div>
+                      {thread.map((t) => (
+                        <div
+                          key={t.id}
+                          className={`text-[13px] p-[9px] rounded-[8px] ${
+                            t.isOwn
+                              ? 'bg-customColor21/25 border border-customColor21/40'
+                              : 'bg-customColor2'
+                          }`}
+                        >
+                          <div className="text-[11px] text-[#8B8B8B] mb-[3px]">
+                            {t.isOwn ? 'You' : t.authorName || 'unknown'} &middot;{' '}
+                            {when(t.createdAt)}
+                          </div>
+                          <div className="whitespace-pre-wrap break-words">
+                            {t.message || <i>no content</i>}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()}
+
                 {active.comment.postText && (
                   <div className="text-[12px] text-[#8B8B8B] bg-customColor2 rounded-[8px] p-[10px]">
                     Under post: {active.comment.postText.slice(0, 160)}

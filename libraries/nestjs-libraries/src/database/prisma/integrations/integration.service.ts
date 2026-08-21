@@ -666,6 +666,7 @@ export class IntegrationService {
         postUrl: i.postUrl,
         createdAt: i.happenedAt,
         isRead: i.isRead,
+        isOwn: i.isOwn,
         conversation: i.payload || undefined,
       })),
       sync: syncs.map((sy: any) => ({
