@@ -41,14 +41,6 @@ type Conversation = {
   messages: Message[];
 };
 
-type ChannelState = {
-  loading: boolean;
-  error?: any;
-  cached?: boolean;
-  comments: Comment[];
-  conversations: Conversation[];
-};
-
 // Jedna pozycja listy srodkowej, niezaleznie od tego, czy to komentarz,
 // czy rozmowa - dzieki temu lista i panel szczegolow maja jeden ksztalt.
 type Item = {
@@ -122,7 +114,9 @@ export const Inbox: FC<{ mode: 'comments' | 'chats' }> = ({ mode }) => {
 
   const [channels, setChannels] = useState<Channel[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [state, setState] = useState<Record<string, ChannelState>>({});
+  const [rows, setRows] = useState<any[]>([]);
+  const [sync, setSync] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [read, setRead] = useState<Set<string>>(new Set());
   const [activeId, setActiveId] = useState('');
   const [text, setText] = useState('');
@@ -143,118 +137,84 @@ export const Inbox: FC<{ mode: 'comments' | 'chats' }> = ({ mode }) => {
     loadChannels();
   }, [loadChannels]);
 
-  const loadChannel = useCallback(
-    async (channel: Channel, which: 'comments' | 'chats', force = false) => {
-      const supported = which === 'comments' ? channel.supportsComments : channel.supportsChats;
-      if (!supported) return;
-
-      setState((prev) => ({
-        ...prev,
-        [channel.id]: {
-          loading: true,
-          comments: prev[channel.id]?.comments || [],
-          conversations: prev[channel.id]?.conversations || [],
-        },
-      }));
-
+  // Wszystko jednym zapytaniem do naszej bazy. Platformy odpytuje cron w tle,
+  // wiec panel otwiera sie natychmiast, niezaleznie od tego, ile kanalow jest
+  // podpietych i jak wolno odpowiada dzis Meta.
+  const loadData = useCallback(
+    async (sync = false) => {
+      setLoading(true);
       try {
-        const res = await (
-          await fetch(`/inbox/channels/${channel.id}/${which}${force ? '?refresh=true' : ''}`)
-        ).json();
+        const kind = tab === 'comments' ? 'comment' : 'conversation';
+        const res = sync
+          ? await (await fetch(`/inbox/sync/${kind}`, { method: 'POST' })).json()
+          : await (await fetch(`/inbox/db/${kind}`)).json();
 
-        setState((prev) => ({
-          ...prev,
-          [channel.id]: {
-            loading: false,
-            error: res.error,
-            cached: !!res.cached,
-            comments: res.comments || [],
-            conversations: res.conversations || [],
-          },
-        }));
-
-        // Cache pokazujemy od razu, swieze dane dociagamy w tle.
-        if (res.cached) {
-          fetch(`/inbox/channels/${channel.id}/${which}?refresh=true`)
-            .then((r) => r.json())
-            .then((fresh) =>
-              setState((prev) => ({
-                ...prev,
-                [channel.id]: {
-                  loading: false,
-                  error: fresh.error,
-                  cached: false,
-                  comments: fresh.comments || [],
-                  conversations: fresh.conversations || [],
-                },
-              }))
-            )
-            .catch(() => undefined);
-        }
-      } catch (e: any) {
-        setState((prev) => ({
-          ...prev,
-          [channel.id]: { loading: false, error: e, comments: [], conversations: [] },
-        }));
+        setRows(res.items || []);
+        setSync(res.sync || []);
+        setRead(
+          new Set((res.items || []).filter((i: any) => i.isRead).map((i: any) => i.id))
+        );
+      } catch {
+        setRows([]);
+      } finally {
+        setLoading(false);
       }
     },
-    [fetch]
+    [fetch, tab]
   );
 
   useEffect(() => {
-    channels.forEach((c) => loadChannel(c, tab));
-  }, [channels, tab, loadChannel]);
+    loadData();
+  }, [loadData]);
 
   // Jedna plaska lista pozycji ze wszystkich zaznaczonych kanalow, najnowsze na gorze.
   const items: Item[] = useMemo(() => {
-    const out: Item[] = [];
-    channels
-      .filter((c) => selected.has(c.id))
-      .forEach((channel) => {
-        const s = state[channel.id];
-        if (!s) return;
-        if (tab === 'comments') {
-          s.comments.forEach((c) =>
-            out.push({
-              id: c.id,
-              channel,
-              who: c.authorName || 'unknown',
-              preview: c.message || '(no content)',
-              at: c.createdAt,
-              comment: c,
-            })
-          );
-        } else {
-          s.conversations.forEach((conv) => {
-            const last = conv.messages[conv.messages.length - 1];
-            out.push({
-              id: conv.id,
-              channel,
-              who: conv.participantName || 'unknown',
-              preview: last ? `${last.isFromUs ? 'Ty: ' : ''}${last.text}` : '',
-              at: conv.updatedAt,
-              conversation: conv,
-            });
-          });
-        }
-      });
-    return out.sort((a, b) => (a.at < b.at ? 1 : -1));
-  }, [channels, selected, state, tab]);
+    const byId = new Map(channels.map((c) => [c.id, c]));
+    return rows
+      .filter((r) => selected.has(r.integrationId))
+      .map((r) => {
+        const channel = byId.get(r.integrationId);
+        if (!channel) return null;
+        const conv = r.conversation;
+        return {
+          id: r.id,
+          channel,
+          who: r.authorName || 'unknown',
+          preview: r.message || '(no content)',
+          at: r.createdAt,
+          comment: tab === 'comments' ? r : undefined,
+          conversation: conv || undefined,
+        } as Item;
+      })
+      .filter(Boolean) as Item[];
+  }, [rows, channels, selected, tab]);
 
   const shown = onlyUnread ? items.filter((i) => !read.has(i.id)) : items;
   const unreadCount = items.filter((i) => !read.has(i.id)).length;
   const active = shown.find((i) => i.id === activeId) || null;
-  const anyLoading = channels.some((c) => state[c.id]?.loading);
+  const anyLoading = loading;
 
   const counts = useMemo(() => {
     const out: Record<string, number> = {};
-    channels.forEach((c) => {
-      const s = state[c.id];
-      const list = tab === 'comments' ? s?.comments || [] : s?.conversations || [];
-      out[c.id] = list.filter((x: any) => !read.has(x.id)).length;
+    rows.forEach((r) => {
+      if (!r.isRead && !read.has(r.id)) {
+        out[r.integrationId] = (out[r.integrationId] || 0) + 1;
+      }
     });
     return out;
-  }, [channels, state, tab, read]);
+  }, [rows, read]);
+
+  // Blad synchronizacji kanalu pokazujemy przy kanale, zeby bylo widac,
+  // ktore konto wymaga uwagi.
+  const syncError = useCallback(
+    (integrationId: string) =>
+      sync.find(
+        (x) =>
+          x.integrationId === integrationId &&
+          x.kind === (tab === 'comments' ? 'comment' : 'conversation')
+      )?.lastError,
+    [sync, tab]
+  );
 
   const setReadState = useCallback(
     async (ids: string[], value: boolean) => {
@@ -298,14 +258,14 @@ export const Inbox: FC<{ mode: 'comments' | 'chats' }> = ({ mode }) => {
         if (!res.ok) throw new Error(String(res.status));
         toaster.show(ok, 'success');
         setText('');
-        loadChannel(channel, tab, true);
+        loadData(true);
       } catch {
         toaster.show('Action failed', 'warning');
       } finally {
         setBusy(false);
       }
     },
-    [fetch, toaster, loadChannel, tab]
+    [fetch, toaster, loadData]
   );
 
   return (
@@ -328,7 +288,7 @@ export const Inbox: FC<{ mode: 'comments' | 'chats' }> = ({ mode }) => {
 
         {channels.map((c) => {
           const supported = tab === 'comments' ? c.supportsComments : c.supportsChats;
-          const st = state[c.id];
+          const err = syncError(c.id);
           const n = counts[c.id] || 0;
           const on = selected.has(c.id);
           return (
@@ -355,10 +315,8 @@ export const Inbox: FC<{ mode: 'comments' | 'chats' }> = ({ mode }) => {
                 </div>
                 {!supported && <div className="text-[11px] text-[#6f7889]">not available</div>}
               </div>
-              {st?.loading ? (
-                <span className="text-[10px] text-[#8B8B8B]">...</span>
-              ) : st?.error ? (
-                <span className="text-[13px] text-[#B45309]" title={explain(st.error)}>!</span>
+              {err ? (
+                <span className="text-[13px] text-[#B45309]" title={explain(err)}>!</span>
               ) : n > 0 ? (
                 <span className="text-[11px] bg-customColor21 rounded-full px-[7px] min-w-[20px] text-center">
                   {n}
@@ -385,7 +343,7 @@ export const Inbox: FC<{ mode: 'comments' | 'chats' }> = ({ mode }) => {
           </span>
           <button
             className="ms-auto text-[12px] text-customColor21"
-            onClick={() => channels.forEach((c) => loadChannel(c, tab, true))}
+            onClick={() => loadData(true)}
             disabled={anyLoading}
           >
             Refresh

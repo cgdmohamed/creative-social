@@ -6,6 +6,7 @@ import {
   Injectable,
 } from '@nestjs/common';
 import { IntegrationRepository } from '@gitroom/nestjs-libraries/database/prisma/integrations/integration.repository';
+import { InboxRepository } from '@gitroom/nestjs-libraries/database/prisma/integrations/inbox.repository';
 import { IntegrationManager } from '@gitroom/nestjs-libraries/integrations/integration.manager';
 import {
   AnalyticsData,
@@ -44,7 +45,8 @@ export class IntegrationService {
     private _notificationService: NotificationService,
     @Inject(forwardRef(() => RefreshIntegrationService))
     private _refreshIntegrationService: RefreshIntegrationService,
-    private _temporalService: TemporalService
+    private _temporalService: TemporalService,
+    private _inboxRepository: InboxRepository
   ) {}
 
   async changeActiveCron(orgId: string) {
@@ -524,6 +526,157 @@ export class IntegrationService {
     return provider.hideComment(commentId, action === 'hide', token);
   }
 
+  /**
+   * Pobiera dane jednego kanalu z platformy i zapisuje je lokalnie.
+   * Wolane przez cron, nie przez widok - widok czyta juz gotowe dane z bazy.
+   */
+  async syncChannel(
+    org: string,
+    integration: any,
+    kind: 'comment' | 'conversation'
+  ) {
+    const provider = this._integrationManager.getSocialIntegration(
+      integration.providerIdentifier
+    );
+
+    try {
+      const token = await this.freshToken({ id: org } as any, integration);
+      if (!token) {
+        await this._inboxRepository.saveSync(
+          org,
+          integration.id,
+          kind,
+          'RELOGIN'
+        );
+        return;
+      }
+
+      if (kind === 'comment') {
+        if (!provider?.recentComments) return;
+
+        const all = await this._integrationRepository.getIntegrationsList(org);
+        const ownIds = new Set(
+          all.map((i: any) => String(i.internalId)).filter(Boolean)
+        );
+        const ownHandles = new Set(
+          all
+            .map((i: any) =>
+              String(i.profile || '').replace(/^@/, '').toLowerCase()
+            )
+            .filter(Boolean)
+        );
+
+        const comments = await this.withTimeout(
+          provider.recentComments(integration.internalId, token, { limit: 10 }),
+          90000,
+          integration.name
+        );
+
+        await this._inboxRepository.upsertMany(
+          org,
+          integration.id,
+          kind,
+          comments.map((c) => ({
+            externalId: c.id,
+            authorName: c.authorName,
+            authorId: c.authorId,
+            content: c.message || '',
+            permalink: c.permalink,
+            parentId: c.parentId,
+            postText: c.postText,
+            postUrl: c.postUrl,
+            happenedAt: new Date(c.createdAt),
+            isOwn:
+              !!(c.authorId && ownIds.has(String(c.authorId))) ||
+              !!(
+                c.authorName &&
+                ownHandles.has(c.authorName.replace(/^@/, '').toLowerCase())
+              ),
+          }))
+        );
+      } else {
+        if (!provider?.conversations) return;
+
+        const conversations = await this.withTimeout(
+          provider.conversations(integration.internalId, token, { limit: 25 }),
+          90000,
+          integration.name
+        );
+
+        await this._inboxRepository.upsertMany(
+          org,
+          integration.id,
+          kind,
+          conversations.map((conv) => {
+            const last = conv.messages[conv.messages.length - 1];
+            return {
+              externalId: conv.id,
+              authorName: conv.participantName,
+              authorId: conv.participantId,
+              content: last ? last.text : '',
+              // Cala rozmowa idzie do payloadu, zeby panel mogl ja pokazac
+              // bez ponownego odpytywania platformy.
+              payload: conv as any,
+              happenedAt: new Date(conv.updatedAt),
+              isOwn: false,
+            };
+          })
+        );
+      }
+
+      await this._inboxRepository.saveSync(org, integration.id, kind);
+    } catch (err: any) {
+      await this._inboxRepository.saveSync(
+        org,
+        integration.id,
+        kind,
+        this.describeError(err)
+      );
+    }
+  }
+
+  /** Synchronizuje wszystkie kanaly organizacji. Kanaly rownolegle. */
+  async syncOrganization(org: string, kind: 'comment' | 'conversation') {
+    const integrations = await this._integrationRepository.getIntegrationsList(
+      org
+    );
+    await Promise.all(
+      integrations
+        .filter((i: any) => i.type === 'social' && !i.disabled)
+        .map((i: any) => this.syncChannel(org, i, kind))
+    );
+  }
+
+  /** Dane do panelu, prosto z bazy - bez ani jednego wywolania do platformy. */
+  async getInboxFromDb(org: Organization, kind: 'comment' | 'conversation') {
+    const [items, syncs] = await Promise.all([
+      this._inboxRepository.list(org.id, kind),
+      this._inboxRepository.syncState(org.id),
+    ]);
+
+    return {
+      items: items.map((i: any) => ({
+        id: i.externalId,
+        integrationId: i.integrationId,
+        authorName: i.authorName,
+        message: i.content,
+        permalink: i.permalink,
+        parentId: i.parentId,
+        postText: i.postText,
+        postUrl: i.postUrl,
+        createdAt: i.happenedAt,
+        isRead: i.isRead,
+        conversation: i.payload || undefined,
+      })),
+      sync: syncs.map((sy: any) => ({
+        integrationId: sy.integrationId,
+        kind: sy.kind,
+        lastSyncAt: sy.lastSyncAt,
+        lastError: sy.lastError,
+      })),
+    };
+  }
+
   /** Lista kanalow do panelu inboxa. Szybka - bez wywolan do platform. */
   async getInboxChannels(org: Organization) {
     const integrations = await this._integrationRepository.getIntegrationsList(
@@ -580,6 +733,14 @@ export class IntegrationService {
     } catch {
       // brak Redisa nie moze blokowac odpowiadania
     }
+    // Zapis takze w bazie - Redis jest szybki, ale baza jest zrodlem prawdy
+    // po restarcie i widzi go kazdy, kto otworzy panel.
+    try {
+      await this._inboxRepository.markRead(org.id, ids, read);
+    } catch {
+      // brak wpisu w bazie nie moze blokowac oznaczania
+    }
+
     return { success: true };
   }
 

@@ -1,3 +1,5 @@
+import { ScheduleModule } from '@nestjs/schedule';
+import { SyncInbox } from './tasks/sync.inbox';
 import { Global, Module } from '@nestjs/common';
 import { DatabaseModule } from '@gitroom/nestjs-libraries/database/prisma/database.module';
 import { ApiModule } from '@gitroom/backend/api/api.module';
@@ -22,6 +24,7 @@ import { ioRedis } from '@gitroom/nestjs-libraries/redis/redis.service';
 @Module({
   imports: [
     SentryModule.forRoot(),
+    ScheduleModule.forRoot(),
     DatabaseModule,
     ApiModule,
     PublicApiModule,
@@ -45,6 +48,7 @@ import { ioRedis } from '@gitroom/nestjs-libraries/redis/redis.service';
   controllers: [],
   providers: [
     FILTER,
+    SyncInbox,
     {
       provide: APP_GUARD,
       useClass: ThrottlerBehindProxyGuard,

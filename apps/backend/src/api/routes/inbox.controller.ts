@@ -9,6 +9,25 @@ import { IntegrationService } from '@gitroom/nestjs-libraries/database/prisma/in
 export class InboxController {
   constructor(private _integrationService: IntegrationService) {}
 
+  // Panel czyta stad: gotowe dane z bazy, zero wywolan do platform.
+  @Get('/db/:kind')
+  async fromDb(
+    @GetOrgFromRequest() org: Organization,
+    @Param('kind') kind: 'comment' | 'conversation'
+  ) {
+    return this._integrationService.getInboxFromDb(org, kind);
+  }
+
+  // Reczne odswiezenie (przycisk Refresh). Cron robi to samo co godzine.
+  @Post('/sync/:kind')
+  async sync(
+    @GetOrgFromRequest() org: Organization,
+    @Param('kind') kind: 'comment' | 'conversation'
+  ) {
+    await this._integrationService.syncOrganization(org.id, kind);
+    return this._integrationService.getInboxFromDb(org, kind);
+  }
+
   @Get('/channels')
   async channels(@GetOrgFromRequest() org: Organization) {
     return this._integrationService.getInboxChannels(org);
