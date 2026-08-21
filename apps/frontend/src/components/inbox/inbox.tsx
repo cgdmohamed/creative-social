@@ -46,6 +46,7 @@ type Conversation = {
 type ChannelState = {
   loading: boolean;
   error?: string;
+  cached?: boolean;
   comments: Comment[];
   conversations: Conversation[];
 };
@@ -134,11 +135,17 @@ export const Inbox: FC<{ mode: 'comments' | 'chats' }> = ({ mode }) => {
 
   // Kazdy kanal osobno, zeby wynik pokazywal sie od razu po jego zakonczeniu.
   const loadChannel = useCallback(
-    async (channel: Channel, which: 'comments' | 'chats') => {
+    async (
+      channel: Channel,
+      which: 'comments' | 'chats',
+      force = false
+    ) => {
       const supported =
         which === 'comments' ? channel.supportsComments : channel.supportsChats;
       if (!supported) return;
 
+      // Poprzednie wyniki zostaja na ekranie, dopoki nie przyjda nowe -
+      // dzieki temu przelaczanie zakladek nie miga pusta lista.
       setState((prev) => ({
         ...prev,
         [channel.id]: {
@@ -150,18 +157,41 @@ export const Inbox: FC<{ mode: 'comments' | 'chats' }> = ({ mode }) => {
 
       try {
         const res = await (
-          await fetch(`/inbox/channels/${channel.id}/${which}`)
+          await fetch(
+            `/inbox/channels/${channel.id}/${which}${force ? '?refresh=true' : ''}`
+          )
         ).json();
         setState((prev) => ({
           ...prev,
           [channel.id]: {
             loading: false,
             error: res.error,
+            cached: !!res.cached,
             comments: res.comments || prev[channel.id]?.comments || [],
             conversations:
               res.conversations || prev[channel.id]?.conversations || [],
           },
         }));
+
+        // Dane z cache pokazujemy natychmiast, a swieze dociagamy w tle,
+        // zeby wejscie na zakladke bylo bez czekania.
+        if (res.cached) {
+          fetch(`/inbox/channels/${channel.id}/${which}?refresh=true`)
+            .then((r) => r.json())
+            .then((fresh) =>
+              setState((prev) => ({
+                ...prev,
+                [channel.id]: {
+                  loading: false,
+                  error: fresh.error,
+                  cached: false,
+                  comments: fresh.comments || [],
+                  conversations: fresh.conversations || [],
+                },
+              }))
+            )
+            .catch(() => undefined);
+        }
       } catch (e: any) {
         setState((prev) => ({
           ...prev,
@@ -294,8 +324,17 @@ export const Inbox: FC<{ mode: 'comments' | 'chats' }> = ({ mode }) => {
       {/* Tresc */}
       <div className="flex-1 min-w-0 flex flex-col">
         <div className="flex items-center gap-[8px] mb-[14px]">
-          <div className="ms-auto text-[13px] text-[#8B8B8B]">
-            {anyLoading ? 'wczytuje...' : `razem: ${total}`}
+          <div className="ms-auto flex items-center gap-[12px]">
+            <span className="text-[13px] text-[#8B8B8B]">
+              {anyLoading ? 'odswiezam...' : `razem: ${total}`}
+            </span>
+            <button
+              className="bg-customColor6 rounded-[8px] px-[12px] py-[6px] text-[13px]"
+              onClick={() => channels.forEach((c) => loadChannel(c, tab, true))}
+              disabled={anyLoading}
+            >
+              Odswiez
+            </button>
           </div>
         </div>
 

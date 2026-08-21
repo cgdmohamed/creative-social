@@ -548,9 +548,50 @@ export class IntegrationService {
       });
   }
 
+  /**
+   * Wynik z cache'u, jesli jest swiezy.
+   *
+   * Inbox odpytuje platformy przy kazdym wejsciu na zakladke, a Graph API
+   * potrafi odpowiadac kilkanascie sekund na kanal. Cache sprawia, ze widok
+   * pojawia sie natychmiast, a swieze dane dociagaja sie w tle.
+   */
+  private inboxCacheKey(org: string, id: string, kind: string) {
+    return `inbox:${org}:${id}:${kind}`;
+  }
+
+  private async readInboxCache(org: string, id: string, kind: string) {
+    try {
+      const raw = await ioRedis.get(this.inboxCacheKey(org, id, kind));
+      return raw ? JSON.parse(raw) : null;
+    } catch {
+      return null;
+    }
+  }
+
+  private async writeInboxCache(
+    org: string,
+    id: string,
+    kind: string,
+    value: any
+  ) {
+    try {
+      // 10 minut: dluzej niz typowa sesja przegladania, krocej niz okno
+      // publikacji, wiec nowe komentarze i tak zostana zauwazone.
+      await ioRedis.set(
+        this.inboxCacheKey(org, id, kind),
+        JSON.stringify(value),
+        'EX',
+        600
+      );
+    } catch {
+      // brak cache nie moze psuc odpowiedzi
+    }
+  }
+
   /** Komentarze JEDNEGO kanalu. Frontend odpytuje kanaly osobno, dzieki czemu
-   *  wolny kanal nie blokuje calego widoku i wyniki pojawiaja sie stopniowo. */
-  async getChannelComments(org: Organization, id: string) {
+   *  wolny kanal nie blokuje calego widoku i wyniki pojawiaja sie stopniowo.
+   *  `force` pomija cache (przycisk odswiezania). */
+  async getChannelComments(org: Organization, id: string, force = false) {
     const integration = await this.getIntegrationById(org.id, id);
     if (!integration) {
       throw new Error('Invalid integration');
@@ -575,6 +616,13 @@ export class IntegrationService {
       return { comments: [] as SocialComment[] };
     }
 
+    if (!force) {
+      const cached = await this.readInboxCache(org.id, id, 'comments');
+      if (cached) {
+        return { ...cached, cached: true };
+      }
+    }
+
     const token = await this.freshToken(org, integration);
     if (!token) {
       return { error: 'RELOGIN', comments: [] as SocialComment[] };
@@ -586,7 +634,7 @@ export class IntegrationService {
         50000,
         integration.name
       );
-      return {
+      const result = {
         comments: comments.filter(
           (c) =>
             !(c.authorId && ownIds.has(String(c.authorId))) &&
@@ -596,13 +644,15 @@ export class IntegrationService {
             )
         ),
       };
+      await this.writeInboxCache(org.id, id, 'comments', result);
+      return result;
     } catch (err: any) {
       return { error: String(err?.message || err).slice(0, 200), comments: [] };
     }
   }
 
-  /** Rozmowy JEDNEGO kanalu. */
-  async getChannelConversations(org: Organization, id: string) {
+  /** Rozmowy JEDNEGO kanalu. `force` pomija cache. */
+  async getChannelConversations(org: Organization, id: string, force = false) {
     const integration = await this.getIntegrationById(org.id, id);
     if (!integration) {
       throw new Error('Invalid integration');
@@ -613,6 +663,14 @@ export class IntegrationService {
     if (!provider?.conversations) {
       return { conversations: [] as SocialConversation[] };
     }
+
+    if (!force) {
+      const cached = await this.readInboxCache(org.id, id, 'chats');
+      if (cached) {
+        return { ...cached, cached: true };
+      }
+    }
+
     const token = await this.freshToken(org, integration);
     if (!token) {
       return { error: 'RELOGIN', conversations: [] as SocialConversation[] };
@@ -623,7 +681,9 @@ export class IntegrationService {
         50000,
         integration.name
       );
-      return { conversations };
+      const result = { conversations };
+      await this.writeInboxCache(org.id, id, 'chats', result);
+      return result;
     } catch (err: any) {
       return {
         error: String(err?.message || err).slice(0, 200),

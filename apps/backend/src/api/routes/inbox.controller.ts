@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
 import { Organization } from '@prisma/client';
 import { ApiTags } from '@nestjs/swagger';
 import { GetOrgFromRequest } from '@gitroom/nestjs-libraries/user/org.from.request';
@@ -17,17 +17,23 @@ export class InboxController {
   @Get('/channels/:id/comments')
   async channelComments(
     @GetOrgFromRequest() org: Organization,
-    @Param('id') id: string
+    @Param('id') id: string,
+    @Query('refresh') refresh?: string
   ) {
-    return this._integrationService.getChannelComments(org, id);
+    return this._integrationService.getChannelComments(org, id, refresh === 'true');
   }
 
   @Get('/channels/:id/chats')
   async channelChats(
     @GetOrgFromRequest() org: Organization,
-    @Param('id') id: string
+    @Param('id') id: string,
+    @Query('refresh') refresh?: string
   ) {
-    return this._integrationService.getChannelConversations(org, id);
+    return this._integrationService.getChannelConversations(
+      org,
+      id,
+      refresh === 'true'
+    );
   }
 
   @Get('/comments')
