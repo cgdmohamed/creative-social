@@ -548,6 +548,41 @@ export class IntegrationService {
       });
   }
 
+  // --- Oznaczenia "przeczytane" ---
+  // Trzymane w Redisie, nie w bazie: nie wymaga migracji Prisma na produkcji,
+  // a przezywa restarty, bo Redis ma wlasny wolumen. Zbior per organizacja,
+  // wiec oznaczenie widzi caly zespol, nie tylko jedna przegladarka.
+  private readKey(org: string) {
+    return `inbox:read:${org}`;
+  }
+
+  async getReadItems(org: Organization): Promise<string[]> {
+    try {
+      return await ioRedis.smembers(this.readKey(org.id));
+    } catch {
+      return [];
+    }
+  }
+
+  async markRead(org: Organization, ids: string[], read: boolean) {
+    if (!ids?.length) {
+      return { success: true };
+    }
+    try {
+      if (read) {
+        await ioRedis.sadd(this.readKey(org.id), ...ids);
+        // Bez wygasania zbior rosnie w nieskonczonosc; 90 dni to znacznie
+        // wiecej niz okno, w ktorym wracamy do starych komentarzy.
+        await ioRedis.expire(this.readKey(org.id), 60 * 60 * 24 * 90);
+      } else {
+        await ioRedis.srem(this.readKey(org.id), ...ids);
+      }
+    } catch {
+      // brak Redisa nie moze blokowac odpowiadania
+    }
+    return { success: true };
+  }
+
   /** Czytelny opis bledu. Providery rzucaja rozne ksztalty: Error, obiekt
    *  Graph API, czasem goly string - bez tego w UI ladowalo "[object Object]". */
   private describeError(err: any): string {

@@ -36,6 +36,19 @@ export class InboxController {
     );
   }
 
+  @Get('/read')
+  async readItems(@GetOrgFromRequest() org: Organization) {
+    return this._integrationService.getReadItems(org);
+  }
+
+  @Post('/read')
+  async markRead(
+    @GetOrgFromRequest() org: Organization,
+    @Body() body: { ids: string[]; read: boolean }
+  ) {
+    return this._integrationService.markRead(org, body.ids, body.read !== false);
+  }
+
   @Get('/comments')
   async comments(@GetOrgFromRequest() org: Organization) {
     return this._integrationService.getInboxComments(org);
