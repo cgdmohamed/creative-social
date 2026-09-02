@@ -32,9 +32,29 @@ export class InboxRepository {
   }
 
   /**
-   * Zapisuje pobrane elementy. Klucz (integrationId, externalId, kind) sprawia,
-   * ze ponowna synchronizacja aktualizuje istniejacy wpis zamiast tworzyc
-   * duplikat, a raz ustawione `isRead` przezywa kolejne przebiegi.
+   * Comments under one publication, ours included.
+   *
+   * Keyed by the platform's own post id (Post.releaseId), because that is the
+   * only identifier both sides share: the inbox knows nothing about our
+   * calendar rows.
+   */
+  commentsForPost(org: string, integrationId: string, postId: string) {
+    return this._items.model.inboxItem.findMany({
+      where: {
+        organizationId: org,
+        integrationId,
+        kind: 'comment',
+        postId,
+      },
+      orderBy: { happenedAt: 'asc' },
+      take: 500,
+    });
+  }
+
+  /**
+   * Stores fetched items. The (integrationId, externalId, kind) key makes a
+   * re-sync update the existing row instead of creating a duplicate, so an
+   * `isRead` flag survives later runs.
    */
   async upsertMany(
     org: string,
@@ -47,6 +67,7 @@ export class InboxRepository {
       content: string;
       permalink?: string;
       parentId?: string;
+      postId?: string;
       postText?: string;
       postUrl?: string;
       payload?: any;
@@ -61,6 +82,7 @@ export class InboxRepository {
         content: item.content,
         permalink: item.permalink,
         parentId: item.parentId,
+        postId: item.postId,
         postText: item.postText,
         postUrl: item.postUrl,
         payload: item.payload ?? undefined,

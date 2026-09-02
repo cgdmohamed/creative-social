@@ -56,6 +56,9 @@ type Item = {
   at: string;
   comment?: Comment;
   conversation?: Conversation;
+  // Set when this row answers another comment - the list says so, because a
+  // reply read on its own is easy to mistake for a new remark under the post.
+  replyTo?: string;
 };
 
 const when = (iso: string) => {
@@ -316,6 +319,11 @@ export const Inbox: FC<{ mode: 'comments' | 'chats' }> = ({ mode }) => {
   // Jedna plaska lista pozycji ze wszystkich zaznaczonych kanalow, najnowsze na gorze.
   const items: Item[] = useMemo(() => {
     const byId = new Map(channels.map((c) => [c.id, c]));
+    // Every fetched comment, ours included, so a reply can name the author it
+    // answers even when that comment sits on a channel that is not selected.
+    const authorOf = new Map<string, string>(
+      rows.map((r: any) => [r.id, r.isOwn ? 'you' : r.authorName || 'unknown'])
+    );
     return (
       rows
         // Wlasne odpowiedzi nie sa zgloszeniem do obsluzenia - pokazujemy je
@@ -333,6 +341,9 @@ export const Inbox: FC<{ mode: 'comments' | 'chats' }> = ({ mode }) => {
             at: r.createdAt,
             comment: tab === 'comments' ? r : undefined,
             conversation: conv || undefined,
+            replyTo: r.parentId
+              ? authorOf.get(r.parentId) || 'a comment'
+              : undefined,
           } as Item;
         })
         .filter(Boolean) as Item[]
@@ -545,6 +556,11 @@ export const Inbox: FC<{ mode: 'comments' | 'chats' }> = ({ mode }) => {
                       {when(item.at)}
                     </span>
                   </div>
+                  {!!item.replyTo && (
+                    <div className="text-[10px] text-[#6f7889] truncate">
+                      reply to {item.replyTo}
+                    </div>
+                  )}
                   <div
                     className={`text-[12px] truncate ${
                       isRead ? 'text-[#8B8B8B]' : ''

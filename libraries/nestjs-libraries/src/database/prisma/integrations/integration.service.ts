@@ -583,6 +583,7 @@ export class IntegrationService {
             content: c.message || '',
             permalink: c.permalink,
             parentId: c.parentId,
+            postId: c.postId,
             postText: c.postText,
             postUrl: c.postUrl,
             happenedAt: new Date(c.createdAt),
@@ -678,7 +679,58 @@ export class IntegrationService {
     };
   }
 
-  /** Lista kanalow do panelu inboxa. Szybka - bez wywolan do platform. */
+  /**
+   * Comments under one publication, arranged into threads.
+   *
+   * Replies come back from the platforms flat, each carrying the id of the
+   * comment it answers, so the nesting is rebuilt here rather than in the view.
+   * A reply whose parent we never fetched is kept at the top level: dropping it
+   * would hide a real comment just because its neighbour is missing.
+   */
+  async getPostComments(
+    org: Organization,
+    integrationId: string,
+    postId: string
+  ) {
+    const rows = await this._inboxRepository.commentsForPost(
+      org.id,
+      integrationId,
+      postId
+    );
+
+    const shape = (row: any) => ({
+      id: row.externalId,
+      authorName: row.authorName,
+      message: row.content,
+      permalink: row.permalink,
+      createdAt: row.happenedAt,
+      isOwn: row.isOwn,
+      parentId: row.parentId as string | null,
+      replies: [] as any[],
+    });
+
+    const byId = new Map<string, any>();
+    for (const row of rows) {
+      byId.set(row.externalId, shape(row));
+    }
+
+    const roots: any[] = [];
+    for (const item of byId.values()) {
+      const parent = item.parentId ? byId.get(item.parentId) : undefined;
+      if (parent) {
+        parent.replies.push(item);
+      } else {
+        roots.push(item);
+      }
+    }
+
+    return {
+      total: rows.length,
+      items: roots,
+    };
+  }
+
+  /** Channel list for the inbox panel. Fast - it never calls the platforms. */
   async getInboxChannels(org: Organization) {
     const integrations = await this._integrationRepository.getIntegrationsList(
       org.id
