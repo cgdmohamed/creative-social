@@ -154,7 +154,9 @@ const request = (path: string, body?: any, org = 'org-a') =>
     headers: { 'Content-Type': 'application/json', 'x-test-org': org },
     ...(body === undefined ? {} : { body: JSON.stringify(body) }),
   });
+const previousInboxFlag = process.env.INBOX_COLLECTION_ENABLED;
 beforeAll(async () => {
+  process.env.INBOX_COLLECTION_ENABLED = 'true';
   app = await NestFactory.create(TestModule, { logger: false });
   app.use((req: any, _res: any, next: any) => {
     req.org = { id: req.headers['x-test-org'] };
@@ -164,6 +166,9 @@ beforeAll(async () => {
   base = await app.getUrl();
 });
 afterAll(async () => {
+  if (previousInboxFlag === undefined)
+    delete process.env.INBOX_COLLECTION_ENABLED;
+  else process.env.INBOX_COLLECTION_ENABLED = previousInboxFlag;
   await app?.close();
 });
 beforeEach(() => {
@@ -339,3 +344,37 @@ test('new conversation activity reopens a read thread', async () => {
   ]);
   expect(rows[0].isRead).toBe(false);
 });
+
+test.each([
+  ['/inbox/sync/comment', {}],
+  ['/inbox/comments', undefined],
+  ['/inbox/chats', undefined],
+  ['/inbox/channels/channel-a/comments', undefined],
+  ['/inbox/channels/channel-a/chats', undefined],
+  [
+    '/inbox/comments/channel-a/reply',
+    { commentId: 'comment-a', message: 'Hello' },
+  ],
+  [
+    '/inbox/comments/channel-a/moderate',
+    { commentId: 'comment-a', action: 'hide' },
+  ],
+  [
+    '/inbox/chats/channel-a/send',
+    { recipientId: 'customer', message: 'Hello' },
+  ],
+])(
+  'staging disables live provider route %s unless explicitly enabled',
+  async (path, body) => {
+    process.env.INBOX_COLLECTION_ENABLED = 'false';
+    try {
+      expect((await request(path as string, body)).status).toBe(503);
+      expect(provider.recentComments).not.toHaveBeenCalled();
+      expect(provider.conversations).not.toHaveBeenCalled();
+      expect(provider.reply).not.toHaveBeenCalled();
+      expect(provider.sendInboxMessage).not.toHaveBeenCalled();
+    } finally {
+      process.env.INBOX_COLLECTION_ENABLED = 'true';
+    }
+  }
+);

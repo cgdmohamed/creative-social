@@ -37,3 +37,9 @@ cron changes were adapted and unrelated analytics dependencies were excluded.
 See [INBOX.md](INBOX.md) for compatibility details, API permissions, database upgrade,
 limits and validation requirements. Analytics/reporting inspection and porting
 remain Task 2. No production deployment has been performed.
+
+
+## Combined develop integration
+
+See [STAGING.md](STAGING.md) for combined migration order, opt-in collection flags,
+Coolify candidate configuration and remaining staging/live API validation.

@@ -6,6 +6,7 @@ import {
   InboxReadDto,
 } from './inbox.dto';
 import {
+  ServiceUnavailableException,
   Body,
   Controller,
   Get,
@@ -33,6 +34,13 @@ import { IntegrationService } from '@gitroom/nestjs-libraries/database/prisma/in
 export class InboxController {
   constructor(private _integrationService: IntegrationService) {}
 
+  private requireLiveAccess() {
+    if (process.env.INBOX_COLLECTION_ENABLED !== 'true')
+      throw new ServiceUnavailableException(
+        'Inbox platform access is disabled on this server. Contact an administrator.'
+      );
+  }
+
   // Panel czyta stad: gotowe dane z bazy, zero wywolan do platform.
   @Get('/db/:kind')
   async fromDb(
@@ -48,6 +56,7 @@ export class InboxController {
     @GetOrgFromRequest() org: Organization,
     @Param('kind', new ParseEnumPipe(InboxKind)) kind: InboxKind
   ) {
+    this.requireLiveAccess();
     await this._integrationService.syncOrganization(org.id, kind);
     return this._integrationService.getInboxFromDb(org, kind);
   }
@@ -72,6 +81,7 @@ export class InboxController {
     @Param('id') id: string,
     @Query('refresh') refresh?: string
   ) {
+    this.requireLiveAccess();
     return this._integrationService.getChannelComments(
       org,
       id,
@@ -85,6 +95,7 @@ export class InboxController {
     @Param('id') id: string,
     @Query('refresh') refresh?: string
   ) {
+    this.requireLiveAccess();
     return this._integrationService.getChannelConversations(
       org,
       id,
@@ -111,6 +122,7 @@ export class InboxController {
 
   @Get('/comments')
   async comments(@GetOrgFromRequest() org: Organization) {
+    this.requireLiveAccess();
     return this._integrationService.getInboxComments(org);
   }
 
@@ -120,6 +132,7 @@ export class InboxController {
     @Param('id') id: string,
     @Body() body: InboxReplyDto
   ) {
+    this.requireLiveAccess();
     return this._integrationService.replyToComment(
       org,
       id,
@@ -134,6 +147,7 @@ export class InboxController {
     @Param('id') id: string,
     @Body() body: InboxModerationDto
   ) {
+    this.requireLiveAccess();
     return this._integrationService.moderateComment(
       org,
       id,
@@ -144,6 +158,7 @@ export class InboxController {
 
   @Get('/chats')
   async chats(@GetOrgFromRequest() org: Organization) {
+    this.requireLiveAccess();
     return this._integrationService.getInboxConversations(org);
   }
 
@@ -153,6 +168,7 @@ export class InboxController {
     @Param('id') id: string,
     @Body() body: InboxMessageDto
   ) {
+    this.requireLiveAccess();
     return this._integrationService.sendInboxMessage(
       org,
       id,

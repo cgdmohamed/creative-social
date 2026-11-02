@@ -1,6 +1,13 @@
 'use client';
 
-import { FC, useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  FC,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  useSyncExternalStore,
+} from 'react';
 import { groupBy, orderBy } from 'lodash';
 import Image from 'next/image';
 import ImageWithFallback from '@gitroom/react/helpers/image.with.fallback';
@@ -190,18 +197,22 @@ const ChannelGroup: FC<{
   toggleGroup,
 }) => {
   const key = `inbox_group_${group.id || 'none'}_isOpen`;
-  const [isOpen, setIsOpen] = useState(true);
-
-  useEffect(() => {
-    setIsOpen(!!+(localStorage.getItem(key) || '1'));
-  }, [key]);
-
+  const isOpen = useSyncExternalStore(
+    useCallback((notify) => {
+      window.addEventListener('storage', notify);
+      window.addEventListener('inbox-group-change', notify);
+      return () => {
+        window.removeEventListener('storage', notify);
+        window.removeEventListener('inbox-group-change', notify);
+      };
+    }, []),
+    () => localStorage.getItem(key) !== '0',
+    () => true
+  );
   const changeOpenClose = useCallback(() => {
-    setIsOpen((prev) => {
-      localStorage.setItem(key, prev ? '0' : '1');
-      return !prev;
-    });
-  }, [key]);
+    localStorage.setItem(key, isOpen ? '0' : '1');
+    window.dispatchEvent(new Event('inbox-group-change'));
+  }, [key, isOpen]);
 
   const unread = group.values.reduce((sum, c) => sum + (counts[c.id] || 0), 0);
   const allOn = group.values.every((c) => selected.has(c.id));
@@ -280,6 +291,8 @@ export const Inbox: FC<{ mode: 'comments' | 'chats' }> = ({ mode }) => {
   }, [fetch]);
 
   useEffect(() => {
+    // All setters in loadChannels run after awaited network responses.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadChannels().catch(() => {
       setLoadError(
         'Unable to load connected channels. Try refreshing the page.'
@@ -292,8 +305,6 @@ export const Inbox: FC<{ mode: 'comments' | 'chats' }> = ({ mode }) => {
   // podpietych i jak wolno odpowiada dzis Meta.
   const loadData = useCallback(
     async (sync = false) => {
-      setLoading(true);
-      setLoadError('');
       try {
         const kind = tab === 'comments' ? 'comment' : 'conversation';
         const response = sync
@@ -321,7 +332,15 @@ export const Inbox: FC<{ mode: 'comments' | 'chats' }> = ({ mode }) => {
     [fetch, tab]
   );
 
+  const refresh = useCallback(() => {
+    setLoading(true);
+    setLoadError('');
+    return loadData(true);
+  }, [loadData]);
+
   useEffect(() => {
+    // State updates occur only after the awaited HTTP response.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadData();
   }, [loadData]);
 
@@ -396,7 +415,8 @@ export const Inbox: FC<{ mode: 'comments' | 'chats' }> = ({ mode }) => {
   const toggleChannel = useCallback((id: string) => {
     setSelected((prev) => {
       const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
       return next;
     });
   }, []);
@@ -531,7 +551,7 @@ export const Inbox: FC<{ mode: 'comments' | 'chats' }> = ({ mode }) => {
           </span>
           <button
             className="ms-auto text-[12px] text-customColor21"
-            onClick={() => loadData(true)}
+            onClick={refresh}
             disabled={anyLoading}
           >
             Refresh

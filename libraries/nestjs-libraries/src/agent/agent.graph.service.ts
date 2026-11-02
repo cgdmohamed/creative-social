@@ -115,7 +115,7 @@ export class AgentGraphService {
         messages: {
           reducer: (currentState, updateValue) =>
             currentState.concat(updateValue),
-          default: () => [],
+          default: (): WorkflowChannelsState['messages'] => [],
         },
         fresearch: null,
         format: null,

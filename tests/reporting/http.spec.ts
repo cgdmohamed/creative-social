@@ -1,4 +1,10 @@
 import 'reflect-metadata';
+import { InboxController } from '../../apps/backend/src/api/routes/inbox.controller';
+import { IntegrationService } from '../../libraries/nestjs-libraries/src/database/prisma/integrations/integration.service';
+jest.mock(
+  '@gitroom/nestjs-libraries/database/prisma/integrations/integration.service',
+  () => ({ IntegrationService: class {} })
+);
 import { Module } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { ReportsController } from '../../apps/backend/src/api/routes/reports.controller';
@@ -78,8 +84,17 @@ const collector = {
   request: jest.fn(async () => [{ integrationId: 'c-a', status: 'queued' }]),
 };
 @Module({
-  controllers: [ReportsController],
+  controllers: [InboxController, ReportsController],
   providers: [
+    {
+      provide: IntegrationService,
+      useValue: {
+        getInboxFromDb: async (org: any) => ({
+          items: org.id === 'org-a' ? [{ externalId: 'comment-a' }] : [],
+        }),
+        syncOrganization: jest.fn(),
+      },
+    },
     { provide: ReportingService, useValue: service },
     { provide: ReportingCollector, useValue: collector },
     ReportingPdf,
@@ -221,4 +236,27 @@ test('manual collection returns 202 promptly with a queued result', async () => 
     { integrationId: 'c-a', status: 'queued' },
   ]);
   expect(collector.request).toHaveBeenCalledWith('org-a', ['c-a'], 'client-a');
+});
+
+// Both route families share the same authenticated organization injection here;
+// the database integration suite separately verifies real merged SQL constraints.
+test('disabled Inbox live access leaves stored Inbox and client reporting available in one API', async () => {
+  const previous = process.env.INBOX_COLLECTION_ENABLED;
+  process.env.INBOX_COLLECTION_ENABLED = 'false';
+  try {
+    expect((await request('/inbox/sync/comment', {})).status).toBe(503);
+    expect(await (await request('/inbox/db/comment')).json()).toEqual({
+      items: [{ externalId: 'comment-a' }],
+    });
+    expect(
+      await (await request('/inbox/db/comment', undefined, 'org-b')).json()
+    ).toEqual({ items: [] });
+    const result = await request('/reports/organic?' + range);
+    expect(result.status).toBe(200);
+    expect((await result.json()).metrics[0].current).toBe(7);
+    expect(app.get(IntegrationService).syncOrganization).not.toHaveBeenCalled();
+  } finally {
+    if (previous === undefined) delete process.env.INBOX_COLLECTION_ENABLED;
+    else process.env.INBOX_COLLECTION_ENABLED = previous;
+  }
 });

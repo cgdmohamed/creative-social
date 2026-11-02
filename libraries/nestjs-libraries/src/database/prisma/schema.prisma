@@ -1858,7 +1858,7 @@ model InboxItem {
   id             String      @id @default(uuid())
   organizationId String
   integrationId  String
-  integration    Integration @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+  integration    Integration @relation(fields: [integrationId, organizationId], references: [id, organizationId], onDelete: Cascade)
 
   // Identyfikator po stronie platformy - po nim rozpoznajemy, czy element
   // juz mamy, wiec ponowne pobranie nie tworzy duplikatow.
@@ -1899,7 +1899,7 @@ model InboxSync {
   id             String    @id @default(uuid())
   organizationId String
   integrationId  String
-  integration    Integration @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+  integration    Integration @relation(fields: [integrationId, organizationId], references: [id, organizationId], onDelete: Cascade)
   kind           String
   lastSyncAt     DateTime?
   lastError      String?

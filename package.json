@@ -39,7 +39,10 @@
     "postinstall": "pnpm run prisma-generate",
     "test": "jest --coverage --detectOpenHandles --reporters=default --reporters=jest-junit",
     "test:inbox": "jest --config tests/inbox/jest.config.cjs --runInBand",
-    "test:reports": "node --experimental-vm-modules node_modules/jest/bin/jest.js --config tests/reporting/jest.config.cjs --runInBand"
+    "test:reports": "node --experimental-vm-modules node_modules/jest/bin/jest.js --config tests/reporting/jest.config.cjs --runInBand",
+    "lint": "eslint .",
+    "test:combined": "node --experimental-vm-modules node_modules/jest/bin/jest.js --config tests/integration/jest.config.cjs --runInBand",
+    "lint:integration": "eslint apps/backend/src/api/routes/inbox.controller.ts apps/backend/src/api/routes/reports.controller.ts apps/backend/src/api/routes/inbox.dto.ts apps/backend/src/reporting apps/backend/src/tasks/sync.inbox.ts apps/frontend/src/components/inbox apps/frontend/src/components/reporting libraries/nestjs-libraries/src/reporting tests/inbox tests/reporting tests/integration"
   },
   "dependencies": {
     "@ag-ui/mastra": "^1.1.4",
@@ -284,21 +287,21 @@
     "@types/uuid": "^9.0.8",
     "@types/webextension-polyfill": "^0.12.3",
     "@types/yargs": "^17.0.32",
-    "@typescript-eslint/eslint-plugin": "7.18.0",
-    "@typescript-eslint/parser": "7.18.0",
+    "@typescript-eslint/eslint-plugin": "8.57.2",
+    "@typescript-eslint/parser": "8.57.2",
     "@vitejs/plugin-react": "^6.0.5",
     "@vitest/coverage-v8": "4.1.12",
     "@vitest/ui": "4.1.12",
     "autoprefixer": "^10.4.17",
     "babel-jest": "29.7.0",
     "cross-env": "^10.0.0",
-    "eslint": "8.57.0",
+    "eslint": "9.39.5",
     "eslint-config-next": "16.4.2",
     "eslint-config-prettier": "^9.0.0",
-    "eslint-plugin-import": "2.27.5",
-    "eslint-plugin-jsx-a11y": "6.7.1",
-    "eslint-plugin-react": "7.32.2",
-    "eslint-plugin-react-hooks": "4.6.0",
+    "eslint-plugin-import": "2.32.0",
+    "eslint-plugin-jsx-a11y": "6.10.2",
+    "eslint-plugin-react": "7.37.5",
+    "eslint-plugin-react-hooks": "7.1.1",
     "fs-extra": "^11.3.0",
     "jest": "29.7.0",
     "jest-environment-jsdom": "29.7.0",
@@ -321,7 +324,7 @@
     "@electric-sql/pglite": "0.5.14"
   },
   "volta": {
-    "node": "20.17.0"
+    "node": "22.23.4"
   },
   "jest-junit": {
     "outputDirectory": "./reports",

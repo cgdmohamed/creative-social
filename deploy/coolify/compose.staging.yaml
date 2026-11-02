@@ -1,0 +1,135 @@
+# Coolify Docker Compose resource, build context = repository root.
+# No production services, host ports, auto migrations or upstream prebuilt app image.
+x-runtime: &runtime
+  NODE_ENV: production
+  MAIN_URL: ${STAGING_URL:?Set an isolated staging HTTPS origin}
+  FRONTEND_URL: ${STAGING_URL}
+  NEXT_PUBLIC_BACKEND_URL: ${STAGING_URL}/api
+  BACKEND_INTERNAL_URL: http://backend:3000
+  DATABASE_URL: postgresql://creative:${STAGING_DB_PASSWORD:?Set staging DB password}@postgres:5432/creative_staging
+  REDIS_URL: redis://redis:6379
+  JWT_SECRET: ${STAGING_JWT_SECRET:?Set a unique staging JWT secret}
+  STORAGE_PROVIDER: local
+  UPLOAD_DIRECTORY: /app/uploads
+  NEXT_PUBLIC_UPLOAD_DIRECTORY: /uploads
+  DISABLE_REGISTRATION: ${DISABLE_REGISTRATION:-true}
+  INBOX_COLLECTION_ENABLED: ${INBOX_COLLECTION_ENABLED:-false}
+  REPORTING_COLLECTION_ENABLED: ${REPORTING_COLLECTION_ENABLED:-false}
+  REPORT_CHROMIUM_EXECUTABLE_PATH: /usr/bin/chromium
+  TEMPORAL_ADDRESS: ${STAGING_TEMPORAL_ADDRESS:?Provision an isolated reachable Temporal service first}
+  TEMPORAL_NAMESPACE: ${STAGING_TEMPORAL_NAMESPACE:-creative-staging}
+  TEMPORAL_TLS: ${STAGING_TEMPORAL_TLS:-false}
+  TEMPORAL_API_KEY: ${STAGING_TEMPORAL_API_KEY:-}
+  FACEBOOK_APP_ID: ${STAGING_FACEBOOK_APP_ID:-}
+  FACEBOOK_APP_SECRET: ${STAGING_FACEBOOK_APP_SECRET:-}
+  INSTAGRAM_APP_ID: ${STAGING_INSTAGRAM_APP_ID:-}
+  INSTAGRAM_APP_SECRET: ${STAGING_INSTAGRAM_APP_SECRET:-}
+
+x-app: &app
+  image: creative-social-staging:${STAGING_REVISION:?Set the reviewed commit SHA}
+  build:
+    context: ../..
+    dockerfile: deploy/coolify/Dockerfile.staging
+    args:
+      STAGING_URL: ${STAGING_URL}
+  restart: unless-stopped
+  init: true
+  environment: *runtime
+  volumes:
+    - staging-uploads:/app/uploads
+  depends_on:
+    postgres: { condition: service_healthy }
+    redis: { condition: service_healthy }
+
+services:
+  postgres:
+    image: postgres:17
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: creative
+      POSTGRES_DB: creative_staging
+      POSTGRES_PASSWORD: ${STAGING_DB_PASSWORD}
+    volumes: [staging-postgres:/var/lib/postgresql/data]
+    healthcheck:
+      test: [CMD-SHELL, 'pg_isready -U creative -d creative_staging']
+      interval: 10s
+      timeout: 5s
+      retries: 10
+  redis:
+    image: redis:7.2-alpine
+    restart: unless-stopped
+    command: [redis-server, --appendonly, 'yes']
+    volumes: [staging-redis:/data]
+    healthcheck:
+      test: [CMD, redis-cli, ping]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+  backend:
+    <<: *app
+    command:
+      [
+        node,
+        --experimental-require-module,
+        apps/backend/dist/apps/backend/src/main.js,
+      ]
+    expose: ['3000']
+    healthcheck:
+      test: [CMD, curl, -fsS, http://127.0.0.1:3000/]
+      interval: 30s
+      timeout: 10s
+      start_period: 120s
+      retries: 5
+  frontend:
+    <<: *app
+    working_dir: /app/apps/frontend
+    command:
+      [
+        node,
+        /app/node_modules/next/dist/bin/next,
+        start,
+        -p,
+        '4200',
+        -H,
+        0.0.0.0,
+      ]
+    expose: ['4200']
+    depends_on:
+      backend: { condition: service_healthy }
+    healthcheck:
+      test: [CMD, curl, -fsS, http://127.0.0.1:4200/auth/login]
+      interval: 30s
+      timeout: 10s
+      start_period: 120s
+      retries: 5
+  orchestrator:
+    <<: *app
+    command:
+      [
+        node,
+        --experimental-require-module,
+        apps/orchestrator/dist/apps/orchestrator/src/main.js,
+      ]
+    depends_on:
+      backend: { condition: service_healthy }
+  gateway:
+    image: creative-social-staging-gateway:${STAGING_REVISION}
+    build:
+      context: ../..
+      dockerfile: deploy/coolify/Dockerfile.gateway
+    restart: unless-stopped
+    expose: ['8080']
+    volumes:
+      - staging-uploads:/app/uploads:ro
+    depends_on:
+      backend: { condition: service_healthy }
+      frontend: { condition: service_healthy }
+    healthcheck:
+      test: [CMD-SHELL, 'wget -q -O /dev/null http://127.0.0.1:8080/healthz']
+      interval: 30s
+      timeout: 5s
+      retries: 5
+volumes:
+  staging-postgres:
+  staging-redis:
+  staging-uploads:

@@ -145,3 +145,9 @@ schema and adapter contracts only, not working live connectors. Nothing was depl
 
 Collection stays opt-in and disabled by default. Main and PR #1 were not modified
 or merged, and no production deployment was performed.
+
+
+## Combined develop integration
+
+See [STAGING.md](STAGING.md) for combined migration order, opt-in collection flags,
+Coolify candidate configuration and remaining staging/live API validation.

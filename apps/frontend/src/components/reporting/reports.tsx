@@ -46,20 +46,17 @@ function Trend({ metric }: { metric: MetricResult }) {
     );
   const min = Math.min(0, ...known),
     max = Math.max(1, ...known);
-  let open = false;
   const path = metric.series
     .map((point, index) => {
       if (point.value === null) {
-        open = false;
         return '';
       }
-      const part = `${open ? 'L' : 'M'}${(
-        (index / Math.max(1, metric.series.length - 1)) *
-        700
-      ).toFixed(1)},${(140 - ((point.value - min) / (max - min)) * 135).toFixed(
-        1
-      )}`;
-      open = true;
+      const part = `${
+        index > 0 && metric.series[index - 1].value !== null ? 'L' : 'M'
+      }${((index / Math.max(1, metric.series.length - 1)) * 700).toFixed(1)},${(
+        140 -
+        ((point.value - min) / (max - min)) * 135
+      ).toFixed(1)}`;
       return part;
     })
     .join(' ');
@@ -93,8 +90,8 @@ export function Reports() {
   const [selected, setSelected] = useState<string[]>([]);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [campaign, setCampaign] = useState('');
-  const [from, setFrom] = useState(day(Date.now() - 30 * 86400000));
-  const [to, setTo] = useState(day(Date.now() - 86400000));
+  const [from, setFrom] = useState(() => day(Date.now() - 30 * 86400000));
+  const [to, setTo] = useState(() => day(Date.now() - 86400000));
   const [scope, setScope] = useState<'CHANNEL' | 'POST'>('CHANNEL');
   const [report, setReport] = useState<OrganicReport | null>(null);
   const [busy, setBusy] = useState(false);
@@ -122,11 +119,6 @@ export function Reports() {
   );
   useEffect(() => {
     let active = true;
-    setReport(null);
-    setCampaign('');
-    setPosts([]);
-    setPostIds([]);
-    setError('');
     request(
       '/reports/options' +
         (customer ? '?customerId=' + encodeURIComponent(customer) : '')
@@ -245,7 +237,14 @@ export function Reports() {
             <select
               className={field}
               value={client}
-              onChange={(e) => setClient(e.target.value)}
+              onChange={(e) => {
+                setReport(null);
+                setCampaign('');
+                setPosts([]);
+                setPostIds([]);
+                setError('');
+                setClient(e.target.value);
+              }}
             >
               <option value="">All clients</option>
               <option value="__unassigned">Unassigned channels</option>

@@ -13,7 +13,11 @@ export class SyncInbox {
     private _organizations: PrismaRepository<'organization'>
   ) {}
 
-  @Cron('7 * * * *', { waitForCompletion: true })
+  @Cron('7 * * * *', {
+    timeZone: 'UTC',
+    waitForCompletion: true,
+    disabled: process.env.INBOX_COLLECTION_ENABLED !== 'true',
+  })
   async handleCron() {
     const owner = randomUUID();
     // One organization at a time; a lease prevents duplicate work across replicas.

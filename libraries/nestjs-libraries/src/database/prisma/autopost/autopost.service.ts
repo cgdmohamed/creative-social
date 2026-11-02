@@ -176,7 +176,7 @@ export class AutopostService {
         messages: {
           reducer: (currentState, updateValue) =>
             currentState.concat(updateValue),
-          default: () => [],
+          default: (): WorkflowChannelsState['messages'] => [],
         },
         body: null,
         description: null,

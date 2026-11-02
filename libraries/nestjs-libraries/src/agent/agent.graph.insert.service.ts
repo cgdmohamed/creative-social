@@ -43,7 +43,7 @@ export class AgentGraphInsertService {
         messages: {
           reducer: (currentState, updateValue) =>
             currentState.concat(updateValue),
-          default: () => [],
+          default: (): WorkflowChannelsState['messages'] => [],
         },
         topic: null,
         category: null,

@@ -116,3 +116,9 @@ real database upgrade, and end-to-end UI checks remain required before productio
 - Live Meta sandbox authorization, approval, comments/DM delivery and browser end-to-end testing: **not performed**, requiring test accounts and approved app access. Docker's PostgreSQL daemon was unavailable; no existing deployment database was changed.
 
 Standalone type checks used the available bundled Node 24.22.1 runtime; the Inbox test suite and complete workspace build were also run successfully with the repository's exact Node/pnpm pins.
+
+
+## Combined develop integration
+
+See [STAGING.md](STAGING.md) for combined migration order, opt-in collection flags,
+Coolify candidate configuration and remaining staging/live API validation.

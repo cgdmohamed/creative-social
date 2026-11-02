@@ -1,5 +1,5 @@
 import { Module, Injectable, Logger } from '@nestjs/common';
-import { Cron, ScheduleModule } from '@nestjs/schedule';
+import { Cron } from '@nestjs/schedule';
 import { DatabaseModule } from '@gitroom/nestjs-libraries/database/prisma/database.module';
 import { PrismaService } from '@gitroom/nestjs-libraries/database/prisma/prisma.service';
 import { ReportingRepository } from '@gitroom/nestjs-libraries/reporting/reporting.repository';
@@ -92,7 +92,7 @@ export class ReportingSchedule {
   }
 }
 @Module({
-  imports: [DatabaseModule, ScheduleModule.forRoot()],
+  imports: [DatabaseModule],
   providers: [
     ReportingRepository,
     ReportingService,

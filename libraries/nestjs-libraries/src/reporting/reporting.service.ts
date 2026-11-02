@@ -119,7 +119,7 @@ export class ReportingService {
       customerId = campaign.customerId || '__unassigned';
       snapshotCustomer = campaign.customerId;
     }
-    let channels = await this.selection(
+    const channels = await this.selection(
       org,
       customerId,
       query.integrationIds,
