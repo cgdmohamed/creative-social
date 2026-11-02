@@ -109,10 +109,10 @@ real database upgrade, and end-to-end UI checks remain required before productio
 - `pnpm test:inbox`: **13 passed**, using pinned Node 22.23.4 / pnpm 10.6.1.
 - `tsc --noEmit -p apps/frontend/tsconfig.json --incremental false`: **passed**.
 - `tsc --noEmit -p apps/backend/tsconfig.build.json --incremental false`: **passed** after renaming the inbox send contract to avoid Telegram's private helper.
-- Frontend production build and backend Nest build: **passed** with Node 24.22.1.
+- Complete workspace `pnpm build` (frontend, backend, orchestrator): **passed** with pinned Node 22.23.4 / pnpm 10.6.1. Individual frontend/backend builds also passed with Node 24.22.1.
 - Prisma 6.5 schema validation and client generation: **passed**.
 - Additive SQL executed on embedded PostgreSQL (PGlite); duplicate-key rejection and both Integration cascading foreign keys: **passed**.
 - Targeted lint: **blocked before file analysis** by the existing root FlatCompat/Next configuration (`TypeError: Converting circular structure to JSON`). The pinned ESLint 8.57.0 and Next 16 configuration are incompatible; this port does not change the shared lint configuration.
 - Live Meta sandbox authorization, approval, comments/DM delivery and browser end-to-end testing: **not performed**, requiring test accounts and approved app access. Docker's PostgreSQL daemon was unavailable; no existing deployment database was changed.
 
-Type checks and the individual app builds above used the available bundled Node 24.22.1 runtime; the Inbox test suite was also re-run successfully with the repository's exact Node/pnpm pins. The complete pinned-toolchain workspace build result is recorded in the pull request.
+Standalone type checks used the available bundled Node 24.22.1 runtime; the Inbox test suite and complete workspace build were also run successfully with the repository's exact Node/pnpm pins.
