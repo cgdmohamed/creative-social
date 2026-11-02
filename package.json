@@ -37,7 +37,8 @@
     "docker-build": "./var/docker/docker-build.sh",
     "docker-create": "./var/docker/docker-create.sh",
     "postinstall": "pnpm run prisma-generate",
-    "test": "jest --coverage --detectOpenHandles --reporters=default --reporters=jest-junit"
+    "test": "jest --coverage --detectOpenHandles --reporters=default --reporters=jest-junit",
+    "test:reports": "node --experimental-vm-modules node_modules/jest/bin/jest.js --config tests/reporting/jest.config.cjs --runInBand"
   },
   "dependencies": {
     "@ag-ui/mastra": "^1.1.4",
@@ -254,7 +255,8 @@
     "yargs": "^17.7.2",
     "yup": "^1.4.0",
     "zod": "^3.25.76",
-    "zustand": "^5.0.5"
+    "zustand": "^5.0.5",
+    "puppeteer-core": "25.8.0"
   },
   "devDependencies": {
     "@crxjs/vite-plugin": "^2.7.1",
@@ -314,7 +316,8 @@
     "typescript": "5.5.4",
     "vite": "^8.3.5",
     "vite-tsconfig-paths": "^5.1.4",
-    "vitest": "4.1.12"
+    "vitest": "4.1.12",
+    "@electric-sql/pglite": "0.5.14"
   },
   "volta": {
     "node": "20.17.0"

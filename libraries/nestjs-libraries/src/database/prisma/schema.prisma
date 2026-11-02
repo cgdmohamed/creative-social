@@ -9,6 +9,10 @@ datasource db {
 }
 
 model Organization {
+  reportSnapshots ReportMetricSnapshot[]
+  reportCampaigns ReportCampaign[]
+  reportCollectionStates ReportCollectionState[]
+  adReportingAccounts AdReportingAccount[]
   id                  String               @id @default(uuid())
   name                String
   description         String?
@@ -366,6 +370,9 @@ model Customer {
 }
 
 model Integration {
+  @@unique([id, organizationId])
+  reportSnapshots ReportMetricSnapshot[]
+  reportCollectionStates ReportCollectionState[]
   id                    String                 @id @default(cuid())
   internalId            String
   organizationId        String
@@ -456,6 +463,8 @@ model Comments {
 }
 
 model Post {
+  @@unique([id, organizationId])
+  reportCampaignPosts ReportCampaignPost[]
   id                         String                    @id @default(cuid())
   state                      State                     @default(QUEUE)
   publishDate                DateTime
@@ -1838,4 +1847,121 @@ model Announcement {
   description String
   color       AnnouncementColor @default(INFO)
   createdAt   DateTime          @default(now())
+}
+
+// Adapted from Postmill AnalyticsSnapshot/PostAnalyticsSnapshot. Explicit kinds,
+// scope and original client attribution prevent daily/lifetime and tenant mixing.
+enum ReportScope {
+  CHANNEL
+  POST
+}
+enum ReportMetricKind {
+  FLOW
+  STOCK
+  LEVEL
+  AVERAGE
+}
+model ReportMetricSnapshot {
+  id String @id @default(uuid())
+  organizationId String
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  integrationId String
+  integration Integration @relation(fields: [integrationId, organizationId], references: [id, organizationId], onDelete: Cascade)
+  // Immutable attribution at first observation; not the channel's current owner.
+  customerId String?
+  scope ReportScope
+  entityId String @default("") // Post.id for POST; empty for CHANNEL
+  metric String
+  sourceLabel String
+  channelName String
+  kind ReportMetricKind
+  unit String
+  traffic String @default("PLATFORM_TOTAL")
+  value Float
+  date DateTime @db.Date
+  collectedAt DateTime @default(now())
+  @@unique([integrationId, scope, entityId, metric, date])
+  @@index([organizationId, customerId, scope, date])
+  @@index([organizationId, integrationId, scope, date])
+}
+model ReportCollectionState {
+  id String @id @default(uuid())
+  organizationId String
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  integrationId String @unique
+  integration Integration @relation(fields: [integrationId, organizationId], references: [id, organizationId], onDelete: Cascade)
+  status String
+  lastAttemptAt DateTime @default(now())
+  lastSuccessAt DateTime?
+  postCursor String?
+  @@index([requestedAt])
+  requestedAt DateTime?
+  requestKey String?
+  requestedFor String? // client id, __unassigned, or null for the organization
+  detail String?
+  @@index([organizationId])
+}
+model ReportCampaign {
+  @@unique([id, organizationId])
+  id String @id @default(uuid())
+  organizationId String
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  customerId String?
+  name String
+  from DateTime @db.Date
+  to DateTime @db.Date
+  archived Boolean @default(false)
+  createdAt DateTime @default(now())
+  posts ReportCampaignPost[]
+  @@index([organizationId, customerId])
+}
+model ReportCampaignPost {
+  organizationId String
+  campaignId String
+  campaign ReportCampaign @relation(fields: [campaignId, organizationId], references: [id, organizationId], onDelete: Cascade)
+  postId String
+  post Post @relation(fields: [postId, organizationId], references: [id, organizationId], onDelete: Cascade)
+  @@id([campaignId, postId])
+  @@index([postId])
+}
+// Storage contracts only: no live Ads connector or OAuth token ingestion yet.
+enum AdReportingProvider {
+  META_ADS
+  GOOGLE_ADS
+}
+model AdReportingAccount {
+  id String @id @default(uuid())
+  organizationId String
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  customerId String?
+  provider AdReportingProvider
+  externalAccountId String
+  name String
+  currency String @db.Char(3)
+  timezone String // Provider account's IANA timezone; never assume UTC Ads days.
+  credentialReference String? // Reference to a future secret store, never a token.
+  enabled Boolean @default(false)
+  createdAt DateTime @default(now())
+  dailyMetrics AdReportingDailyMetric[]
+  @@unique([organizationId, provider, externalAccountId])
+  @@index([organizationId, customerId])
+}
+model AdReportingDailyMetric {
+  id String @id @default(uuid())
+  accountId String
+  account AdReportingAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  date DateTime @db.Date
+  level String // ACCOUNT, CAMPAIGN, AD_GROUP or AD; only sum one level at a time.
+  externalEntityId String
+  externalCampaignId String?
+  externalAdGroupId String?
+  attributionWindow String // Preserve source attribution settings, no implicit merge.
+  impressions BigInt?
+  clicks BigInt?
+  spend Decimal? @db.Decimal(20, 6)
+  conversions Decimal? @db.Decimal(20, 6)
+  conversionValue Decimal? @db.Decimal(20, 6)
+  collectedAt DateTime @default(now())
+  @@unique([accountId, date, level, externalEntityId, attributionWindow])
+  @@index([accountId, date])
 }

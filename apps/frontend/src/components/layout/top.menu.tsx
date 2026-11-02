@@ -82,6 +82,23 @@ export const useMenuItem = () => {
       path: '/analytics',
     },
     {
+      name: 'Reports',
+      icon: (
+        <svg
+          width="20"
+          height="20"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          aria-hidden="true"
+        >
+          <path d="M6 3h9l4 4v14H6zM14 3v5h5M9 12h7M9 16h7" />
+        </svg>
+      ),
+      path: '/reports',
+    },
+    {
       name: t('media', 'Media'),
       icon: (
         <svg
