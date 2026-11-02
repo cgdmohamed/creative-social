@@ -1,0 +1,4 @@
+FROM redis:7.2-alpine@sha256:2c933526722b4126a61d5c170f766dc159adf97682f0b1cbbc27b1666ba96d84
+COPY --chmod=755 deploy/coolify/production/redis-entrypoint.sh /opt/creative/redis-entrypoint.sh
+USER redis
+ENTRYPOINT ["/opt/creative/redis-entrypoint.sh"]

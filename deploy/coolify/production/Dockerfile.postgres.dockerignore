@@ -1,0 +1,6 @@
+**
+!deploy
+!deploy/coolify
+!deploy/coolify/production
+!deploy/coolify/production/init-role.sh
+!deploy/coolify/production/postgres-entrypoint.sh
