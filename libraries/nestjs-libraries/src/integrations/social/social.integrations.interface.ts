@@ -121,7 +121,113 @@ export interface ISocialMediaIntegration {
     postDetails: PostDetails[],
     integration: Integration
   ): Promise<PostResponse[]>; // Schedules a new post
+  // --- Inbox ---
+  // Reading and answering comments written by other people. Publishing our own
+  // first comment already happens inside `post`; this is the opposite
+  // direction. Providers normalize their payload into SocialComment so that
+  // generic inbox code never has to branch per platform.
+
+  comments?(
+    id: string,
+    postId: string,
+    accessToken: string,
+    options?: CommentsQuery
+  ): Promise<SocialComment[]>; // Reads comments under one published post
+
+  reply?(
+    id: string,
+    commentId: string,
+    message: string,
+    accessToken: string
+  ): Promise<SocialCommentReply>; // Answers one specific comment
+
+  // Zbiera komentarze z ostatnich publikacji kanalu. Provider sam znajduje
+  // swoje posty, bo Instagram wymaga przejscia przez /media, a Facebook przez
+  // /posts - dzieki temu warstwa nad providerem nie musi tego wiedziec.
+  recentComments?(
+    id: string,
+    accessToken: string,
+    options?: CommentsQuery
+  ): Promise<SocialComment[]>;
+
+  // Moderacja komentarzy. Ukrywanie jest lagodniejsze od usuwania: komentarz
+  // znika dla innych, ale jego autor nadal go widzi, wiec nie wraca z pretensjami.
+  hideComment?(
+    commentId: string,
+    hidden: boolean,
+    accessToken: string
+  ): Promise<{ success: boolean }>;
+
+  deleteComment?(
+    commentId: string,
+    accessToken: string
+  ): Promise<{ success: boolean }>;
+
+  conversations?(
+    id: string,
+    accessToken: string,
+    options?: CommentsQuery
+  ): Promise<SocialConversation[]>; // Reads private message threads
+
+  sendInboxMessage?(
+    id: string,
+    recipientId: string,
+    message: string,
+    accessToken: string
+  ): Promise<{ id: string }>; // Answers one conversation
 }
+
+export type CommentsQuery = {
+  limit?: number; // Provider default when omitted
+  since?: number; // Unix seconds, only comments created after this moment
+};
+
+// One comment, normalized across providers.
+export type SocialComment = {
+  id: string; // Platform comment id, the handle `reply` takes
+  message: string;
+  createdAt: string; // ISO 8601, normalized from each platform's own format
+  authorId?: string; // Missing on platforms that hide it, never invent one
+  authorName?: string;
+  permalink?: string;
+  parentId?: string; // Set when this comment answers another comment
+  isOwnComment?: boolean; // Undefined when the platform gives no way to tell
+  replies?: SocialComment[]; // Only filled by providers that return them inline
+  postId?: string; // Publication the comment sits under, filled by recentComments
+  postText?: string;
+  postUrl?: string;
+};
+
+export type SocialCommentReply = {
+  id: string; // Platform id of the reply we just created
+  permalink?: string;
+};
+
+// --- Direct messages ---
+// Separate from comments: comments are public and can be answered any time,
+// while a conversation is private and platforms limit when we may reply
+// (Meta allows a free-form answer only within 24h of the person's last message).
+
+export type SocialMessage = {
+  id: string;
+  text: string;
+  createdAt: string; // ISO 8601
+  fromId?: string;
+  fromName?: string;
+  isFromUs: boolean; // true when we sent it, so the thread renders correctly
+};
+
+export type SocialConversation = {
+  id: string; // Conversation id, the handle sendMessage takes
+  participantId?: string; // Person we are talking to
+  participantName?: string;
+  updatedAt: string;
+  unread?: boolean;
+  // Whether a plain reply is still allowed. Outside the window platforms
+  // require tagged messages, so the UI must not offer a normal reply box.
+  canReplyFreely?: boolean;
+  messages: SocialMessage[];
+};
 
 export type PostResponse = {
   id: string; // The db internal id of the post

@@ -2,8 +2,13 @@ import {
   AnalyticsData,
   AuthTokenDetails,
   PendingCheckResponse,
+  CommentsQuery,
   PostDetails,
   PostResponse,
+  SocialComment,
+  SocialCommentReply,
+  SocialConversation,
+  SocialMessage,
   SocialProvider,
 } from '@gitroom/nestjs-libraries/integrations/social/social.integrations.interface';
 import { makeSecureId } from '@gitroom/nestjs-libraries/services/make.secure.id';
@@ -35,11 +40,15 @@ export class FacebookProvider extends SocialAbstract implements SocialProvider {
   isBetweenSteps = true;
   scopes = [
     'pages_show_list',
+    'pages_manage_metadata',
     'business_management',
     'pages_manage_posts',
     'pages_manage_engagement',
     'pages_read_engagement',
+    'pages_read_user_content',
     'read_insights',
+    // Wiadomosci: wymaga ponownego zalogowania kanalu, zeby token je poniosl.
+    'pages_messaging',
   ];
   override maxConcurrentJob = 500; // Facebook has reasonable rate limits
   editor = 'normal' as const;
@@ -142,7 +151,7 @@ export class FacebookProvider extends SocialAbstract implements SocialProvider {
       return {
         type: 'bad-body' as const,
         value: 'Invalid file',
-      }
+      };
     }
 
     if (body.indexOf('1404102') > -1) {
@@ -1024,6 +1033,221 @@ export class FacebookProvider extends SocialAbstract implements SocialProvider {
         status: 'success',
       },
     ];
+  }
+
+  // Reads comments other people left under one of our posts.
+  // `filter=stream` returns replies alongside top-level comments in one flat
+  // list, and `parent` tells them apart - the inbox rebuilds the thread from it.
+  async comments(
+    id: string,
+    postId: string,
+    accessToken: string,
+    options?: CommentsQuery
+  ): Promise<SocialComment[]> {
+    const limit = options?.limit ?? 100;
+
+    const { data } = await (
+      await this.fetch(
+        `https://graph.facebook.com/${META_GRAPH_API_VERSION}/${postId}/comments?access_token=${accessToken}&filter=stream&order=reverse_chronological&limit=${limit}&fields=id,message,created_time,permalink_url,from{id,name},parent{id}`,
+        {},
+        'read comments'
+      )
+    ).json();
+
+    // Meta ignores an unknown `since`, so the window is applied here instead of
+    // in the query - a silently unfiltered response would look like a flood of
+    // new comments on every poll.
+    const since = options?.since;
+
+    return (data || [])
+      .map(
+        (comment: any): SocialComment => ({
+          id: comment.id,
+          message: comment.message || '',
+          createdAt: dayjs(comment.created_time).toISOString(),
+          authorId: comment.from?.id,
+          authorName: comment.from?.name,
+          permalink: comment.permalink_url,
+          parentId: comment.parent?.id,
+          // `id` is the page id, so a comment from it is one of ours.
+          isOwnComment: !!comment.from?.id && comment.from.id === id,
+        })
+      )
+      .filter(
+        (comment: SocialComment) =>
+          !since || dayjs(comment.createdAt).unix() > since
+      );
+  }
+
+  // On Facebook a reply is a comment posted onto the comment itself, which is
+  // why this targets /{commentId}/comments and not /{postId}/comments.
+  async reply(
+    id: string,
+    commentId: string,
+    message: string,
+    accessToken: string
+  ): Promise<SocialCommentReply> {
+    const data = await (
+      await this.fetch(
+        `https://graph.facebook.com/${META_GRAPH_API_VERSION}/${commentId}/comments?access_token=${accessToken}&fields=id,permalink_url`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ message }),
+        },
+        'reply to comment'
+      )
+    ).json();
+
+    return {
+      id: data.id,
+      permalink: data.permalink_url,
+    };
+  }
+
+  async hideComment(
+    commentId: string,
+    hidden: boolean,
+    accessToken: string
+  ): Promise<{ success: boolean }> {
+    await this.fetch(
+      `https://graph.facebook.com/${META_GRAPH_API_VERSION}/${commentId}?access_token=${accessToken}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ is_hidden: hidden }),
+      },
+      hidden ? 'hide comment' : 'unhide comment'
+    );
+    return { success: true };
+  }
+
+  async deleteComment(
+    commentId: string,
+    accessToken: string
+  ): Promise<{ success: boolean }> {
+    await this.fetch(
+      `https://graph.facebook.com/${META_GRAPH_API_VERSION}/${commentId}?access_token=${accessToken}`,
+      { method: 'DELETE' },
+      'delete comment'
+    );
+    return { success: true };
+  }
+
+  async recentComments(
+    id: string,
+    accessToken: string,
+    options?: CommentsQuery
+  ): Promise<SocialComment[]> {
+    const { data } = await (
+      await this.fetch(
+        `https://graph.facebook.com/${META_GRAPH_API_VERSION}/${id}/posts?fields=id,message,permalink_url` +
+          `&limit=${options?.limit ?? 15}&access_token=${accessToken}`,
+        {},
+        'read posts'
+      )
+    ).json();
+
+    // Posty odpytujemy rownolegle - sekwencyjnie kazdy kanal trwal tyle, ile
+    // suma jego postow, i zakladka Inbox wisiala na wczytywaniu.
+    const perPost = await Promise.all(
+      (data || []).map(async (post: any) => {
+        const comments = await this.comments(id, post.id, accessToken, options);
+        return comments.map((c) => ({
+          ...c,
+          postId: post.id,
+          postText: post.message || '',
+          postUrl: post.permalink_url,
+        }));
+      })
+    );
+
+    return perPost.flat();
+  }
+
+  // Prywatne rozmowy ze strony. Wymaga uprawnienia pages_messaging - bez niego
+  // Graph zwraca (#200) i UI pokazuje prosbe o ponowne zalogowanie kanalu.
+  async conversations(
+    id: string,
+    accessToken: string,
+    options?: CommentsQuery
+  ): Promise<SocialConversation[]> {
+    const limit = options?.limit ?? 25;
+
+    const { data } = await (
+      await this.fetch(
+        `https://graph.facebook.com/${META_GRAPH_API_VERSION}/${id}/conversations?access_token=${accessToken}` +
+          `&platform=messenger&limit=${limit}` +
+          '&fields=id,updated_time,unread_count,participants,' +
+          'messages.limit(25){id,message,created_time,from}',
+        {},
+        'read conversations'
+      )
+    ).json();
+
+    return (data || []).map((thread: any): SocialConversation => {
+      const other = (thread.participants?.data || []).find(
+        (p: any) => String(p.id) !== String(id)
+      );
+
+      const messages: SocialMessage[] = (thread.messages?.data || [])
+        .map(
+          (m: any): SocialMessage => ({
+            id: m.id,
+            text: m.message || '',
+            createdAt: dayjs(m.created_time).toISOString(),
+            fromId: m.from?.id,
+            fromName: m.from?.name,
+            isFromUs: String(m.from?.id) === String(id),
+          })
+        )
+        .reverse();
+
+      // Meta pozwala odpisac swobodnie tylko w ciagu 24h od ostatniej wiadomosci
+      // rozmowcy. Poza tym oknem trzeba uzyc oznaczonych typow wiadomosci,
+      // dlatego UI nie moze wtedy pokazywac zwyklego pola odpowiedzi.
+      const lastFromThem = [...messages].reverse().find((m) => !m.isFromUs);
+      const canReplyFreely =
+        !!lastFromThem &&
+        dayjs().diff(dayjs(lastFromThem.createdAt), 'hour') < 24;
+
+      return {
+        id: thread.id,
+        participantId: other?.id,
+        participantName: other?.name,
+        updatedAt: dayjs(thread.updated_time).toISOString(),
+        unread: (thread.unread_count || 0) > 0,
+        canReplyFreely,
+        messages,
+      };
+    });
+  }
+
+  async sendInboxMessage(
+    id: string,
+    recipientId: string,
+    message: string,
+    accessToken: string
+  ): Promise<{ id: string }> {
+    const data = await (
+      await this.fetch(
+        `https://graph.facebook.com/${META_GRAPH_API_VERSION}/${id}/messages?access_token=${accessToken}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            recipient: { id: recipientId },
+            message: { text: message },
+            messaging_type: 'RESPONSE',
+          }),
+        },
+        'send message'
+      )
+    ).json();
+
+    return { id: data.message_id || data.id };
   }
 
   async analytics(

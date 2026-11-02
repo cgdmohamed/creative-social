@@ -2,8 +2,13 @@ import {
   AnalyticsData,
   AuthTokenDetails,
   PendingCheckResponse,
+  CommentsQuery,
   PostDetails,
   PostResponse,
+  SocialComment,
+  SocialCommentReply,
+  SocialConversation,
+  SocialMessage,
   SocialProvider,
 } from '@gitroom/nestjs-libraries/integrations/social/social.integrations.interface';
 import { makeSecureId } from '@gitroom/nestjs-libraries/services/make.secure.id';
@@ -37,11 +42,15 @@ export class InstagramProvider
   scopes = [
     'instagram_basic',
     'pages_show_list',
+    'pages_manage_metadata',
     'pages_read_engagement',
     'business_management',
     'instagram_content_publish',
     'instagram_manage_comments',
     'instagram_manage_insights',
+    // Wiadomosci: dodatkowo wymaga zdolnosci po stronie aplikacji Meta
+    // (App Review), samo uprawnienie w tokenie nie wystarczy.
+    'instagram_manage_messages',
   ];
   override maxConcurrentJob = 400;
   editor = 'normal' as const;
@@ -421,8 +430,9 @@ export class InstagramProvider
     if (body.indexOf('too little or too many attachments') > -1) {
       return {
         type: 'bad-body' as const,
-        value: 'Instagram carousel should have between 2 and 10 media attachments',
-      }
+        value:
+          'Instagram carousel should have between 2 and 10 media attachments',
+      };
     }
 
     if (body.indexOf('2207027') > -1) {
@@ -436,7 +446,7 @@ export class InstagramProvider
       return {
         type: 'bad-body' as const,
         value:
-          "One of the collaborators could not be tagged, please check the username is correct, the account is public, and that it allows collaborator invites",
+          'One of the collaborators could not be tagged, please check the username is correct, the account is public, and that it allows collaborator invites',
       };
     }
 
@@ -732,7 +742,9 @@ export class InstagramProvider
           : { data: [] };
       const mediaId = data?.[0]?.id || '';
       console.log(
-        `Instagram blocked media_publish for container ${containerId}: status ${status}, media ${mediaId || 'none'}`
+        `Instagram blocked media_publish for container ${containerId}: status ${status}, media ${
+          mediaId || 'none'
+        }`
       );
       return mediaId;
     } catch (e) {
@@ -800,9 +812,9 @@ export class InstagramProvider
             ? isStory
               ? `video_url=${m.path}&media_type=STORIES`
               : m?.thumbnail
-              ? `video_url=${m.path}&media_type=REELS&cover_url=${encodeURIComponent(
-                  m.thumbnail
-                )}`
+              ? `video_url=${
+                  m.path
+                }&media_type=REELS&cover_url=${encodeURIComponent(m.thumbnail)}`
               : `video_url=${m.path}&media_type=REELS&thumb_offset=${
                   m?.thumbnailTimestamp || 0
                 }`
@@ -1031,7 +1043,9 @@ export class InstagramProvider
       // re-running this is safe)
       const { id: containerId } = await (
         await this.fetch(
-          `https://${pendingData.type}/${META_GRAPH_API_VERSION}/${igId}/media?caption=${encodeURIComponent(
+          `https://${
+            pendingData.type
+          }/${META_GRAPH_API_VERSION}/${igId}/media?caption=${encodeURIComponent(
             pendingData.message || ''
           )}&media_type=CAROUSEL&children=${encodeURIComponent(
             pendingData.containers.join(',')
@@ -1246,6 +1260,240 @@ export class InstagramProvider
     }
 
     return '';
+  }
+
+  // Reads comments under one of our media items. Instagram nests replies inside
+  // each top-level comment instead of returning a flat stream like Facebook, so
+  // they are flattened here and linked back through parentId.
+  async comments(
+    id: string,
+    postId: string,
+    token: string,
+    options?: CommentsQuery
+  ): Promise<SocialComment[]> {
+    const [accessToken] = token.split('___');
+    const limit = options?.limit ?? 100;
+
+    const { data } = await (
+      await this.fetch(
+        `https://graph.facebook.com/${META_GRAPH_API_VERSION}/${postId}/comments?access_token=${accessToken}&limit=${limit}&fields=id,text,timestamp,username,replies{id,text,timestamp,username}`,
+        {},
+        'read comments'
+      )
+    ).json();
+
+    const since = options?.since;
+
+    // Instagram identifies comment authors by handle only, and the integration
+    // name is a display name ("Buzzin: TV show"), not the handle - so there is
+    // no reliable way to flag our own comments here. Left undefined on purpose
+    // rather than guessing and hiding a real comment from the inbox.
+    const toComment = (comment: any, parentId?: string): SocialComment => ({
+      id: comment.id,
+      message: comment.text || '',
+      createdAt: dayjs(comment.timestamp).toISOString(),
+      authorName: comment.username,
+      parentId,
+    });
+
+    const flattened: SocialComment[] = [];
+    for (const comment of data || []) {
+      flattened.push(toComment(comment));
+      for (const reply of comment.replies?.data || []) {
+        flattened.push(toComment(reply, comment.id));
+      }
+    }
+
+    return flattened.filter(
+      (comment) => !since || dayjs(comment.createdAt).unix() > since
+    );
+  }
+
+  // Instagram has a dedicated replies edge, unlike Facebook where a reply is
+  // just another comment on the comment.
+  async reply(
+    id: string,
+    commentId: string,
+    message: string,
+    token: string
+  ): Promise<SocialCommentReply> {
+    const [accessToken] = token.split('___');
+    const data = await (
+      await this.fetch(
+        `https://graph.facebook.com/${META_GRAPH_API_VERSION}/${commentId}/replies?message=${encodeURIComponent(
+          message
+        )}&access_token=${accessToken}`,
+        {
+          method: 'POST',
+        },
+        'reply to comment'
+      )
+    ).json();
+
+    return {
+      id: data.id,
+    };
+  }
+
+  // Instagram uzywa pola `hide`, nie `is_hidden` jak Facebook.
+  async hideComment(
+    commentId: string,
+    hidden: boolean,
+    token: string
+  ): Promise<{ success: boolean }> {
+    const [accessToken] = token.split('___');
+    await this.fetch(
+      `https://graph.facebook.com/${META_GRAPH_API_VERSION}/${commentId}?hide=${hidden}&access_token=${accessToken}`,
+      { method: 'POST' },
+      hidden ? 'hide comment' : 'unhide comment'
+    );
+    return { success: true };
+  }
+
+  async deleteComment(
+    commentId: string,
+    token: string
+  ): Promise<{ success: boolean }> {
+    const [accessToken] = token.split('___');
+    await this.fetch(
+      `https://graph.facebook.com/${META_GRAPH_API_VERSION}/${commentId}?access_token=${accessToken}`,
+      { method: 'DELETE' },
+      'delete comment'
+    );
+    return { success: true };
+  }
+
+  async recentComments(
+    id: string,
+    token: string,
+    options?: CommentsQuery
+  ): Promise<SocialComment[]> {
+    const [accessToken] = token.split('___');
+    const { data } = await (
+      await this.fetch(
+        `https://graph.facebook.com/${META_GRAPH_API_VERSION}/${id}/media?fields=id,caption,permalink` +
+          `&limit=${options?.limit ?? 15}&access_token=${accessToken}`,
+        {},
+        'read media'
+      )
+    ).json();
+
+    // Posty odpytujemy rownolegle - sekwencyjnie kazdy kanal trwal tyle, ile
+    // suma jego postow, i zakladka Inbox wisiala na wczytywaniu.
+    const perPost = await Promise.all(
+      (data || []).map(async (media: any) => {
+        const comments = await this.comments(id, media.id, token, options);
+        return comments.map((c) => ({
+          ...c,
+          postId: media.id,
+          postText: media.caption || '',
+          postUrl: media.permalink,
+        }));
+      })
+    );
+
+    return perPost.flat();
+  }
+
+  // Rozmowy na Instagramie ida przez powiazana strone Facebooka
+  // (platform=instagram). Wymaga App Review - bez niego Graph zwraca
+  // (#3) "Application does not have the capability".
+  private async inboxPageId(accessToken: string): Promise<string> {
+    const page = await (
+      await this.fetch(
+        `https://graph.facebook.com/${META_GRAPH_API_VERSION}/me?fields=id&access_token=${accessToken}`,
+        {},
+        'resolve messaging page'
+      )
+    ).json();
+    if (!page.id)
+      throw new Error('Reconnect this channel to obtain a Page access token');
+    return page.id;
+  }
+
+  async conversations(
+    id: string,
+    token: string,
+    options?: CommentsQuery
+  ): Promise<SocialConversation[]> {
+    const [accessToken] = token.split('___');
+    const pageId = await this.inboxPageId(accessToken);
+    const limit = options?.limit ?? 25;
+
+    const { data } = await (
+      await this.fetch(
+        `https://graph.facebook.com/${META_GRAPH_API_VERSION}/${pageId}/conversations?access_token=${accessToken}` +
+          `&platform=instagram&limit=${limit}` +
+          '&fields=id,updated_time,unread_count,participants,' +
+          'messages.limit(25){id,message,created_time,from}',
+        {},
+        'read conversations'
+      )
+    ).json();
+
+    return (data || []).map((thread: any): SocialConversation => {
+      const other = (thread.participants?.data || []).find(
+        (p: any) =>
+          String(p.id) !== String(id) && String(p.id) !== String(pageId)
+      );
+
+      const messages: SocialMessage[] = (thread.messages?.data || [])
+        .map(
+          (m: any): SocialMessage => ({
+            id: m.id,
+            text: m.message || '',
+            createdAt: dayjs(m.created_time).toISOString(),
+            fromId: m.from?.id,
+            fromName: m.from?.username || m.from?.name,
+            isFromUs:
+              String(m.from?.id) === String(id) ||
+              String(m.from?.id) === String(pageId),
+          })
+        )
+        .reverse();
+
+      const lastFromThem = [...messages].reverse().find((m) => !m.isFromUs);
+      const canReplyFreely =
+        !!lastFromThem &&
+        dayjs().diff(dayjs(lastFromThem.createdAt), 'hour') < 24;
+
+      return {
+        id: thread.id,
+        participantId: other?.id,
+        participantName: other?.username || other?.name,
+        updatedAt: dayjs(thread.updated_time).toISOString(),
+        unread: (thread.unread_count || 0) > 0,
+        canReplyFreely,
+        messages,
+      };
+    });
+  }
+
+  async sendInboxMessage(
+    id: string,
+    recipientId: string,
+    message: string,
+    token: string
+  ): Promise<{ id: string }> {
+    const [accessToken] = token.split('___');
+    const pageId = await this.inboxPageId(accessToken);
+
+    const data = await (
+      await this.fetch(
+        `https://graph.facebook.com/${META_GRAPH_API_VERSION}/${pageId}/messages?access_token=${accessToken}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            recipient: { id: recipientId },
+            message: { text: message },
+          }),
+        },
+        'send message'
+      )
+    ).json();
+
+    return { id: data.message_id || data.id };
   }
 
   async analytics(

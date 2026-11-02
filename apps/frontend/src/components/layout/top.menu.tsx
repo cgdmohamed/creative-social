@@ -82,6 +82,48 @@ export const useMenuItem = () => {
       path: '/analytics',
     },
     {
+      name: t('comments', 'Comments'),
+      icon: (
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="20"
+          height="20"
+          viewBox="0 0 20 20"
+          fill="none"
+        >
+          <path
+            d="M6.5 7.5h7M6.5 11h4.5M18 9.5c0 3.87-3.36 7-7.5 7-.86 0-1.69-.14-2.46-.39L2 18l1.4-4.2A6.66 6.66 0 0 1 3 9.5c0-3.87 3.36-7 7.5-7s7.5 3.13 7.5 7Z"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      ),
+      path: '/comments',
+    },
+    {
+      name: t('messages', 'Messages'),
+      icon: (
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="20"
+          height="20"
+          viewBox="0 0 20 20"
+          fill="none"
+        >
+          <path
+            d="M2 5.5 9.1 10c.35.22.52.33.71.37.17.04.35.04.52 0 .19-.04.36-.15.71-.37L18 5.5M5.3 16.5h9.4c1.12 0 1.68 0 2.11-.22a2 2 0 0 0 .87-.87c.22-.43.22-.99.22-2.11V6.7c0-1.12 0-1.68-.22-2.11a2 2 0 0 0-.87-.87c-.43-.22-.99-.22-2.11-.22H5.3c-1.12 0-1.68 0-2.11.22a2 2 0 0 0-.87.87C2.1 5.02 2.1 5.58 2.1 6.7v6.6c0 1.12 0 1.68.22 2.11a2 2 0 0 0 .87.87c.43.22.99.22 2.11.22Z"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      ),
+      path: '/messages',
+    },
+    {
       name: t('media', 'Media'),
       icon: (
         <svg

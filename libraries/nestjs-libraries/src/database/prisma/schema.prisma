@@ -396,6 +396,8 @@ model Integration {
   orderItems            OrderItems[]
   plugs                 Plugs[]
   posts                 Post[]
+  inboxItems            InboxItem[]
+  inboxSyncs            InboxSync[]
 
   @@unique([organizationId, internalId])
   @@index([rootInternalId])
@@ -1838,4 +1840,63 @@ model Announcement {
   description String
   color       AnnouncementColor @default(INFO)
   createdAt   DateTime          @default(now())
+}
+
+// Komentarze i rozmowy pobrane z platform, trzymane lokalnie, zeby panel
+// otwieral sie natychmiast zamiast czekac na Graph API. Odswieza je cron,
+// a widok czyta wylacznie stad.
+model InboxItem {
+  id             String      @id @default(uuid())
+  organizationId String
+  integrationId  String
+  integration    Integration @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+
+  // Identyfikator po stronie platformy - po nim rozpoznajemy, czy element
+  // juz mamy, wiec ponowne pobranie nie tworzy duplikatow.
+  externalId String
+  kind       String // "comment" albo "conversation"
+
+  authorName String?
+  authorId   String?
+  content    String  @db.Text
+  permalink  String?
+  parentId   String?
+  // Publikacja, pod ktora wisi komentarz - identyfikator po stronie platformy,
+  // czyli to samo co Post.releaseId. Dzieki temu statystyki posta moga pokazac
+  // jego wlasne komentarze bez pytania platformy.
+  postId     String?
+  postText   String? @db.Text
+  postUrl    String?
+
+  // Cala rozmowa albo dodatkowe dane elementu, zeby nie mnozyc kolumn.
+  payload Json?
+
+  happenedAt DateTime
+  isRead     Boolean  @default(false)
+  isOwn      Boolean  @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([integrationId, externalId, kind])
+  @@index([organizationId, kind, happenedAt])
+  @@index([integrationId, postId])
+  @@index([integrationId, kind])
+}
+
+// Kiedy ostatnio udalo sie pobrac dane danego kanalu i czy byl blad.
+// Dzieki temu panel pokazuje wiek danych bez odpytywania platformy.
+model InboxSync {
+  id             String    @id @default(uuid())
+  organizationId String
+  integrationId  String
+  integration    Integration @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+  kind           String
+  lastSyncAt     DateTime?
+  lastError      String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @default(now()) @updatedAt
+
+  @@unique([integrationId, kind])
+  @@index([organizationId])
 }

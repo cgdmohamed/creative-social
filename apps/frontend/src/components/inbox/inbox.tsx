@@ -1,0 +1,824 @@
+'use client';
+
+import { FC, useCallback, useEffect, useMemo, useState } from 'react';
+import { groupBy, orderBy } from 'lodash';
+import Image from 'next/image';
+import ImageWithFallback from '@gitroom/react/helpers/image.with.fallback';
+import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
+import { useToaster } from '@gitroom/react/toaster/toaster';
+import { OpenClose } from '@gitroom/frontend/components/launches/launches.component';
+
+type Channel = {
+  id: string;
+  name: string;
+  picture?: string;
+  provider: string;
+  customer?: { id: string; name: string } | null;
+  supportsComments: boolean;
+  supportsChats: boolean;
+};
+
+type Comment = {
+  id: string;
+  message: string;
+  createdAt: string;
+  authorName?: string;
+  permalink?: string;
+  parentId?: string;
+  postText?: string;
+  postUrl?: string;
+};
+
+type Message = {
+  id: string;
+  text: string;
+  createdAt: string;
+  fromName?: string;
+  isFromUs: boolean;
+};
+
+type Conversation = {
+  id: string;
+  participantId?: string;
+  participantName?: string;
+  updatedAt: string;
+  canReplyFreely?: boolean;
+  messages: Message[];
+};
+
+// Jedna pozycja listy srodkowej, niezaleznie od tego, czy to komentarz,
+// czy rozmowa - dzieki temu lista i panel szczegolow maja jeden ksztalt.
+type Item = {
+  id: string;
+  channel: Channel;
+  who: string;
+  preview: string;
+  at: string;
+  comment?: Comment;
+  conversation?: Conversation;
+  // Set when this row answers another comment - the list says so, because a
+  // reply read on its own is easy to mistake for a new remark under the post.
+  replyTo?: string;
+};
+
+const when = (iso: string) => {
+  if (!iso) return '';
+  const d = new Date(iso);
+  return isNaN(d.getTime())
+    ? ''
+    : d.toLocaleString(undefined, {
+        day: '2-digit',
+        month: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+};
+
+const explain = (error: any): string => {
+  if (error && typeof error === 'object') {
+    error = error.message || JSON.stringify(error);
+  }
+  const e = String(error || '');
+  if (e === 'RELOGIN')
+    return 'This channel needs to be reconnected in Settings.';
+  if (e.startsWith('TIMEOUT'))
+    return 'The platform is responding too slowly. Try refreshing.';
+  if (e.includes('pages_messaging') || e.includes('(#200)'))
+    return 'Missing messaging permission. Reconnect this channel.';
+  if (e.includes('(#3)') || e.includes('capability'))
+    return 'The Meta app is not approved for messaging on this channel yet.';
+  return e;
+};
+
+// Avatar kanalu w tym samym jezyku wizualnym co menu kanalow w Launches:
+// zdjecie profilowe + realna ikona platformy w rogu, zamiast kolorowej kropki.
+// Dzieki temu od razu widac, czy pozycja jest z Facebooka, czy z Instagrama.
+const Avatar: FC<{ channel: Channel; size?: number }> = ({
+  channel,
+  size = 32,
+}) => {
+  const badge = Math.round(size / 1.95);
+  return (
+    <div className="relative shrink-0" style={{ width: size, height: size }}>
+      <ImageWithFallback
+        src={channel.picture || '/no-picture.jpg'}
+        fallbackSrc={`/icons/platforms/${channel.provider}.png`}
+        alt={channel.provider}
+        width={size}
+        height={size}
+        className="rounded-[8px] object-cover"
+      />
+      {channel.provider === 'youtube' ? (
+        <img
+          src="/icons/platforms/youtube.svg"
+          className="absolute z-10 -bottom-[3px] -end-[3px]"
+          width={badge}
+          alt="youtube"
+        />
+      ) : (
+        <Image
+          src={`/icons/platforms/${channel.provider}.png`}
+          className="rounded-[6px] absolute z-10 -bottom-[3px] -end-[3px] border border-fifth"
+          alt={channel.provider}
+          width={badge}
+          height={badge}
+        />
+      )}
+    </div>
+  );
+};
+
+type Group = { id: string; name: string; values: Channel[] };
+
+const ChannelRow: FC<{
+  channel: Channel;
+  on: boolean;
+  supported: boolean;
+  unread: number;
+  error?: string;
+  onClick: () => void;
+}> = ({ channel, on, supported, unread, error, onClick }) => (
+  <div
+    title={on ? 'Click to hide' : 'Click to show'}
+    onClick={onClick}
+    // Aktywny kanal jest w pelni widoczny, wylaczony przygaszony -
+    // ten sam jezyk wizualny co panel kanalow w Analytics.
+    className={`flex items-center gap-[12px] py-[9px] px-[4px] cursor-pointer transition-opacity ${
+      on ? 'opacity-100' : 'opacity-35 hover:opacity-60'
+    }`}
+  >
+    <Avatar channel={channel} size={36} />
+    <div className="flex-1 min-w-0">
+      <div className={`text-[14px] truncate ${on ? '' : 'text-[#8B8B8B]'}`}>
+        {channel.name}
+      </div>
+      {!supported && (
+        <div className="text-[11px] text-[#6f7889]">not available</div>
+      )}
+    </div>
+    {error ? (
+      <span className="text-[13px] text-[#B45309]" title={explain(error)}>
+        !
+      </span>
+    ) : unread > 0 ? (
+      <span className="text-[11px] bg-customColor21 rounded-full px-[7px] min-w-[20px] text-center">
+        {unread}
+      </span>
+    ) : null}
+  </div>
+);
+
+// Kanaly zebrane pod klientem, tak jak menu kanalow w kalendarzu (Launches).
+// Stan zwiniecia trzymamy w localStorage per grupa, zeby przezyl przeladowanie.
+const ChannelGroup: FC<{
+  group: Group;
+  single: boolean;
+  counts: Record<string, number>;
+  selected: Set<string>;
+  tab: 'comments' | 'chats';
+  syncError: (id: string) => string | undefined;
+  toggle: (id: string) => void;
+  toggleGroup: (group: Group) => void;
+}> = ({
+  group,
+  single,
+  counts,
+  selected,
+  tab,
+  syncError,
+  toggle,
+  toggleGroup,
+}) => {
+  const key = `inbox_group_${group.id || 'none'}_isOpen`;
+  const [isOpen, setIsOpen] = useState(true);
+
+  useEffect(() => {
+    setIsOpen(!!+(localStorage.getItem(key) || '1'));
+  }, [key]);
+
+  const changeOpenClose = useCallback(() => {
+    setIsOpen((prev) => {
+      localStorage.setItem(key, prev ? '0' : '1');
+      return !prev;
+    });
+  }, [key]);
+
+  const unread = group.values.reduce((sum, c) => sum + (counts[c.id] || 0), 0);
+  const allOn = group.values.every((c) => selected.has(c.id));
+
+  return (
+    <div className="mb-[6px]">
+      {/* Grupa bez nazwy (kanaly bez klienta) nie dostaje naglowka, jesli jest jedyna. */}
+      {(!!group.name || !single) && (
+        <div className="flex items-center gap-[6px] px-[4px] py-[6px]">
+          <div
+            className="cursor-pointer flex items-center gap-[6px] min-w-0"
+            onClick={changeOpenClose}
+          >
+            <OpenClose isOpen={isOpen} />
+            <span className="text-[12px] uppercase tracking-wide text-[#8B8B8B] truncate">
+              {group.name || 'No client'}
+            </span>
+          </div>
+          {unread > 0 && (
+            <span className="text-[10px] bg-customColor21 rounded-full px-[6px] min-w-[18px] text-center">
+              {unread}
+            </span>
+          )}
+          <button
+            className="ms-auto text-[11px] text-customColor21 shrink-0"
+            onClick={() => toggleGroup(group)}
+          >
+            {allOn ? 'none' : 'all'}
+          </button>
+        </div>
+      )}
+      <div className={isOpen ? '' : 'hidden'}>
+        {group.values.map((c) => (
+          <ChannelRow
+            key={c.id}
+            channel={c}
+            on={selected.has(c.id)}
+            supported={
+              tab === 'comments' ? c.supportsComments : c.supportsChats
+            }
+            unread={counts[c.id] || 0}
+            error={syncError(c.id)}
+            onClick={() => toggle(c.id)}
+          />
+        ))}
+      </div>
+    </div>
+  );
+};
+
+export const Inbox: FC<{ mode: 'comments' | 'chats' }> = ({ mode }) => {
+  const fetch = useFetch();
+  const toaster = useToaster();
+  const tab = mode;
+
+  const [channels, setChannels] = useState<Channel[]>([]);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [rows, setRows] = useState<any[]>([]);
+  const [sync, setSync] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [read, setRead] = useState<Set<string>>(new Set());
+  const [activeId, setActiveId] = useState('');
+  const [text, setText] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [loadError, setLoadError] = useState('');
+  const [onlyUnread, setOnlyUnread] = useState(false);
+
+  const loadChannels = useCallback(async () => {
+    const [list, readIds] = await Promise.all([
+      (await fetch('/inbox/channels')).json(),
+      (await fetch('/inbox/read')).json().catch(() => []),
+    ]);
+    setChannels(list);
+    setSelected(new Set(list.map((c: Channel) => c.id)));
+    setRead(new Set(readIds || []));
+  }, [fetch]);
+
+  useEffect(() => {
+    loadChannels().catch(() => {
+      setLoadError(
+        'Unable to load connected channels. Try refreshing the page.'
+      );
+    });
+  }, [loadChannels]);
+
+  // Wszystko jednym zapytaniem do naszej bazy. Platformy odpytuje cron w tle,
+  // wiec panel otwiera sie natychmiast, niezaleznie od tego, ile kanalow jest
+  // podpietych i jak wolno odpowiada dzis Meta.
+  const loadData = useCallback(
+    async (sync = false) => {
+      setLoading(true);
+      setLoadError('');
+      try {
+        const kind = tab === 'comments' ? 'comment' : 'conversation';
+        const response = sync
+          ? await fetch(`/inbox/sync/${kind}`, { method: 'POST' })
+          : await fetch(`/inbox/db/${kind}`);
+        if (!response.ok)
+          throw new Error('Unable to load the inbox. Try refreshing.');
+        const res = await response.json();
+
+        setRows(res.items || []);
+        setSync(res.sync || []);
+        setRead(
+          new Set(
+            (res.items || []).filter((i: any) => i.isRead).map((i: any) => i.id)
+          )
+        );
+      } catch (error) {
+        setLoadError(
+          error instanceof Error ? error.message : 'Unable to load the inbox'
+        );
+      } finally {
+        setLoading(false);
+      }
+    },
+    [fetch, tab]
+  );
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  // Jedna plaska lista pozycji ze wszystkich zaznaczonych kanalow, najnowsze na gorze.
+  const items: Item[] = useMemo(() => {
+    const byId = new Map(channels.map((c) => [c.id, c]));
+    // Every fetched comment, ours included, so a reply can name the author it
+    // answers even when that comment sits on a channel that is not selected.
+    const authorOf = new Map<string, string>(
+      rows.map((r: any) => [r.id, r.isOwn ? 'you' : r.authorName || 'unknown'])
+    );
+    return (
+      rows
+        // Wlasne odpowiedzi nie sa zgloszeniem do obsluzenia - pokazujemy je
+        // dopiero w watku, po otwarciu komentarza.
+        .filter((r) => selected.has(r.integrationId) && !r.isOwn)
+        .map((r) => {
+          const channel = byId.get(r.integrationId);
+          if (!channel) return null;
+          const conv = r.conversation;
+          return {
+            id: r.id,
+            channel,
+            who: r.authorName || 'unknown',
+            preview: r.message || '(no content)',
+            at: r.createdAt,
+            comment: tab === 'comments' ? r : undefined,
+            conversation: conv || undefined,
+            replyTo: r.parentId
+              ? authorOf.get(r.parentId) || 'a comment'
+              : undefined,
+          } as Item;
+        })
+        .filter(Boolean) as Item[]
+    );
+  }, [rows, channels, selected, tab]);
+
+  const shown = onlyUnread ? items.filter((i) => !read.has(i.id)) : items;
+  const unreadCount = items.filter((i) => !read.has(i.id)).length;
+  const active = shown.find((i) => i.id === activeId) || null;
+  const anyLoading = loading;
+
+  const counts = useMemo(() => {
+    const out: Record<string, number> = {};
+    rows.forEach((r) => {
+      if (r.isOwn) return;
+      if (!r.isRead && !read.has(r.id)) {
+        out[r.integrationId] = (out[r.integrationId] || 0) + 1;
+      }
+    });
+    return out;
+  }, [rows, read]);
+
+  // Kanaly pogrupowane po kliencie - ta sama kolejnosc co menu w Launches:
+  // grupa bez klienta idzie pierwsza, reszta alfabetycznie.
+  const groups: Group[] = useMemo(
+    () =>
+      orderBy(
+        Object.values(groupBy(channels, (c) => c.customer?.id || '')).map(
+          (values) => ({
+            id: values[0].customer?.id || '',
+            name: values[0].customer?.name || '',
+            values: orderBy(values, ['provider', 'name'], ['asc', 'asc']),
+          })
+        ),
+        ['name'],
+        ['asc']
+      ),
+    [channels]
+  );
+
+  const toggleChannel = useCallback((id: string) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  }, []);
+
+  const toggleGroup = useCallback((group: Group) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      const allOn = group.values.every((c) => next.has(c.id));
+      group.values.forEach((c) => (allOn ? next.delete(c.id) : next.add(c.id)));
+      return next;
+    });
+  }, []);
+
+  // Blad synchronizacji kanalu pokazujemy przy kanale, zeby bylo widac,
+  // ktore konto wymaga uwagi.
+  const syncError = useCallback(
+    (integrationId: string) =>
+      sync.find(
+        (x) =>
+          x.integrationId === integrationId &&
+          x.kind === (tab === 'comments' ? 'comment' : 'conversation')
+      )?.lastError,
+    [sync, tab]
+  );
+
+  const setReadState = useCallback(
+    async (ids: string[], value: boolean) => {
+      setRead((prev) => {
+        const next = new Set(prev);
+        ids.forEach((id) => (value ? next.add(id) : next.delete(id)));
+        return next;
+      });
+      try {
+        await fetch('/inbox/read', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ids, read: value }),
+        });
+      } catch {
+        // stan lokalny juz zmieniony, ponowna proba przy nastepnej akcji
+      }
+    },
+    [fetch]
+  );
+
+  // Otwarcie pozycji oznacza ja jako przeczytana - tak dziala kazda skrzynka.
+  const open = useCallback(
+    (item: Item) => {
+      setActiveId(item.id);
+      setText('');
+      if (!read.has(item.id)) setReadState([item.id], true);
+    },
+    [read, setReadState]
+  );
+
+  const act = useCallback(
+    async (url: string, body: any, ok: string, channel: Channel) => {
+      setBusy(true);
+      try {
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+        if (!res.ok) {
+          const error = await res.json().catch(() => ({}));
+          throw new Error(explain(error.message || res.status));
+        }
+        toaster.show(ok, 'success');
+        setText('');
+        loadData(true);
+      } catch (error) {
+        toaster.show(
+          error instanceof Error ? error.message : 'Action failed',
+          'warning'
+        );
+      } finally {
+        setBusy(false);
+      }
+    },
+    [fetch, toaster, loadData]
+  );
+
+  return (
+    <div className="flex gap-[12px] h-[calc(100vh-130px)]">
+      {/* Channels */}
+      <div className="w-[250px] shrink-0 border-e border-[#2a3040] pe-[12px] overflow-y-auto">
+        <div className="flex items-center justify-between mb-[14px] px-[4px]">
+          <span className="text-[18px] font-bold">Channels</span>
+          <button
+            className="text-[11px] text-customColor21"
+            onClick={() =>
+              setSelected(
+                selected.size === channels.length
+                  ? new Set()
+                  : new Set(channels.map((c) => c.id))
+              )
+            }
+          >
+            {selected.size === channels.length ? 'none' : 'all'}
+          </button>
+        </div>
+
+        {groups.map((group) => (
+          <ChannelGroup
+            key={group.id || '__none__'}
+            group={group}
+            single={groups.length === 1}
+            counts={counts}
+            selected={selected}
+            tab={tab}
+            syncError={syncError}
+            toggle={toggleChannel}
+            toggleGroup={toggleGroup}
+          />
+        ))}
+      </div>
+
+      {/* Lista */}
+      <div className="w-[340px] shrink-0 border-e border-[#2a3040] pe-[12px] flex flex-col overflow-hidden">
+        <div className="flex items-center gap-[8px] pb-[10px] mb-[4px] border-b border-[#2a3040]">
+          <button
+            onClick={() => setOnlyUnread(!onlyUnread)}
+            className={`text-[12px] px-[10px] py-[5px] rounded-[7px] ${
+              onlyUnread ? 'bg-customColor21' : 'bg-customColor2'
+            }`}
+          >
+            {onlyUnread ? 'Unread only' : 'All'}
+          </button>
+          <span className="text-[12px] text-[#8B8B8B]">
+            {anyLoading ? 'loading...' : `${unreadCount} unread`}
+          </span>
+          <button
+            className="ms-auto text-[12px] text-customColor21"
+            onClick={() => loadData(true)}
+            disabled={anyLoading}
+          >
+            Refresh
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto">
+          {loadError && (
+            <p role="alert" className="p-3 text-red-400">
+              {loadError}
+            </p>
+          )}
+          {shown.map((item) => {
+            const isRead = read.has(item.id);
+            const isActive = item.id === activeId;
+            return (
+              <div
+                key={item.id}
+                onClick={() => open(item)}
+                // Aktywny watek dostaje pasek akcentu i tlo - przy dlugiej liscie
+                // czatow samo przyciemnienie tla bylo za slabo widoczne.
+                className={`flex gap-[10px] py-[11px] pe-[6px] ps-[9px] cursor-pointer border-b border-[#232936] border-s-[3px] transition-colors ${
+                  isActive
+                    ? 'bg-customColor21/15 border-s-customColor21'
+                    : 'border-s-transparent hover:bg-customColor2/30'
+                } ${isRead && !isActive ? 'opacity-60' : ''}`}
+              >
+                <Avatar channel={item.channel} size={26} />
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-[6px]">
+                    {!isRead && (
+                      <span className="w-[6px] h-[6px] rounded-full bg-customColor21 shrink-0" />
+                    )}
+                    <span
+                      className={`text-[12px] truncate ${
+                        isRead ? '' : 'font-bold'
+                      }`}
+                    >
+                      {item.who}
+                    </span>
+                    <span className="text-[10px] text-[#8B8B8B] ms-auto shrink-0">
+                      {when(item.at)}
+                    </span>
+                  </div>
+                  {!!item.replyTo && (
+                    <div className="text-[10px] text-[#6f7889] truncate">
+                      reply to {item.replyTo}
+                    </div>
+                  )}
+                  <div
+                    className={`text-[12px] truncate ${
+                      isRead ? 'text-[#8B8B8B]' : ''
+                    }`}
+                  >
+                    {item.preview}
+                  </div>
+                  <div className="text-[10px] text-[#6f7889] truncate">
+                    {item.channel.name}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+
+          {!anyLoading && !shown.length && (
+            <div className="text-center py-[40px] text-[#8B8B8B] text-[13px] px-[16px]">
+              {onlyUnread
+                ? 'Nothing unread. Switch to "All".'
+                : tab === 'comments'
+                ? 'No comments. Your own are filtered out.'
+                : 'No conversations.'}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Szczegoly */}
+      <div className="flex-1 min-w-0 ps-[6px] overflow-y-auto">
+        {!active ? (
+          <div className="h-full flex items-center justify-center text-[#8B8B8B] text-[14px]">
+            Select a {tab === 'comments' ? 'comment' : 'conversation'} from the
+            list
+          </div>
+        ) : (
+          <div className="flex flex-col gap-[14px]">
+            <div className="flex items-center gap-[10px] pb-[12px] border-b border-[#2a3040]">
+              <Avatar channel={active.channel} size={34} />
+              <div className="min-w-0">
+                <div className="text-[14px] font-bold truncate">
+                  {active.who}
+                </div>
+                <div className="text-[11px] text-[#8B8B8B] truncate">
+                  {active.channel.name} &middot; {active.channel.provider}{' '}
+                  &middot; {when(active.at)}
+                </div>
+              </div>
+              <button
+                className="ms-auto text-[12px] text-[#8B8B8B] hover:text-white shrink-0"
+                onClick={() => setReadState([active.id], !read.has(active.id))}
+              >
+                {read.has(active.id) ? 'Mark as unread' : 'Mark as read'}
+              </button>
+            </div>
+
+            {active.comment && (
+              <>
+                {/* Watek: komentarze powiazane z tym samym, w kolejnosci
+                    czasu - dzieki temu widac nasza odpowiedz i to, co
+                    rozmowca napisal po niej. */}
+                {(() => {
+                  const thread = rows
+                    .filter(
+                      (r) =>
+                        r.integrationId === active.channel.id &&
+                        r.id !== active.id &&
+                        (r.parentId === active.id ||
+                          (active.comment?.parentId &&
+                            (r.parentId === active.comment.parentId ||
+                              r.id === active.comment.parentId)))
+                    )
+                    .sort((a, b) => (a.createdAt < b.createdAt ? -1 : 1));
+
+                  if (!thread.length) return null;
+
+                  return (
+                    <div className="flex flex-col gap-[8px] border-s-2 border-[#2a3040] ps-[12px]">
+                      <div className="text-[11px] text-[#8B8B8B] uppercase tracking-wide">
+                        Thread
+                      </div>
+                      {thread.map((t) => (
+                        <div
+                          key={t.id}
+                          className={`text-[13px] p-[9px] rounded-[8px] ${
+                            t.isOwn
+                              ? 'bg-customColor21/25 border border-customColor21/40'
+                              : 'bg-customColor2'
+                          }`}
+                        >
+                          <div className="text-[11px] text-[#8B8B8B] mb-[3px]">
+                            {t.isOwn ? 'You' : t.authorName || 'unknown'}{' '}
+                            &middot; {when(t.createdAt)}
+                          </div>
+                          <div className="whitespace-pre-wrap break-words">
+                            {t.message || <i>no content</i>}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()}
+
+                {active.comment.postText && (
+                  <div className="text-[12px] text-[#8B8B8B] bg-customColor2 rounded-[8px] p-[10px]">
+                    Under post: {active.comment.postText.slice(0, 160)}
+                  </div>
+                )}
+                <div className="text-[15px] whitespace-pre-wrap break-words">
+                  {active.comment.message || <i>no content</i>}
+                </div>
+
+                <div className="flex gap-[14px] text-[13px]">
+                  {active.comment.permalink && (
+                    <a
+                      href={active.comment.permalink}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-customColor21 underline"
+                    >
+                      open on platform
+                    </a>
+                  )}
+                  <button
+                    className="text-[#8B8B8B] hover:text-white"
+                    onClick={() =>
+                      act(
+                        `/inbox/comments/${active.channel.id}/moderate`,
+                        { commentId: active.id, action: 'hide' },
+                        'Comment hidden',
+                        active.channel
+                      )
+                    }
+                  >
+                    Hide
+                  </button>
+                  <button
+                    className="text-[#B45309]"
+                    onClick={() => {
+                      if (
+                        confirm(
+                          'Deleteac komentarz na stale? Tego nie da sie cofnac.'
+                        )
+                      ) {
+                        act(
+                          `/inbox/comments/${active.channel.id}/moderate`,
+                          { commentId: active.id, action: 'delete' },
+                          'Comment deleted',
+                          active.channel
+                        );
+                      }
+                    }}
+                  >
+                    Delete
+                  </button>
+                </div>
+
+                <div className="flex flex-col gap-[8px]">
+                  <textarea
+                    className="bg-customColor2 rounded-[8px] p-[10px] text-[14px] min-h-[90px]"
+                    value={text}
+                    onChange={(e) => setText(e.target.value)}
+                    placeholder="Your reply..."
+                  />
+                  <button
+                    className="bg-customColor21 rounded-[8px] px-[18px] py-[8px] text-[13px] self-start disabled:opacity-40"
+                    disabled={busy || !text.trim()}
+                    onClick={() =>
+                      act(
+                        `/inbox/comments/${active.channel.id}/reply`,
+                        { commentId: active.id, message: text },
+                        'Reply sent',
+                        active.channel
+                      )
+                    }
+                  >
+                    {busy ? 'Sending...' : 'Odpowiedz'}
+                  </button>
+                </div>
+              </>
+            )}
+
+            {active.conversation && (
+              <>
+                <div className="flex flex-col gap-[7px]">
+                  {active.conversation.messages.map((m) => (
+                    <div
+                      key={m.id}
+                      className={`text-[14px] p-[10px] rounded-[12px] max-w-[80%] ${
+                        m.isFromUs
+                          ? 'bg-customColor21 self-end'
+                          : 'bg-customColor2 self-start'
+                      }`}
+                    >
+                      {m.text}
+                      <div className="text-[10px] opacity-60 mt-[3px]">
+                        {when(m.createdAt)}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {active.conversation.canReplyFreely === false ? (
+                  <div className="text-[13px] text-[#B45309] bg-customColor2 rounded-[8px] p-[11px]">
+                    More than 24h since their last message. Meta no longer
+                    allows a plain reply.
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-[8px]">
+                    <textarea
+                      className="bg-customColor2 rounded-[8px] p-[10px] text-[14px] min-h-[90px]"
+                      value={text}
+                      onChange={(e) => setText(e.target.value)}
+                      placeholder="Write a message..."
+                    />
+                    <button
+                      className="bg-customColor21 rounded-[8px] px-[18px] py-[8px] text-[13px] self-start disabled:opacity-40"
+                      disabled={busy || !text.trim()}
+                      onClick={() =>
+                        act(
+                          `/inbox/chats/${active.channel.id}/send`,
+                          {
+                            recipientId: active.conversation!.participantId,
+                            message: text,
+                          },
+                          'Message sent',
+                          active.channel
+                        )
+                      }
+                    >
+                      {busy ? 'Sending...' : 'Send'}
+                    </button>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};

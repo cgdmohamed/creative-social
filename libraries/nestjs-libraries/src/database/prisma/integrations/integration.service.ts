@@ -1,4 +1,7 @@
 import {
+  BadRequestException,
+  ForbiddenException,
+  NotFoundException,
   forwardRef,
   HttpException,
   HttpStatus,
@@ -6,9 +9,12 @@ import {
   Injectable,
 } from '@nestjs/common';
 import { IntegrationRepository } from '@gitroom/nestjs-libraries/database/prisma/integrations/integration.repository';
+import { InboxRepository } from '@gitroom/nestjs-libraries/database/prisma/integrations/inbox.repository';
 import { IntegrationManager } from '@gitroom/nestjs-libraries/integrations/integration.manager';
 import {
   AnalyticsData,
+  SocialComment,
+  SocialConversation,
   SocialProvider,
 } from '@gitroom/nestjs-libraries/integrations/social/social.integrations.interface';
 import { Integration, Organization } from '@prisma/client';
@@ -41,7 +47,8 @@ export class IntegrationService {
     private _notificationService: NotificationService,
     @Inject(forwardRef(() => RefreshIntegrationService))
     private _refreshIntegrationService: RefreshIntegrationService,
-    private _temporalService: TemporalService
+    private _temporalService: TemporalService,
+    private _inboxRepository: InboxRepository
   ) {}
 
   async changeActiveCron(orgId: string) {
@@ -217,10 +224,11 @@ export class IntegrationService {
     newProvider: string,
     auth: { id: string; username: string }
   ) {
-    const existing = await this._integrationRepository.getIntegrationByInternalId(
-      org,
-      oldInternalId
-    );
+    const existing =
+      await this._integrationRepository.getIntegrationByInternalId(
+        org,
+        oldInternalId
+      );
 
     if (
       !existing ||
@@ -458,6 +466,771 @@ export class IntegrationService {
     });
 
     return { success: true };
+  }
+
+  // --- Inbox: komentarze i wiadomosci ---
+
+  /**
+   * Twardy limit czasu na jeden kanal. Bez tego zakladka wisi w nieskonczonosc:
+   * SocialAbstract.fetch ponawia nieudane wywolania z odczekiwaniem, wiec kanal
+   * bez uprawnien potrafi odpowiadac minutami zamiast od razu zglosic blad.
+   */
+  private withTimeout<T>(promise: Promise<T>, ms: number, label: string) {
+    let timeout: ReturnType<typeof setTimeout>;
+    return Promise.race([
+      promise,
+      new Promise<T>((_, reject) => {
+        timeout = setTimeout(() => reject(new Error(`TIMEOUT: ${label}`)), ms);
+      }),
+    ]).finally(() => clearTimeout(timeout));
+  }
+
+  /** Token kanalu, odswiezony jesli wygasl. Null = kanal wymaga ponownego logowania. */
+  private async freshToken(org: Organization, integration: any) {
+    if (!dayjs(integration?.tokenExpiration).isBefore(dayjs())) {
+      return integration.token;
+    }
+    const data = await this._refreshIntegrationService.refresh(integration);
+    // refresh zwraca false, gdy kanal wymaga ponownego zalogowania.
+    if (!data || typeof data === 'boolean' || !data.accessToken) {
+      return null;
+    }
+    return data.accessToken;
+  }
+
+  /** Ukrywa albo odkrywa komentarz. Lagodniejsze od usuniecia. */
+  async moderateComment(
+    org: Organization,
+    id: string,
+    commentId: string,
+    action: 'hide' | 'unhide' | 'delete'
+  ) {
+    if (!['hide', 'unhide', 'delete'].includes(action)) {
+      throw new BadRequestException('Invalid moderation action');
+    }
+    const integration = await this.getIntegrationById(org.id, id);
+    if (!integration || integration.disabled || integration.deletedAt) {
+      throw new NotFoundException('Invalid integration');
+    }
+    if (
+      !(await this._inboxRepository.findItem(org.id, id, commentId, 'comment'))
+    ) {
+      throw new NotFoundException(
+        'Comment not found in this channel; refresh the inbox'
+      );
+    }
+    const provider = this._integrationManager.getSocialIntegration(
+      integration.providerIdentifier
+    );
+    const token = await this.freshToken(org, integration);
+    if (!token) {
+      throw new BadRequestException('RELOGIN');
+    }
+
+    if (action === 'delete') {
+      if (!provider?.deleteComment) {
+        throw new BadRequestException(
+          'Provider does not support deleting comments'
+        );
+      }
+      return provider.deleteComment(commentId, token);
+    }
+
+    if (!provider?.hideComment) {
+      throw new BadRequestException(
+        'Provider does not support hiding comments'
+      );
+    }
+    return provider.hideComment(commentId, action === 'hide', token);
+  }
+
+  /**
+   * Pobiera dane jednego kanalu z platformy i zapisuje je lokalnie.
+   * Wolane przez cron, nie przez widok - widok czyta juz gotowe dane z bazy.
+   */
+  async syncChannel(
+    org: string,
+    integration: any,
+    kind: 'comment' | 'conversation'
+  ) {
+    const provider = this._integrationManager.getSocialIntegration(
+      integration.providerIdentifier
+    );
+
+    try {
+      const token = await this.freshToken({ id: org } as any, integration);
+      if (!token) {
+        await this._inboxRepository.saveSync(
+          org,
+          integration.id,
+          kind,
+          'RELOGIN'
+        );
+        return;
+      }
+
+      if (kind === 'comment') {
+        if (!provider?.recentComments) return;
+
+        const all = await this._integrationRepository.getIntegrationsList(org);
+        const ownIds = new Set(
+          all.map((i: any) => String(i.internalId)).filter(Boolean)
+        );
+        const ownHandles = new Set(
+          all
+            .map((i: any) =>
+              String(i.profile || '')
+                .replace(/^@/, '')
+                .toLowerCase()
+            )
+            .filter(Boolean)
+        );
+
+        const comments = await this.withTimeout(
+          provider.recentComments(integration.internalId, token, { limit: 10 }),
+          90000,
+          integration.name
+        );
+
+        await this._inboxRepository.upsertMany(
+          org,
+          integration.id,
+          kind,
+          comments.map((c) => ({
+            externalId: c.id,
+            authorName: c.authorName,
+            authorId: c.authorId,
+            content: c.message || '',
+            permalink: c.permalink,
+            parentId: c.parentId,
+            postId: c.postId,
+            postText: c.postText,
+            postUrl: c.postUrl,
+            happenedAt: new Date(c.createdAt),
+            isOwn:
+              !!(c.authorId && ownIds.has(String(c.authorId))) ||
+              !!(
+                c.authorName &&
+                ownHandles.has(c.authorName.replace(/^@/, '').toLowerCase())
+              ),
+          }))
+        );
+      } else {
+        if (!provider?.conversations) return;
+
+        const conversations = await this.withTimeout(
+          provider.conversations(integration.internalId, token, { limit: 25 }),
+          90000,
+          integration.name
+        );
+
+        await this._inboxRepository.upsertMany(
+          org,
+          integration.id,
+          kind,
+          conversations.map((conv) => {
+            const last = conv.messages[conv.messages.length - 1];
+            return {
+              externalId: conv.id,
+              authorName: conv.participantName,
+              authorId: conv.participantId,
+              content: last ? last.text : '',
+              // Cala rozmowa idzie do payloadu, zeby panel mogl ja pokazac
+              // bez ponownego odpytywania platformy.
+              payload: conv as any,
+              happenedAt: new Date(conv.updatedAt),
+              isOwn: false,
+            };
+          })
+        );
+      }
+
+      await this._inboxRepository.saveSync(org, integration.id, kind);
+    } catch (err: any) {
+      await this._inboxRepository.saveSync(
+        org,
+        integration.id,
+        kind,
+        this.describeError(err)
+      );
+    }
+  }
+
+  /** Synchronizuje wszystkie kanaly organizacji. Kanaly rownolegle. */
+  async syncOrganization(org: string, kind: 'comment' | 'conversation') {
+    const integrations = await this._integrationRepository.getIntegrationsList(
+      org
+    );
+    await Promise.all(
+      integrations
+        .filter((i: any) => i.type === 'social' && !i.disabled)
+        .map((i: any) => this.syncChannel(org, i, kind))
+    );
+  }
+
+  /** Dane do panelu, prosto z bazy - bez ani jednego wywolania do platformy. */
+  async getInboxFromDb(org: Organization, kind: 'comment' | 'conversation') {
+    const [items, syncs] = await Promise.all([
+      this._inboxRepository.list(org.id, kind),
+      this._inboxRepository.syncState(org.id),
+    ]);
+
+    return {
+      items: items.map((i: any) => ({
+        id: i.externalId,
+        integrationId: i.integrationId,
+        authorName: i.authorName,
+        message: i.content,
+        permalink: i.permalink,
+        parentId: i.parentId,
+        postText: i.postText,
+        postUrl: i.postUrl,
+        createdAt: i.happenedAt,
+        isRead: i.isRead,
+        isOwn: i.isOwn,
+        conversation: i.payload || undefined,
+      })),
+      sync: syncs.map((sy: any) => ({
+        integrationId: sy.integrationId,
+        kind: sy.kind,
+        lastSyncAt: sy.lastSyncAt,
+        lastError: sy.lastError,
+      })),
+    };
+  }
+
+  /**
+   * Comments under one publication, arranged into threads.
+   *
+   * Replies come back from the platforms flat, each carrying the id of the
+   * comment it answers, so the nesting is rebuilt here rather than in the view.
+   * A reply whose parent we never fetched is kept at the top level: dropping it
+   * would hide a real comment just because its neighbour is missing.
+   */
+  async getPostComments(
+    org: Organization,
+    integrationId: string,
+    postId: string
+  ) {
+    const rows = await this._inboxRepository.commentsForPost(
+      org.id,
+      integrationId,
+      postId
+    );
+
+    const shape = (row: any) => ({
+      id: row.externalId,
+      authorName: row.authorName,
+      message: row.content,
+      permalink: row.permalink,
+      createdAt: row.happenedAt,
+      isOwn: row.isOwn,
+      parentId: row.parentId as string | null,
+      replies: [] as any[],
+    });
+
+    const byId = new Map<string, any>();
+    for (const row of rows) {
+      byId.set(row.externalId, shape(row));
+    }
+
+    const roots: any[] = [];
+    for (const item of byId.values()) {
+      const parent = item.parentId ? byId.get(item.parentId) : undefined;
+      if (parent) {
+        parent.replies.push(item);
+      } else {
+        roots.push(item);
+      }
+    }
+
+    return {
+      total: rows.length,
+      items: roots,
+    };
+  }
+
+  /** Channel list for the inbox panel. Fast - it never calls the platforms. */
+  async getInboxChannels(org: Organization) {
+    const integrations = await this._integrationRepository.getIntegrationsList(
+      org.id
+    );
+
+    return integrations
+      .filter((i: any) => i.type === 'social' && !i.disabled)
+      .map((i: any) => {
+        const provider = this._integrationManager.getSocialIntegration(
+          i.providerIdentifier
+        );
+        return {
+          id: i.id,
+          name: i.name,
+          picture: i.picture,
+          provider: i.providerIdentifier,
+          profile: i.profile,
+          // Klient (customer) jest juz dociagany przez getIntegrationsList -
+          // panel grupuje po nim kanaly tak samo jak menu w kalendarzu.
+          customer: i.customer
+            ? { id: i.customer.id, name: i.customer.name }
+            : null,
+          supportsComments: !!provider?.recentComments,
+          supportsChats: !!provider?.conversations,
+        };
+      });
+  }
+
+  // --- Oznaczenia "przeczytane" ---
+  // Trzymane w Redisie, nie w bazie: nie wymaga migracji Prisma na produkcji,
+  // a przezywa restarty, bo Redis ma wlasny wolumen. Zbior per organizacja,
+  // wiec oznaczenie widzi caly zespol, nie tylko jedna przegladarka.
+  private readKey(org: string) {
+    return `inbox:read:${org}`;
+  }
+
+  async getReadItems(org: Organization): Promise<string[]> {
+    try {
+      return await ioRedis.smembers(this.readKey(org.id));
+    } catch {
+      return [];
+    }
+  }
+
+  async markRead(org: Organization, ids: string[], read: boolean) {
+    if (!ids?.length) {
+      return { success: true };
+    }
+    try {
+      if (read) {
+        await ioRedis.sadd(this.readKey(org.id), ...ids);
+        // Bez wygasania zbior rosnie w nieskonczonosc; 90 dni to znacznie
+        // wiecej niz okno, w ktorym wracamy do starych komentarzy.
+        await ioRedis.expire(this.readKey(org.id), 60 * 60 * 24 * 90);
+      } else {
+        await ioRedis.srem(this.readKey(org.id), ...ids);
+      }
+    } catch {
+      // brak Redisa nie moze blokowac odpowiadania
+    }
+    // Zapis takze w bazie - Redis jest szybki, ale baza jest zrodlem prawdy
+    // po restarcie i widzi go kazdy, kto otworzy panel.
+    try {
+      await this._inboxRepository.markRead(org.id, ids, read);
+    } catch {
+      // brak wpisu w bazie nie moze blokowac oznaczania
+    }
+
+    return { success: true };
+  }
+
+  /** Czytelny opis bledu. Providery rzucaja rozne ksztalty: Error, obiekt
+   *  Graph API, czasem goly string - bez tego w UI ladowalo "[object Object]". */
+  private describeError(err: any): string {
+    if (!err) return 'Unknown error';
+    if (typeof err === 'string') {
+      // SocialAbstract pakuje odpowiedz platformy w {identifier, json},
+      // gdzie json to zserializowany blad Graph API - rozpakowujemy go,
+      // zeby w UI nie ladowal surowy JSON.
+      const nested = this.unwrapPlatformError(err);
+      if (nested) return nested;
+      return err.slice(0, 200);
+    }
+
+    if (typeof err.json === 'string') {
+      const nested = this.unwrapPlatformError(err.json);
+      if (nested) return nested;
+    }
+
+    const direct =
+      err.message || err.error?.message || err.body?.error?.message;
+    if (typeof direct === 'string' && direct) {
+      const nested = this.unwrapPlatformError(direct);
+      return (nested || direct).slice(0, 200);
+    }
+
+    try {
+      return JSON.stringify(err).slice(0, 200);
+    } catch {
+      return 'Unknown error';
+    }
+  }
+
+  /** Wyciaga error.message z zagniezdzonego JSON-a platformy. */
+  private unwrapPlatformError(text: string): string | null {
+    if (!text.includes('{')) return null;
+    try {
+      let parsed: any = JSON.parse(text.slice(text.indexOf('{')));
+      if (typeof parsed?.json === 'string') {
+        parsed = JSON.parse(parsed.json);
+      }
+      const message = parsed?.error?.message || parsed?.message;
+      return typeof message === 'string' ? message.slice(0, 200) : null;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Wynik z cache'u, jesli jest swiezy.
+   *
+   * Inbox odpytuje platformy przy kazdym wejsciu na zakladke, a Graph API
+   * potrafi odpowiadac kilkanascie sekund na kanal. Cache sprawia, ze widok
+   * pojawia sie natychmiast, a swieze dane dociagaja sie w tle.
+   */
+  private inboxCacheKey(org: string, id: string, kind: string) {
+    return `inbox:${org}:${id}:${kind}`;
+  }
+
+  private async readInboxCache(org: string, id: string, kind: string) {
+    try {
+      const raw = await ioRedis.get(this.inboxCacheKey(org, id, kind));
+      return raw ? JSON.parse(raw) : null;
+    } catch {
+      return null;
+    }
+  }
+
+  private async writeInboxCache(
+    org: string,
+    id: string,
+    kind: string,
+    value: any
+  ) {
+    try {
+      // 10 minut: dluzej niz typowa sesja przegladania, krocej niz okno
+      // publikacji, wiec nowe komentarze i tak zostana zauwazone.
+      await ioRedis.set(
+        this.inboxCacheKey(org, id, kind),
+        JSON.stringify(value),
+        'EX',
+        600
+      );
+    } catch {
+      // brak cache nie moze psuc odpowiedzi
+    }
+  }
+
+  /** Komentarze JEDNEGO kanalu. Frontend odpytuje kanaly osobno, dzieki czemu
+   *  wolny kanal nie blokuje calego widoku i wyniki pojawiaja sie stopniowo.
+   *  `force` pomija cache (przycisk odswiezania). */
+  async getChannelComments(org: Organization, id: string, force = false) {
+    const integration = await this.getIntegrationById(org.id, id);
+    if (!integration || integration.disabled || integration.deletedAt) {
+      throw new NotFoundException('Invalid integration');
+    }
+
+    const integrations = await this._integrationRepository.getIntegrationsList(
+      org.id
+    );
+    const ownIds = new Set(
+      integrations.map((i: any) => String(i.internalId)).filter(Boolean)
+    );
+    const ownHandles = new Set(
+      integrations
+        .map((i: any) =>
+          String(i.profile || '')
+            .replace(/^@/, '')
+            .toLowerCase()
+        )
+        .filter(Boolean)
+    );
+
+    const provider = this._integrationManager.getSocialIntegration(
+      integration.providerIdentifier
+    );
+    if (!provider?.recentComments) {
+      return { comments: [] as SocialComment[] };
+    }
+
+    if (!force) {
+      const cached = await this.readInboxCache(org.id, id, 'comments');
+      if (cached) {
+        return { ...cached, cached: true };
+      }
+    }
+
+    const token = await this.freshToken(org, integration);
+    if (!token) {
+      return { error: 'RELOGIN', comments: [] as SocialComment[] };
+    }
+
+    try {
+      const comments = await this.withTimeout(
+        provider.recentComments(integration.internalId, token, { limit: 6 }),
+        50000,
+        integration.name
+      );
+      const result = {
+        comments: comments.filter(
+          (c) =>
+            !(c.authorId && ownIds.has(String(c.authorId))) &&
+            !(
+              c.authorName &&
+              ownHandles.has(c.authorName.replace(/^@/, '').toLowerCase())
+            )
+        ),
+      };
+      await this.writeInboxCache(org.id, id, 'comments', result);
+      return result;
+    } catch (err: any) {
+      return { error: this.describeError(err), comments: [] };
+    }
+  }
+
+  /** Rozmowy JEDNEGO kanalu. `force` pomija cache. */
+  async getChannelConversations(org: Organization, id: string, force = false) {
+    const integration = await this.getIntegrationById(org.id, id);
+    if (!integration || integration.disabled || integration.deletedAt) {
+      throw new NotFoundException('Invalid integration');
+    }
+    const provider = this._integrationManager.getSocialIntegration(
+      integration.providerIdentifier
+    );
+    if (!provider?.conversations) {
+      return { conversations: [] as SocialConversation[] };
+    }
+
+    if (!force) {
+      const cached = await this.readInboxCache(org.id, id, 'chats');
+      if (cached) {
+        return { ...cached, cached: true };
+      }
+    }
+
+    const token = await this.freshToken(org, integration);
+    if (!token) {
+      return { error: 'RELOGIN', conversations: [] as SocialConversation[] };
+    }
+    try {
+      const conversations = await this.withTimeout(
+        provider.conversations(integration.internalId, token, { limit: 25 }),
+        50000,
+        integration.name
+      );
+      const result = { conversations };
+      await this.writeInboxCache(org.id, id, 'chats', result);
+      return result;
+    } catch (err: any) {
+      return {
+        error: this.describeError(err),
+        conversations: [],
+      };
+    }
+  }
+
+  /**
+   * Zbiera komentarze ze wszystkich kanalow organizacji.
+   *
+   * Komentarze napisane z naszych wlasnych kanalow (np. pierwszy komentarz
+   * z linkiem, ktory Postiz dodaje przy publikacji) sa odsiewane - inbox ma
+   * pokazywac tylko to, na co trzeba odpowiedziec.
+   */
+  async getInboxComments(org: Organization) {
+    const integrations = await this._integrationRepository.getIntegrationsList(
+      org.id
+    );
+
+    const ownIds = new Set(
+      integrations.map((i: any) => String(i.internalId)).filter(Boolean)
+    );
+    const ownHandles = new Set(
+      integrations
+        .map((i: any) =>
+          String(i.profile || '')
+            .replace(/^@/, '')
+            .toLowerCase()
+        )
+        .filter(Boolean)
+    );
+
+    // Kanaly odpytujemy rownolegle - sekwencyjnie 13 kanalow trwalo minuty
+    // i zakladka wisiala na "Wczytuje...".
+    const usable = integrations.filter(
+      (i: any) =>
+        i.type === 'social' &&
+        !i.disabled &&
+        this._integrationManager.getSocialIntegration(i.providerIdentifier)
+          ?.recentComments
+    );
+
+    return Promise.all(
+      usable.map(async (integration: any) => {
+        const base = {
+          channel: integration.name,
+          channelId: integration.id,
+          picture: integration.picture,
+          provider: integration.providerIdentifier,
+        };
+
+        try {
+          const token = await this.freshToken(org, integration);
+          if (!token) {
+            return { ...base, error: 'RELOGIN', comments: [] };
+          }
+
+          const provider = this._integrationManager.getSocialIntegration(
+            integration.providerIdentifier
+          );
+
+          const comments = await this.withTimeout(
+            provider.recentComments!(integration.internalId, token, {
+              limit: 8,
+            }),
+            25000,
+            integration.name
+          );
+
+          return {
+            ...base,
+            comments: comments.filter(
+              (c) =>
+                !(c.authorId && ownIds.has(String(c.authorId))) &&
+                !(
+                  c.authorName &&
+                  ownHandles.has(c.authorName.replace(/^@/, '').toLowerCase())
+                )
+            ),
+          };
+        } catch (err: any) {
+          return {
+            ...base,
+            error: this.describeError(err),
+            comments: [],
+          };
+        }
+      })
+    );
+  }
+
+  async replyToComment(
+    org: Organization,
+    id: string,
+    commentId: string,
+    message: string
+  ) {
+    const integration = await this.getIntegrationById(org.id, id);
+    if (!integration || integration.disabled || integration.deletedAt) {
+      throw new NotFoundException('Invalid integration');
+    }
+    if (
+      !(await this._inboxRepository.findItem(org.id, id, commentId, 'comment'))
+    ) {
+      throw new NotFoundException(
+        'Comment not found in this channel; refresh the inbox'
+      );
+    }
+    const provider = this._integrationManager.getSocialIntegration(
+      integration.providerIdentifier
+    );
+    if (!provider?.reply) {
+      throw new BadRequestException('Provider does not support replies');
+    }
+    const token = await this.freshToken(org, integration);
+    if (!token) {
+      throw new BadRequestException('RELOGIN');
+    }
+    return provider.reply(integration.internalId, commentId, message, token);
+  }
+
+  /** Prywatne rozmowy. Kanaly bez uprawnien zwracaja wpis z polem error. */
+  async getInboxConversations(org: Organization) {
+    const integrations = await this._integrationRepository.getIntegrationsList(
+      org.id
+    );
+
+    const usable = integrations.filter(
+      (i: any) =>
+        i.type === 'social' &&
+        !i.disabled &&
+        this._integrationManager.getSocialIntegration(i.providerIdentifier)
+          ?.conversations
+    );
+
+    return Promise.all(
+      usable.map(async (integration: any) => {
+        const base = {
+          channel: integration.name,
+          channelId: integration.id,
+          picture: integration.picture,
+          provider: integration.providerIdentifier,
+        };
+
+        try {
+          const token = await this.freshToken(org, integration);
+          if (!token) {
+            return { ...base, error: 'RELOGIN', conversations: [] };
+          }
+
+          const provider = this._integrationManager.getSocialIntegration(
+            integration.providerIdentifier
+          );
+
+          const conversations = await this.withTimeout(
+            provider.conversations!(integration.internalId, token, {
+              limit: 25,
+            }),
+            25000,
+            integration.name
+          );
+
+          return { ...base, conversations };
+        } catch (err: any) {
+          return {
+            ...base,
+            error: this.describeError(err),
+            conversations: [],
+          };
+        }
+      })
+    );
+  }
+
+  async sendInboxMessage(
+    org: Organization,
+    id: string,
+    recipientId: string,
+    message: string
+  ) {
+    const integration = await this.getIntegrationById(org.id, id);
+    if (!integration || integration.disabled || integration.deletedAt) {
+      throw new NotFoundException('Invalid integration');
+    }
+    const provider = this._integrationManager.getSocialIntegration(
+      integration.providerIdentifier
+    );
+    if (!provider?.sendInboxMessage || !provider?.conversations) {
+      throw new BadRequestException('Provider does not support messages');
+    }
+    const token = await this.freshToken(org, integration);
+    if (!token) {
+      throw new BadRequestException('RELOGIN');
+    }
+    const threads = await this.withTimeout(
+      provider.conversations!(integration.internalId, token, { limit: 100 }),
+      25000,
+      integration.name
+    );
+    const thread = threads.find((item) => item.participantId === recipientId);
+    const incoming = thread?.messages.filter((item) => !item.isFromUs);
+    const latest = Math.max(
+      ...(incoming || []).map((item) => Date.parse(item.createdAt))
+    );
+    const elapsed = Date.now() - latest;
+    if (
+      !thread ||
+      !Number.isFinite(elapsed) ||
+      elapsed < 0 ||
+      elapsed >= 86400000
+    ) {
+      throw new ForbiddenException(
+        'No active customer-initiated conversation within 24 hours'
+      );
+    }
+    return provider.sendInboxMessage(
+      integration.internalId,
+      recipientId,
+      message,
+      token
+    );
   }
 
   async checkAnalytics(
