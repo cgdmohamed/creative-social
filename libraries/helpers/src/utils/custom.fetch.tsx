@@ -1,13 +1,6 @@
 'use client';
 
-import {
-  createContext,
-  FC,
-  ReactNode,
-  useContext,
-  useRef,
-  useState,
-} from 'react';
+import { createContext, FC, ReactNode, useContext, useMemo } from 'react';
 import { customFetch, Params } from './custom.fetch.func';
 import { useVariables } from '@gitroom/react/helpers/variable.context';
 
@@ -27,15 +20,21 @@ const FetchProvider = createContext(
 export const FetchWrapperComponent: FC<Params & { children: ReactNode }> = (
   props
 ) => {
-  const { children, ...params } = props;
+  const { children, baseUrl, beforeRequest, afterRequest } = props;
   const { isSecured } = useVariables();
-  // @ts-ignore
-  const fetchData = useRef(
-    customFetch(params, undefined, undefined, isSecured)
+  const fetchData = useMemo(
+    () =>
+      customFetch(
+        { baseUrl, beforeRequest, afterRequest },
+        undefined,
+        undefined,
+        isSecured
+      ),
+    [baseUrl, beforeRequest, afterRequest, isSecured]
   );
   return (
     // @ts-ignore
-    <FetchProvider.Provider value={fetchData.current}>
+    <FetchProvider.Provider value={fetchData}>
       {children}
     </FetchProvider.Provider>
   );

@@ -3,7 +3,7 @@
 **/dist
 **/build
 **/coverage
-**/reports
+reports/**
 .git
 .secrets
 **/.env

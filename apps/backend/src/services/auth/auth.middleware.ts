@@ -47,7 +47,9 @@ export class AuthMiddleware implements NestMiddleware {
         throw new HttpForbiddenException();
       }
 
-      let user = (await this._userService.getUserById(payload.id)) as User | null;
+      let user = (await this._userService.getUserById(
+        payload.id
+      )) as User | null;
 
       if (!user) {
         throw new HttpForbiddenException();
@@ -96,12 +98,19 @@ export class AuthMiddleware implements NestMiddleware {
       const organization = (
         await this._organizationService.getOrgsByUserId(user.id)
       ).filter((f) => !f.users[0].disabled);
-      const setOrg =
-        organization.find((org) => org.id === orgHeader) ||
-        organization.find((org) => org.subscription) ||
-        organization[0];
+      // An explicit tenant selection must never silently fall back to another
+      // membership (for example after access is revoked in a second tab).
+      if (
+        orgHeader !== undefined &&
+        (typeof orgHeader !== 'string' || !orgHeader.trim())
+      ) {
+        throw new HttpForbiddenException();
+      }
+      const setOrg = orgHeader
+        ? organization.find((org) => org.id === orgHeader)
+        : organization.find((org) => org.subscription) || organization[0];
 
-      if (!organization) {
+      if (!setOrg) {
         throw new HttpForbiddenException();
       }
 

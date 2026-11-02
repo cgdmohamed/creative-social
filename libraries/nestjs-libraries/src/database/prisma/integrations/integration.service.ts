@@ -30,6 +30,7 @@ import { IntegrationTimeDto } from '@gitroom/nestjs-libraries/dtos/integrations/
 import { UploadFactory } from '@gitroom/nestjs-libraries/upload/upload.factory';
 import { PlugDto } from '@gitroom/nestjs-libraries/dtos/plugs/plug.dto';
 import { difference, uniq } from 'lodash';
+import { randomUUID } from 'crypto';
 import utc from 'dayjs/plugin/utc';
 import { AutopostRepository } from '@gitroom/nestjs-libraries/database/prisma/autopost/autopost.repository';
 import { RefreshIntegrationService } from '@gitroom/nestjs-libraries/integrations/refresh.integration.service';
@@ -557,8 +558,20 @@ export class IntegrationService {
       integration.providerIdentifier
     );
 
+    if (
+      integration.organizationId !== org || integration.disabled || integration.deletedAt
+    ) return;
+    if (kind === 'comment' ? !provider?.recentComments : !provider?.conversations) return;
+    // Coordinate cron and manual sync, including refresh of the same channel.
+    const owner = randomUUID();
+    const key = `inbox:channel:${org}:${integration.id}`;
+    if ((await ioRedis.set(key, owner, 'EX', 300, 'NX')) !== 'OK') return;
     try {
-      const token = await this.freshToken({ id: org } as any, integration);
+      const token = await this.withTimeout(
+        this.freshToken({ id: org } as any, integration),
+        20000,
+        integration.name
+      );
       if (!token) {
         await this._inboxRepository.saveSync(
           org,
@@ -653,6 +666,13 @@ export class IntegrationService {
         kind,
         this.describeError(err)
       );
+    } finally {
+      await ioRedis.eval(
+        "if redis.call('get', KEYS[1]) == ARGV[1] then return redis.call('del', KEYS[1]) else return 0 end",
+        1,
+        key,
+        owner
+      );
     }
   }
 
@@ -661,11 +681,15 @@ export class IntegrationService {
     const integrations = await this._integrationRepository.getIntegrationsList(
       org
     );
-    await Promise.all(
-      integrations
-        .filter((i: any) => i.type === 'social' && !i.disabled)
-        .map((i: any) => this.syncChannel(org, i, kind))
+    const channels = integrations.filter(
+      (i) => i.type === 'social' && !i.disabled && !i.deletedAt
     );
+    // Bound platform traffic and memory across client portfolios.
+    for (let i = 0; i < channels.length; i += 2) {
+      await Promise.all(
+        channels.slice(i, i + 2).map((channel) => this.syncChannel(org, channel, kind))
+      );
+    }
   }
 
   /** Dane do panelu, prosto z bazy - bez ani jednego wywolania do platformy. */
@@ -694,7 +718,7 @@ export class IntegrationService {
         integrationId: sy.integrationId,
         kind: sy.kind,
         lastSyncAt: sy.lastSyncAt,
-        lastError: sy.lastError,
+        lastError: sy.lastError ? this.describeError(sy.lastError) : null,
       })),
     };
   }
@@ -822,51 +846,20 @@ export class IntegrationService {
     return { success: true };
   }
 
-  /** Czytelny opis bledu. Providery rzucaja rozne ksztalty: Error, obiekt
-   *  Graph API, czasem goly string - bez tego w UI ladowalo "[object Object]". */
-  private describeError(err: any): string {
-    if (!err) return 'Unknown error';
-    if (typeof err === 'string') {
-      // SocialAbstract pakuje odpowiedz platformy w {identifier, json},
-      // gdzie json to zserializowany blad Graph API - rozpakowujemy go,
-      // zeby w UI nie ladowal surowy JSON.
-      const nested = this.unwrapPlatformError(err);
-      if (nested) return nested;
-      return err.slice(0, 200);
-    }
-
-    if (typeof err.json === 'string') {
-      const nested = this.unwrapPlatformError(err.json);
-      if (nested) return nested;
-    }
-
-    const direct =
-      err.message || err.error?.message || err.body?.error?.message;
-    if (typeof direct === 'string' && direct) {
-      const nested = this.unwrapPlatformError(direct);
-      return (nested || direct).slice(0, 200);
-    }
-
-    try {
-      return JSON.stringify(err).slice(0, 200);
-    } catch {
-      return 'Unknown error';
-    }
-  }
-
-  /** Wyciaga error.message z zagniezdzonego JSON-a platformy. */
-  private unwrapPlatformError(text: string): string | null {
-    if (!text.includes('{')) return null;
-    try {
-      let parsed: any = JSON.parse(text.slice(text.indexOf('{')));
-      if (typeof parsed?.json === 'string') {
-        parsed = JSON.parse(parsed.json);
-      }
-      const message = parsed?.error?.message || parsed?.message;
-      return typeof message === 'string' ? message.slice(0, 200) : null;
-    } catch {
-      return null;
-    }
+  /** Persist only allowlisted summaries: provider errors can contain OAuth URLs,
+   * tokens, request bodies and private messages, even in their message field. */
+  private describeError(err: unknown): string {
+    // Older databases/caches may predate redaction. Preserve only these exact
+    // application-owned strings when reading them, never arbitrary messages.
+    if (typeof err === 'string' && [
+      'RELOGIN', 'Platform request timed out; retry later',
+      'Platform permissions are missing; reconnect this channel',
+      'Platform request failed; check permissions and reconnect if needed',
+    ].includes(err)) return err;
+    if (err instanceof NotEnoughScopes) return 'Platform permissions are missing; reconnect this channel';
+    if (err instanceof RefreshToken) return 'RELOGIN';
+    if (err instanceof Error && err.message.startsWith('TIMEOUT:')) return 'Platform request timed out; retry later';
+    return 'Platform request failed; check permissions and reconnect if needed';
   }
 
   /**
@@ -883,7 +876,9 @@ export class IntegrationService {
   private async readInboxCache(org: string, id: string, kind: string) {
     try {
       const raw = await ioRedis.get(this.inboxCacheKey(org, id, kind));
-      return raw ? JSON.parse(raw) : null;
+      if (!raw) return null;
+      const value = JSON.parse(raw);
+      return value.error ? { ...value, error: this.describeError(value.error) } : value;
     } catch {
       return null;
     }

@@ -93,7 +93,10 @@ export function Reports() {
   const [from, setFrom] = useState(() => day(Date.now() - 30 * 86400000));
   const [to, setTo] = useState(() => day(Date.now() - 86400000));
   const [scope, setScope] = useState<'CHANNEL' | 'POST'>('CHANNEL');
-  const [report, setReport] = useState<OrganicReport | null>(null);
+  const [reportResult, setReportResult] = useState<{
+    query: string;
+    report: OrganicReport;
+  } | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
@@ -162,6 +165,8 @@ export function Reports() {
     if (campaign) params.set('campaignId', campaign);
     return params.toString();
   }, [from, to, scope, selected, customer, campaign]);
+  // A response for an older client/filter selection cannot label the current view.
+  const report = reportResult?.query === query ? reportResult.report : null;
   const run = async (action: () => Promise<void>) => {
     setBusy(true);
     setError('');
@@ -177,7 +182,7 @@ export function Reports() {
   const generate = () =>
     run(async () => {
       const next = await (await request('/reports/organic?' + query)).json();
-      setReport(next);
+      setReportResult({ query, report: next });
       setMetric(next.metrics[0]?.metric || '');
     });
   const download = (format: 'csv' | 'pdf') =>
@@ -238,7 +243,7 @@ export function Reports() {
               className={field}
               value={client}
               onChange={(e) => {
-                setReport(null);
+                setReportResult(null);
                 setCampaign('');
                 setPosts([]);
                 setPostIds([]);
@@ -277,7 +282,7 @@ export function Reports() {
                       ? prev.filter((id) => id !== c.id)
                       : [...prev, c.id]
                   );
-                  setReport(null);
+                  setReportResult(null);
                 }}
               />
               <span>
@@ -323,7 +328,7 @@ export function Reports() {
                 value={from}
                 onChange={(e) => {
                   setFrom(e.target.value);
-                  setReport(null);
+                  setReportResult(null);
                 }}
               />
             </label>
@@ -335,7 +340,7 @@ export function Reports() {
                 value={to}
                 onChange={(e) => {
                   setTo(e.target.value);
-                  setReport(null);
+                  setReportResult(null);
                 }}
               />
             </label>
@@ -347,7 +352,7 @@ export function Reports() {
                 disabled={!!campaign}
                 onChange={(e) => {
                   setScope(e.target.value as 'CHANNEL' | 'POST');
-                  setReport(null);
+                  setReportResult(null);
                 }}
               >
                 <option value="CHANNEL">Channel metrics</option>
@@ -367,7 +372,7 @@ export function Reports() {
                     setTo(found.to.slice(0, 10));
                     setScope('POST');
                   }
-                  setReport(null);
+                  setReportResult(null);
                 }}
               >
                 <option value="">No campaign filter</option>
@@ -683,7 +688,7 @@ export function Reports() {
                   setCampaigns((prev) => [result, ...prev]);
                   setCampaign(result.id);
                   setScope('POST');
-                  setReport(null);
+                  setReportResult(null);
                   setNotice(
                     'Campaign saved. Build the report to compare its observed post performance.'
                   );

@@ -1,5 +1,8 @@
 # Combined Inbox and Reporting integration / Coolify staging
 
+See the [pre-staging safety audit](PRE_STAGING_AUDIT.md) for current lint counts,
+confirmed fixes, regression tests and remaining blockers before any launch.
+
 Status: candidate configuration and local integration verification only. No deployment,
 production access, live Meta requests or Coolify control-plane changes were performed.
 The Docker daemon is unavailable on the development host, so Linux image build, boot,

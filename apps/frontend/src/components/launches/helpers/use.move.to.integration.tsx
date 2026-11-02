@@ -21,7 +21,6 @@ export const useMoveToIntegration = () => {
   );
 };
 export const useMoveToIntegrationListener = (
-  useEffectParams: any[],
   enabled: boolean,
   callback: ({
     identifier,
@@ -32,16 +31,10 @@ export const useMoveToIntegrationListener = (
   }) => void
 ) => {
   useEffect(() => {
-    if (!enabled) {
-      return;
-    }
-    return load();
-  }, useEffectParams);
-  const load = useCallback(() => {
-    emitter.off('moveToIntegration', callback);
+    if (!enabled) return;
     emitter.on('moveToIntegration', callback);
     return () => {
       emitter.off('moveToIntegration', callback);
     };
-  }, useEffectParams);
+  }, [enabled, callback]);
 };

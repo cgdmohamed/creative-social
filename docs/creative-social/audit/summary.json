@@ -1,0 +1,1644 @@
+{
+  "stagingCommit": "81a871438ad2db9456d4e7cbc86d584c7095d9e6",
+  "upstreamBase": "4d13c6a2a84796ea5000baf08459417ec015ef3d",
+  "upstreamCurrent": "207eee0dae442a642844c1de9bd7a1574d17c95e",
+  "normalization": "Repository-relative filenames and <repo> in messages; source hashes normalize CRLF to LF.",
+  "before": {
+    "filesAnalyzed": 835,
+    "errors": 134,
+    "warnings": 1109,
+    "errorFiles": 75,
+    "errorRules": {
+      "@typescript-eslint/no-require-imports": 5,
+      "@typescript-eslint/no-this-alias": 12,
+      "@typescript-eslint/no-wrapper-object-types": 2,
+      "react-hooks/immutability": 17,
+      "react-hooks/preserve-manual-memoization": 2,
+      "react-hooks/refs": 30,
+      "react-hooks/rules-of-hooks": 2,
+      "react-hooks/set-state-in-effect": 56,
+      "react-hooks/static-components": 2,
+      "react-hooks/use-memo": 6
+    },
+    "warningRules": {
+      "@next/next/no-img-element": 65,
+      "@next/next/no-location-assign-relative-destination": 13,
+      "@typescript-eslint/no-unused-expressions": 512,
+      "import/no-anonymous-default-export": 2,
+      "jsx-a11y/alt-text": 25,
+      "react-hooks/exhaustive-deps": 446,
+      "react-hooks/incompatible-library": 5,
+      "unused-eslint-disable": 41
+    }
+  },
+  "after": {
+    "filesAnalyzed": 839,
+    "errors": 128,
+    "warnings": 1102,
+    "errorFiles": 71,
+    "errorRules": {
+      "@typescript-eslint/no-require-imports": 5,
+      "@typescript-eslint/no-this-alias": 12,
+      "@typescript-eslint/no-wrapper-object-types": 2,
+      "react-hooks/immutability": 15,
+      "react-hooks/preserve-manual-memoization": 1,
+      "react-hooks/refs": 29,
+      "react-hooks/rules-of-hooks": 2,
+      "react-hooks/set-state-in-effect": 55,
+      "react-hooks/static-components": 2,
+      "react-hooks/use-memo": 5
+    },
+    "warningRules": {
+      "@next/next/no-img-element": 65,
+      "@next/next/no-location-assign-relative-destination": 13,
+      "@typescript-eslint/no-unused-expressions": 512,
+      "import/no-anonymous-default-export": 2,
+      "jsx-a11y/alt-text": 25,
+      "react-hooks/exhaustive-deps": 439,
+      "react-hooks/incompatible-library": 5,
+      "unused-eslint-disable": 41
+    }
+  },
+  "beforeErrorPriorities": {
+    "P2": 128,
+    "P1": 6
+  },
+  "remainingReviewedP1Diagnostics": [],
+  "fileComparison": {
+    "apps/backend/src/api/routes/no.auth.integrations.controller.ts": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "66aa47973c40a1b41cc0e55bf67b9f2e62509b48496dd70451a5f56c0a8142a4",
+      "upstreamNormalizedSha256": "66aa47973c40a1b41cc0e55bf67b9f2e62509b48496dd70451a5f56c0a8142a4"
+    },
+    "apps/backend/src/services/auth/auth.middleware.ts": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "0b5fdb396db9f401ff7d46bb82af96d0b22286ca4a57097348382fcf73d20fe6",
+      "upstreamNormalizedSha256": "0b5fdb396db9f401ff7d46bb82af96d0b22286ca4a57097348382fcf73d20fe6"
+    },
+    "apps/backend/src/services/auth/permissions/permissions.guard.ts": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "734f9022ee39ab0b2daa6ee64b3000005ed3af039dd7182188d14a3f280e63e4",
+      "upstreamNormalizedSha256": "734f9022ee39ab0b2daa6ee64b3000005ed3af039dd7182188d14a3f280e63e4"
+    },
+    "apps/backend/src/services/auth/permissions/permissions.service.ts": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "2d96f8c05dd39c0599da7c787042efd788dae231dd00b10f9aaa77323e9652ed",
+      "upstreamNormalizedSha256": "2d96f8c05dd39c0599da7c787042efd788dae231dd00b10f9aaa77323e9652ed"
+    },
+    "apps/backend/src/services/auth/super.admin.guard.ts": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "1509b291235f7b5c447b8b631d861ed3dc7007cd0fb7dd43d5cd24e31e578759",
+      "upstreamNormalizedSha256": "1509b291235f7b5c447b8b631d861ed3dc7007cd0fb7dd43d5cd24e31e578759"
+    },
+    "apps/frontend/public/f.js": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "61c6d8a661c9be9fbe3ada744fadb03c3af299ea2ca22a6d18abb05980f415ad",
+      "upstreamNormalizedSha256": "61c6d8a661c9be9fbe3ada744fadb03c3af299ea2ca22a6d18abb05980f415ad"
+    },
+    "apps/frontend/src/app/(app)/(preview)/p/[id]/page.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "d37775e8032b85a3be1bd1520a6d22fd576ea283ad9936e93774d376818e467c",
+      "upstreamNormalizedSha256": "d37775e8032b85a3be1bd1520a6d22fd576ea283ad9936e93774d376818e467c"
+    },
+    "apps/frontend/src/app/(provider)/provider/[p]/bridge.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "86e621254e8492e43fb0e3472cb05d812997385cbfbd55db7de80ac1add4adcb",
+      "upstreamNormalizedSha256": "86e621254e8492e43fb0e3472cb05d812997385cbfbd55db7de80ac1add4adcb"
+    },
+    "apps/frontend/src/components/agents/agent.chat.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "2cbdcdaedbe2cd2aa04f03cac2c3a52e6f39baa6c54b245337e691297ad71dfe",
+      "upstreamNormalizedSha256": "2cbdcdaedbe2cd2aa04f03cac2c3a52e6f39baa6c54b245337e691297ad71dfe"
+    },
+    "apps/frontend/src/components/agents/agent.textarea.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "db8a98ce89b6670e472cacc1ef5fd07944a9f10178b3a04172a7bfd2fd19db64",
+      "upstreamNormalizedSha256": "db8a98ce89b6670e472cacc1ef5fd07944a9f10178b3a04172a7bfd2fd19db64"
+    },
+    "apps/frontend/src/components/agents/agent.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "ca5aeb18ce27b3666da9931e6cab8544facca105fe17ac9eee03c695681ce341",
+      "upstreamNormalizedSha256": "ca5aeb18ce27b3666da9931e6cab8544facca105fe17ac9eee03c695681ce341"
+    },
+    "apps/frontend/src/components/analytics/analytics.component.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "620ca5d3abd3ae0ef916a7eeb3cb05b13873a818c9d2578604eb890be97e4552",
+      "upstreamNormalizedSha256": "620ca5d3abd3ae0ef916a7eeb3cb05b13873a818c9d2578604eb890be97e4552"
+    },
+    "apps/frontend/src/components/analytics/chart-social.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "27e19f43a1263197764b92e5514af5d6ee6b9efaa5482a353e229ba9c24c7e41",
+      "upstreamNormalizedSha256": "27e19f43a1263197764b92e5514af5d6ee6b9efaa5482a353e229ba9c24c7e41"
+    },
+    "apps/frontend/src/components/analytics/chart.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "fdca1ed1fe4cbacb25fa7de35e0d5989b543971e86b47537a3572c79efb50ba5",
+      "upstreamNormalizedSha256": "fdca1ed1fe4cbacb25fa7de35e0d5989b543971e86b47537a3572c79efb50ba5"
+    },
+    "apps/frontend/src/components/analytics/stars.table.component.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "034b67553451c258cf5b8371677c100ae3bd2d41388479f41e3732d7d916525d",
+      "upstreamNormalizedSha256": "034b67553451c258cf5b8371677c100ae3bd2d41388479f41e3732d7d916525d"
+    },
+    "apps/frontend/src/components/approved-apps/approved-apps.component.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "9d0904bb0324c64cc36a7324401b7e6d3c291ab24efe30bcbb4b79b97bc61d82",
+      "upstreamNormalizedSha256": "9d0904bb0324c64cc36a7324401b7e6d3c291ab24efe30bcbb4b79b97bc61d82"
+    },
+    "apps/frontend/src/components/auth/after.activate.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "0245e19ca8a05f6c347016a3b6b75288c6bcb6757be7c98ad49f3246fe06013a",
+      "upstreamNormalizedSha256": "0245e19ca8a05f6c347016a3b6b75288c6bcb6757be7c98ad49f3246fe06013a"
+    },
+    "apps/frontend/src/components/auth/providers/apple.provider.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "dd93b948b1151019f7af609c7497c60ab477a24bacf3c895adbc3b759ee84848",
+      "upstreamNormalizedSha256": "dd93b948b1151019f7af609c7497c60ab477a24bacf3c895adbc3b759ee84848"
+    },
+    "apps/frontend/src/components/auth/providers/farcaster.provider.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "49fed2121f4ed874f8a0bad6dd787a879c4dd6ae7069282699214243e91087be",
+      "upstreamNormalizedSha256": "49fed2121f4ed874f8a0bad6dd787a879c4dd6ae7069282699214243e91087be"
+    },
+    "apps/frontend/src/components/auth/providers/github.provider.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "dbf0f0f3cbe27d77744b00d85a6b93c39f33ddf8a1a476b607d76dd041a29e23",
+      "upstreamNormalizedSha256": "dbf0f0f3cbe27d77744b00d85a6b93c39f33ddf8a1a476b607d76dd041a29e23"
+    },
+    "apps/frontend/src/components/auth/providers/google.provider.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "e94149c407044171b5bb77eff6c6432329669bf3c104a340a56539f3de0d674a",
+      "upstreamNormalizedSha256": "e94149c407044171b5bb77eff6c6432329669bf3c104a340a56539f3de0d674a"
+    },
+    "apps/frontend/src/components/auth/providers/oauth.provider.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "a1bd1c192ad7a2f0b21a3973858cfd07aa5558324eb5dc0c4fd11ddd80f083af",
+      "upstreamNormalizedSha256": "a1bd1c192ad7a2f0b21a3973858cfd07aa5558324eb5dc0c4fd11ddd80f083af"
+    },
+    "apps/frontend/src/components/auth/providers/wallet.provider.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "cf120b6c65c8215fd80acfbea381558eb485e3e1ff8461c2da6eb8ef133ce9cf",
+      "upstreamNormalizedSha256": "cf120b6c65c8215fd80acfbea381558eb485e3e1ff8461c2da6eb8ef133ce9cf"
+    },
+    "apps/frontend/src/components/auth/register.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "1ddad975be3ca05fcce117f8560c321d246161d45bbe18466e4148fbfaf70eb2",
+      "upstreamNormalizedSha256": "1ddad975be3ca05fcce117f8560c321d246161d45bbe18466e4148fbfaf70eb2"
+    },
+    "apps/frontend/src/components/autopost/autopost.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "3f6fd3043a86a0a136a17a1234c97a95d2ecc51f1732fdeb4ef850ebe656a9fe",
+      "upstreamNormalizedSha256": "3f6fd3043a86a0a136a17a1234c97a95d2ecc51f1732fdeb4ef850ebe656a9fe"
+    },
+    "apps/frontend/src/components/billing/billing.component.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "8cb2a62646ced7d9764796029d974c893e6588921e17aaf55d21550b73828e42",
+      "upstreamNormalizedSha256": "8cb2a62646ced7d9764796029d974c893e6588921e17aaf55d21550b73828e42"
+    },
+    "apps/frontend/src/components/billing/embedded.billing.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "822e8c2aa9557734b417501342f48edf3bd6fb4eabf6635cff1a52968d5665ff",
+      "upstreamNormalizedSha256": "822e8c2aa9557734b417501342f48edf3bd6fb4eabf6635cff1a52968d5665ff"
+    },
+    "apps/frontend/src/components/billing/finish.trial.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "8cb4e705a8effa48d7607825a969ef9aa15531d8ee336daa9e8875e29fd00bb0",
+      "upstreamNormalizedSha256": "8cb4e705a8effa48d7607825a969ef9aa15531d8ee336daa9e8875e29fd00bb0"
+    },
+    "apps/frontend/src/components/billing/first.billing.component.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "a7ff8e05d072c5cd2b0f28692ce97d51bbda213257c6f48cc1cb99def8311802",
+      "upstreamNormalizedSha256": "a7ff8e05d072c5cd2b0f28692ce97d51bbda213257c6f48cc1cb99def8311802"
+    },
+    "apps/frontend/src/components/billing/lifetime.deal.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "efa04604471586d7331c8792132d37e784908c4397ee1a7173f3761c509fb68a",
+      "upstreamNormalizedSha256": "efa04604471586d7331c8792132d37e784908c4397ee1a7173f3761c509fb68a"
+    },
+    "apps/frontend/src/components/billing/main.billing.component.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "433e493e3a09446276e98a4812b1114c67db7136429048e1a175189cd303d8b3",
+      "upstreamNormalizedSha256": "433e493e3a09446276e98a4812b1114c67db7136429048e1a175189cd303d8b3"
+    },
+    "apps/frontend/src/components/developer/developer.component.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "255a10faffeb95dc0ff7ed04e3e2ee8db6a8cf542aaf08896492c4b438d9516d",
+      "upstreamNormalizedSha256": "255a10faffeb95dc0ff7ed04e3e2ee8db6a8cf542aaf08896492c4b438d9516d"
+    },
+    "apps/frontend/src/components/inbox/inbox.tsx": {
+      "baselineIdentical": false,
+      "upstreamIdentical": false,
+      "presentUpstream": false,
+      "stagingNormalizedSha256": "27ea2fd00c3eee67b00d1a07aa539c0d724b37a38bc67c6a08ef849047d0f49f",
+      "upstreamNormalizedSha256": null
+    },
+    "apps/frontend/src/components/launches/add.provider.component.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "fcc4b915653b1808cec6455c93fa1ce48b9841434c245b9bf5e72834f7a820d5",
+      "upstreamNormalizedSha256": "fcc4b915653b1808cec6455c93fa1ce48b9841434c245b9bf5e72834f7a820d5"
+    },
+    "apps/frontend/src/components/launches/ai.image.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "f24a5a8a53b27ee6d6046dd86484d659ebde225d70d3fbd798e80a51da84745d",
+      "upstreamNormalizedSha256": "f24a5a8a53b27ee6d6046dd86484d659ebde225d70d3fbd798e80a51da84745d"
+    },
+    "apps/frontend/src/components/launches/ai.video.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "f4049c705463442590d4b6997ffe66854f75e7a135b8c7b78895d60aeba54194",
+      "upstreamNormalizedSha256": "f4049c705463442590d4b6997ffe66854f75e7a135b8c7b78895d60aeba54194"
+    },
+    "apps/frontend/src/components/launches/bot.picture.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "12cfcf475a9fe740a11426f78a94fbf249dd427cebe88b277245bf7f18eb9efd",
+      "upstreamNormalizedSha256": "12cfcf475a9fe740a11426f78a94fbf249dd427cebe88b277245bf7f18eb9efd"
+    },
+    "apps/frontend/src/components/launches/calendar.context.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "06ddab6a830fadca4c0884e7516e6e3b2f8f5e03f3912cdd7322b03719167eae",
+      "upstreamNormalizedSha256": "06ddab6a830fadca4c0884e7516e6e3b2f8f5e03f3912cdd7322b03719167eae"
+    },
+    "apps/frontend/src/components/launches/calendar.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "bc03566470f8111a17799f45874bf9c2655b84066eefd62dea0e04252efaf56a",
+      "upstreamNormalizedSha256": "bc03566470f8111a17799f45874bf9c2655b84066eefd62dea0e04252efaf56a"
+    },
+    "apps/frontend/src/components/launches/comments/comment.component.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "b2aeeaa965c10cb2e8c6eefe89f0d7b5829d4d98612c9c3fc73f16bb496b67ea",
+      "upstreamNormalizedSha256": "b2aeeaa965c10cb2e8c6eefe89f0d7b5829d4d98612c9c3fc73f16bb496b67ea"
+    },
+    "apps/frontend/src/components/launches/continue.integration.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "68994ef216a41fbee74191e580998a8f5d2a448a37152b9101e4f8fb88a3c695",
+      "upstreamNormalizedSha256": "68994ef216a41fbee74191e580998a8f5d2a448a37152b9101e4f8fb88a3c695"
+    },
+    "apps/frontend/src/components/launches/customer.modal.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "a3611aac8316248a9caa0466c653f8e0aa87adc4d6adc0452d696c621d4eaf3b",
+      "upstreamNormalizedSha256": "a3611aac8316248a9caa0466c653f8e0aa87adc4d6adc0452d696c621d4eaf3b"
+    },
+    "apps/frontend/src/components/launches/general.preview.component.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "4d3968934bc389a0cc923ebe019675f4fd50fc4d3c66e1657d4594ccb6def7c1",
+      "upstreamNormalizedSha256": "4d3968934bc389a0cc923ebe019675f4fd50fc4d3c66e1657d4594ccb6def7c1"
+    },
+    "apps/frontend/src/components/launches/generator/generator.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "7b2537ccc393584ed63bb1332d107937bc3994d697977ed96b80f7a972f9b9e2",
+      "upstreamNormalizedSha256": "7b2537ccc393584ed63bb1332d107937bc3994d697977ed96b80f7a972f9b9e2"
+    },
+    "apps/frontend/src/components/launches/helpers/date.picker.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "807befb02efe6115bc9ec948d6e664e1f3f686ee475f6547d54b550031fd4f58",
+      "upstreamNormalizedSha256": "807befb02efe6115bc9ec948d6e664e1f3f686ee475f6547d54b550031fd4f58"
+    },
+    "apps/frontend/src/components/launches/helpers/linkedin.component.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "394446f863335b02a0c94503312921f60625e95f7bfa101628d4318dc2d9ff90",
+      "upstreamNormalizedSha256": "394446f863335b02a0c94503312921f60625e95f7bfa101628d4318dc2d9ff90"
+    },
+    "apps/frontend/src/components/launches/helpers/media.settings.component.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "cb9dc573f021eb73ef5d79281f447dd59aed9fde174f94ee21e3a943c5381648",
+      "upstreamNormalizedSha256": "cb9dc573f021eb73ef5d79281f447dd59aed9fde174f94ee21e3a943c5381648"
+    },
+    "apps/frontend/src/components/launches/helpers/pick.platform.component.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "44b06178981d2f3b70563efe34060f054f4e99ad24544eb2f3bb0ad2a56ec801",
+      "upstreamNormalizedSha256": "44b06178981d2f3b70563efe34060f054f4e99ad24544eb2f3bb0ad2a56ec801"
+    },
+    "apps/frontend/src/components/launches/helpers/use.custom.provider.function.ts": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "17d6a48372229a7568972c87b34b736428051439d6df1e618ae5e8330423fcb2",
+      "upstreamNormalizedSha256": "17d6a48372229a7568972c87b34b736428051439d6df1e618ae5e8330423fcb2"
+    },
+    "apps/frontend/src/components/launches/helpers/use.formatting.ts": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "08d85b36e654e1b2468b2045002a25ebe13cc742ab4b31d863d0b2879938c8f0",
+      "upstreamNormalizedSha256": "08d85b36e654e1b2468b2045002a25ebe13cc742ab4b31d863d0b2879938c8f0"
+    },
+    "apps/frontend/src/components/launches/helpers/use.integration.list.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "9bb36d86404197dff5dd4e6f5b76dbd97c2d19e4e83211b239b623ba28e1f35b",
+      "upstreamNormalizedSha256": "9bb36d86404197dff5dd4e6f5b76dbd97c2d19e4e83211b239b623ba28e1f35b"
+    },
+    "apps/frontend/src/components/launches/helpers/use.move.to.integration.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "39e40012597dc087537dbeb01c344e7b4076bddac9b0b5feddb06d8d5cf5510c",
+      "upstreamNormalizedSha256": "39e40012597dc087537dbeb01c344e7b4076bddac9b0b5feddb06d8d5cf5510c"
+    },
+    "apps/frontend/src/components/launches/helpers/use.values.ts": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "828cd9a0b24e3f3aad3fef3907c8b93c8e4d5b36fd552dd44be33976fd88f46a",
+      "upstreamNormalizedSha256": "828cd9a0b24e3f3aad3fef3907c8b93c8e4d5b36fd552dd44be33976fd88f46a"
+    },
+    "apps/frontend/src/components/launches/hubspot.installed.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "b29a6030fe81db6ff799b02493be374b1405a2eddfbe5323ac7e4ee1354e66c5",
+      "upstreamNormalizedSha256": "b29a6030fe81db6ff799b02493be374b1405a2eddfbe5323ac7e4ee1354e66c5"
+    },
+    "apps/frontend/src/components/launches/import-debug-post.modal.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "92924bd5c3cd29e305d1534bee736dbbc232ca23a7164afcf534d67c5e0a1684",
+      "upstreamNormalizedSha256": "92924bd5c3cd29e305d1534bee736dbbc232ca23a7164afcf534d67c5e0a1684"
+    },
+    "apps/frontend/src/components/launches/information.component.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "9319085cae15b6954cb70c34b4f3d3d1b2411d774898fa83cdd9f493cade56b8",
+      "upstreamNormalizedSha256": "9319085cae15b6954cb70c34b4f3d3d1b2411d774898fa83cdd9f493cade56b8"
+    },
+    "apps/frontend/src/components/launches/integration.redirect.component.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "d02d5710447ce360a79dffded45cb0a40b681c1969d15c5c06376a12065d1bfe",
+      "upstreamNormalizedSha256": "d02d5710447ce360a79dffded45cb0a40b681c1969d15c5c06376a12065d1bfe"
+    },
+    "apps/frontend/src/components/launches/launches.component.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "1a31762bde029510e612307b4f280d45f7f2665c72ece9c2f7a09275b3749520",
+      "upstreamNormalizedSha256": "1a31762bde029510e612307b4f280d45f7f2665c72ece9c2f7a09275b3749520"
+    },
+    "apps/frontend/src/components/launches/menu/menu.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "4e94f02dc158fe4d4e5d42155d8301836b4033b992b8d32e187af8796483613c",
+      "upstreamNormalizedSha256": "4e94f02dc158fe4d4e5d42155d8301836b4033b992b8d32e187af8796483613c"
+    },
+    "apps/frontend/src/components/launches/missing-release.modal.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "a071ba8daa54d0ccf4bfefae883d67c718db06b43a003ab197dfc098e4317c93",
+      "upstreamNormalizedSha256": "a071ba8daa54d0ccf4bfefae883d67c718db06b43a003ab197dfc098e4317c93"
+    },
+    "apps/frontend/src/components/launches/new.post.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "65fc933222313d1c6e44d6f0602b9cf65dff581e0e50570cfcb8ae87174c53cb",
+      "upstreamNormalizedSha256": "65fc933222313d1c6e44d6f0602b9cf65dff581e0e50570cfcb8ae87174c53cb"
+    },
+    "apps/frontend/src/components/launches/polonto.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "13a72d770aa7c9b061a240d93d0a29afa99f5143b43ee0fcc3edd04e2be635be",
+      "upstreamNormalizedSha256": "13a72d770aa7c9b061a240d93d0a29afa99f5143b43ee0fcc3edd04e2be635be"
+    },
+    "apps/frontend/src/components/launches/polonto/polonto.picture.generation.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "8b7366ce39499f02fb5a858943eaed7f794739ed41a2c24502503bab719ad99f",
+      "upstreamNormalizedSha256": "8b7366ce39499f02fb5a858943eaed7f794739ed41a2c24502503bab719ad99f"
+    },
+    "apps/frontend/src/components/launches/select.channels.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "b636fa82e84d90ae90072f38dd4092c9d20ad65a5ef3fd42ebfb4fc88ae87047",
+      "upstreamNormalizedSha256": "b636fa82e84d90ae90072f38dd4092c9d20ad65a5ef3fd42ebfb4fc88ae87047"
+    },
+    "apps/frontend/src/components/launches/select.customer.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "5275c5f5dcfadd3cdf69c4531649910469f4a3d951e0d296d23256d0b60ca1fb",
+      "upstreamNormalizedSha256": "5275c5f5dcfadd3cdf69c4531649910469f4a3d951e0d296d23256d0b60ca1fb"
+    },
+    "apps/frontend/src/components/launches/separate.post.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "3b7982c0db0367034706b5c2539f5e339fa11f25232f39343e80e0b096ec0639",
+      "upstreamNormalizedSha256": "3b7982c0db0367034706b5c2539f5e339fa11f25232f39343e80e0b096ec0639"
+    },
+    "apps/frontend/src/components/launches/settings.modal.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "c9c0bec8861897996c29f0af7c3017698824101afcacd11a8a729c9ddb299f3e",
+      "upstreamNormalizedSha256": "c9c0bec8861897996c29f0af7c3017698824101afcacd11a8a729c9ddb299f3e"
+    },
+    "apps/frontend/src/components/launches/tags.component.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "b08b87f62c701010303d394f820e8621c8a356018a626ce0ffc4e8da8d2d53f3",
+      "upstreamNormalizedSha256": "b08b87f62c701010303d394f820e8621c8a356018a626ce0ffc4e8da8d2d53f3"
+    },
+    "apps/frontend/src/components/launches/time.table.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "eb0cedd16a82d5c42ec343fbac613f6930e1b890165cf9ba6e0b7a8f355f72e0",
+      "upstreamNormalizedSha256": "eb0cedd16a82d5c42ec343fbac613f6930e1b890165cf9ba6e0b7a8f355f72e0"
+    },
+    "apps/frontend/src/components/launches/up.down.arrow.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "a072090a1e04b5d081aa052e196dd8f1281506ceadccb8665a4674f03b780ad3",
+      "upstreamNormalizedSha256": "a072090a1e04b5d081aa052e196dd8f1281506ceadccb8665a4674f03b780ad3"
+    },
+    "apps/frontend/src/components/launches/web3/providers/telegram.provider.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "4392316409848466bbc847b2a516ca226da3a2f9a342e0a3360350c821d4bb42",
+      "upstreamNormalizedSha256": "4392316409848466bbc847b2a516ca226da3a2f9a342e0a3360350c821d4bb42"
+    },
+    "apps/frontend/src/components/launches/web3/providers/wrapcaster.provider.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "cc98ddb588232db029037b6c9776fea423493b9182fd102e7ca2857bea9943af",
+      "upstreamNormalizedSha256": "cc98ddb588232db029037b6c9776fea423493b9182fd102e7ca2857bea9943af"
+    },
+    "apps/frontend/src/components/layout/announcement.banner.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "da2d6d4f78025d1d772c488adb975848020c5404541fac5880076f298587e082",
+      "upstreamNormalizedSha256": "da2d6d4f78025d1d772c488adb975848020c5404541fac5880076f298587e082"
+    },
+    "apps/frontend/src/components/layout/chatbase.component.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "550ddb75e5a9346e3adee9653a221004befac5e9ad41214a0bc608d85663db82",
+      "upstreamNormalizedSha256": "550ddb75e5a9346e3adee9653a221004befac5e9ad41214a0bc608d85663db82"
+    },
+    "apps/frontend/src/components/layout/check.payment.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "6f34f4794f54ed88f681bc812127d6c3c6ea744af862e45667d61375b998ada6",
+      "upstreamNormalizedSha256": "6f34f4794f54ed88f681bc812127d6c3c6ea744af862e45667d61375b998ada6"
+    },
+    "apps/frontend/src/components/layout/continue.provider.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "69fd31b67d989589424f9ac55937616c0bda4b81f9b988b0b65199dc731cb0df",
+      "upstreamNormalizedSha256": "69fd31b67d989589424f9ac55937616c0bda4b81f9b988b0b65199dc731cb0df"
+    },
+    "apps/frontend/src/components/layout/gtm.component.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "b58c3e3c1a5777f6a61a5a1944085420a0b9066d14b2b9d36f41954e92722608",
+      "upstreamNormalizedSha256": "b58c3e3c1a5777f6a61a5a1944085420a0b9066d14b2b9d36f41954e92722608"
+    },
+    "apps/frontend/src/components/layout/html.component.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "fe517014e6dab5eb1f120d0554cc727fcc36f11f52a334156bf177e47a9cca7c",
+      "upstreamNormalizedSha256": "fe517014e6dab5eb1f120d0554cc727fcc36f11f52a334156bf177e47a9cca7c"
+    },
+    "apps/frontend/src/components/layout/impersonate.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "bddae99da045ceb2dcc77980f7d8fbd40f4d4634e8b486cba90953e44ae3a300",
+      "upstreamNormalizedSha256": "bddae99da045ceb2dcc77980f7d8fbd40f4d4634e8b486cba90953e44ae3a300"
+    },
+    "apps/frontend/src/components/layout/invoices.component.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "fd31a4bee42e68009c9fff3f787f177939e5d907aaec758c9fe1b18ba81c74c6",
+      "upstreamNormalizedSha256": "fd31a4bee42e68009c9fff3f787f177939e5d907aaec758c9fe1b18ba81c74c6"
+    },
+    "apps/frontend/src/components/layout/layout.context.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "853ccb4f7b02777a1b74431ef3ba22a97a321a40bcca6b31b2ab46372214aeba",
+      "upstreamNormalizedSha256": "853ccb4f7b02777a1b74431ef3ba22a97a321a40bcca6b31b2ab46372214aeba"
+    },
+    "apps/frontend/src/components/layout/logout.component.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "d0814d64e32f6b8308a0b5413df9e0534e294382d814770ba0ad643e442a3f14",
+      "upstreamNormalizedSha256": "d0814d64e32f6b8308a0b5413df9e0534e294382d814770ba0ad643e442a3f14"
+    },
+    "apps/frontend/src/components/layout/mode.component.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "d161b8b40a7a2faa2275a7a82134a5a12aafed3b0dbc17da45e5a707d06b0d46",
+      "upstreamNormalizedSha256": "d161b8b40a7a2faa2275a7a82134a5a12aafed3b0dbc17da45e5a707d06b0d46"
+    },
+    "apps/frontend/src/components/layout/new-modal.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "c6d6fccefa6940149defe607d4bfb289b5d589734f3ee43ec1c357b8fa70d39f",
+      "upstreamNormalizedSha256": "c6d6fccefa6940149defe607d4bfb289b5d589734f3ee43ec1c357b8fa70d39f"
+    },
+    "apps/frontend/src/components/layout/new.subscription.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "ea5ba6a3e8dee585a87508825e8405ddab9dc48d25fd70cec7fbd3ddbf9fc52e",
+      "upstreamNormalizedSha256": "ea5ba6a3e8dee585a87508825e8405ddab9dc48d25fd70cec7fbd3ddbf9fc52e"
+    },
+    "apps/frontend/src/components/layout/organization.selector.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "14af35fe76b167cc83a470d58e71092ee3a06726b21d7a9eceb45c44e5243d30",
+      "upstreamNormalizedSha256": "14af35fe76b167cc83a470d58e71092ee3a06726b21d7a9eceb45c44e5243d30"
+    },
+    "apps/frontend/src/components/layout/pre-condition.component.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "a9a527d6c1fa2dd065c82fa25e3093b777647afcb851f08b541445ee6e5be1a5",
+      "upstreamNormalizedSha256": "a9a527d6c1fa2dd065c82fa25e3093b777647afcb851f08b541445ee6e5be1a5"
+    },
+    "apps/frontend/src/components/layout/redirect.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "4694899434e5ef853ebd5ec965cc77e4f6d8f7bf61315bfa2991aa23cafa52a4",
+      "upstreamNormalizedSha256": "4694899434e5ef853ebd5ec965cc77e4f6d8f7bf61315bfa2991aa23cafa52a4"
+    },
+    "apps/frontend/src/components/layout/sentry.component.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "ce133601ab1cdc6a1fda2791d3649227a3b2d87fd2d0c166ca3383694fb63469",
+      "upstreamNormalizedSha256": "ce133601ab1cdc6a1fda2791d3649227a3b2d87fd2d0c166ca3383694fb63469"
+    },
+    "apps/frontend/src/components/layout/settings.component.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "d364d23c7407760c7c528370e4507213ede003d3badcf3702917cfea508aa796",
+      "upstreamNormalizedSha256": "d364d23c7407760c7c528370e4507213ede003d3badcf3702917cfea508aa796"
+    },
+    "apps/frontend/src/components/layout/streak.component.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "317ffaa42a6cbd58ef08cdfd54a06b5b77692d1dbed5d69e29d386ca13f3f5cf",
+      "upstreamNormalizedSha256": "317ffaa42a6cbd58ef08cdfd54a06b5b77692d1dbed5d69e29d386ca13f3f5cf"
+    },
+    "apps/frontend/src/components/layout/title.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "fbdd5c4496aedf03b61ab26840c6f1605f4201aa8f578770d99d380fae630d9e",
+      "upstreamNormalizedSha256": "fbdd5c4496aedf03b61ab26840c6f1605f4201aa8f578770d99d380fae630d9e"
+    },
+    "apps/frontend/src/components/media/media.component.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "08178a33fa523d059bc4ec2fa65e7af168a8ed56a38d77e5110c9ca92d15d6f2",
+      "upstreamNormalizedSha256": "08178a33fa523d059bc4ec2fa65e7af168a8ed56a38d77e5110c9ca92d15d6f2"
+    },
+    "apps/frontend/src/components/media/new.uploader.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "67dc187df2e07f4fefeab9ee124a6549598ae16a1a8976050d90e46e24145520",
+      "upstreamNormalizedSha256": "67dc187df2e07f4fefeab9ee124a6549598ae16a1a8976050d90e46e24145520"
+    },
+    "apps/frontend/src/components/new-launch/add.edit.modal.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "d052b6967a24ce5f5f42084ed510212543a95bbac94829b01577dc905278fd82",
+      "upstreamNormalizedSha256": "d052b6967a24ce5f5f42084ed510212543a95bbac94829b01577dc905278fd82"
+    },
+    "apps/frontend/src/components/new-launch/delay.component.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "8f1608e331a1d4ba82e7d1497bb3f99d3894ff5a7740e38655de00c23a5c8344",
+      "upstreamNormalizedSha256": "8f1608e331a1d4ba82e7d1497bb3f99d3894ff5a7740e38655de00c23a5c8344"
+    },
+    "apps/frontend/src/components/new-launch/editor.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "cf315758bfb0c4efeeea7e2ffe3c8a1bdf118b2b276b97ffee55369d34766a5b",
+      "upstreamNormalizedSha256": "cf315758bfb0c4efeeea7e2ffe3c8a1bdf118b2b276b97ffee55369d34766a5b"
+    },
+    "apps/frontend/src/components/new-launch/manage.modal.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "341f4b2ff12534afeac23c34160f468faf3674d993616f6952be24cd56f321b6",
+      "upstreamNormalizedSha256": "341f4b2ff12534afeac23c34160f468faf3674d993616f6952be24cd56f321b6"
+    },
+    "apps/frontend/src/components/new-launch/media.settings.section.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "33fa8bb3ff227523bb362838b3fb22c08e3701d9a7250caf993133f91c2300ea",
+      "upstreamNormalizedSha256": "33fa8bb3ff227523bb362838b3fb22c08e3701d9a7250caf993133f91c2300ea"
+    },
+    "apps/frontend/src/components/new-launch/mention.component.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "304a084e54a0e1902a05d7598335a272e5ae97a1c586fa132e433b6cacf0555f",
+      "upstreamNormalizedSha256": "304a084e54a0e1902a05d7598335a272e5ae97a1c586fa132e433b6cacf0555f"
+    },
+    "apps/frontend/src/components/new-launch/picks.socials.component.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "04b553d8be1e16a5402ff2f88b5f04fa848da76ba29af61aa7bf3d61ec286c32",
+      "upstreamNormalizedSha256": "04b553d8be1e16a5402ff2f88b5f04fa848da76ba29af61aa7bf3d61ec286c32"
+    },
+    "apps/frontend/src/components/new-launch/providers/continue-provider/facebook/facebook.continue.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "c47ef9e7d11b7c3c8a99a45000681591ce1690fc4e3359b2603a04fc091391d2",
+      "upstreamNormalizedSha256": "c47ef9e7d11b7c3c8a99a45000681591ce1690fc4e3359b2603a04fc091391d2"
+    },
+    "apps/frontend/src/components/new-launch/providers/continue-provider/gmb/gmb.continue.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "61f953eb302f5eff1a8a66448c071f36f251cb1c5f20d529c37e3d69a1df28e4",
+      "upstreamNormalizedSha256": "61f953eb302f5eff1a8a66448c071f36f251cb1c5f20d529c37e3d69a1df28e4"
+    },
+    "apps/frontend/src/components/new-launch/providers/continue-provider/instagram/instagram.continue.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "cf20b342e3507343041371902bac6216a579e3c62532aebcf9f7c50a03c577f1",
+      "upstreamNormalizedSha256": "cf20b342e3507343041371902bac6216a579e3c62532aebcf9f7c50a03c577f1"
+    },
+    "apps/frontend/src/components/new-launch/providers/continue-provider/linkedin/linkedin.continue.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "e364b6e7bb8c2c493348e229bd77a84258fb926af6d4fdddc9e3c8e1063f6222",
+      "upstreamNormalizedSha256": "e364b6e7bb8c2c493348e229bd77a84258fb926af6d4fdddc9e3c8e1063f6222"
+    },
+    "apps/frontend/src/components/new-launch/providers/continue-provider/tumblr/tumblr.continue.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "dd3fb29dfebd6b12bb7b1f360098ab41f309badcddd16bc7242acd752a3653c8",
+      "upstreamNormalizedSha256": "dd3fb29dfebd6b12bb7b1f360098ab41f309badcddd16bc7242acd752a3653c8"
+    },
+    "apps/frontend/src/components/new-launch/providers/continue-provider/with-continue-provider.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "633a4e000f5605134b0549dd532585c6fcb5e003058c357f17dac6f904d4674e",
+      "upstreamNormalizedSha256": "633a4e000f5605134b0549dd532585c6fcb5e003058c357f17dac6f904d4674e"
+    },
+    "apps/frontend/src/components/new-launch/providers/continue-provider/youtube/youtube.continue.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "1e066d81fdaa5995500aca2e1d83991bb176e870d386e44447e313afc9d87534",
+      "upstreamNormalizedSha256": "1e066d81fdaa5995500aca2e1d83991bb176e870d386e44447e313afc9d87534"
+    },
+    "apps/frontend/src/components/new-launch/providers/devto/devto.tags.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "ea67d71c5234c55d1cba1673ae05943aceaa42a5b785bc12ff5a2f9cb1eac72d",
+      "upstreamNormalizedSha256": "ea67d71c5234c55d1cba1673ae05943aceaa42a5b785bc12ff5a2f9cb1eac72d"
+    },
+    "apps/frontend/src/components/new-launch/providers/devto/select.organization.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "766461596159ff0fbad42c02bb43e557c0c589da40c22b77c5a7ec94d57257c9",
+      "upstreamNormalizedSha256": "766461596159ff0fbad42c02bb43e557c0c589da40c22b77c5a7ec94d57257c9"
+    },
+    "apps/frontend/src/components/new-launch/providers/discord/discord.channel.select.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "f837f69497e60ae7f4eae08523e9ec96aeee4fc088774c1bbdbfa0159c7a5bfa",
+      "upstreamNormalizedSha256": "f837f69497e60ae7f4eae08523e9ec96aeee4fc088774c1bbdbfa0159c7a5bfa"
+    },
+    "apps/frontend/src/components/new-launch/providers/dribbble/dribbble.teams.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "ae1a604c52588c49f7ac8238c3567503b82dcbc0782dd4b4543cbea7c074e346",
+      "upstreamNormalizedSha256": "ae1a604c52588c49f7ac8238c3567503b82dcbc0782dd4b4543cbea7c074e346"
+    },
+    "apps/frontend/src/components/new-launch/providers/facebook/facebook.preview.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "655e5fe91d991290c42087a9d84efc60448fef41ef88676d384b581c50506af0",
+      "upstreamNormalizedSha256": "655e5fe91d991290c42087a9d84efc60448fef41ef88676d384b581c50506af0"
+    },
+    "apps/frontend/src/components/new-launch/providers/hashnode/hashnode.publications.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "37904d6f1b32f62cd55d277cbf170c0874e0e1642f4ba7a5b814aabb95b430b6",
+      "upstreamNormalizedSha256": "37904d6f1b32f62cd55d277cbf170c0874e0e1642f4ba7a5b814aabb95b430b6"
+    },
+    "apps/frontend/src/components/new-launch/providers/hashnode/hashnode.tags.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "be0b9779baf81a637598e4194062189efb7af229ca2ba000fb32d04731baa30b",
+      "upstreamNormalizedSha256": "be0b9779baf81a637598e4194062189efb7af229ca2ba000fb32d04731baa30b"
+    },
+    "apps/frontend/src/components/new-launch/providers/high.order.provider.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "7cc9c19023b8df712b109e172d3f7613bf4e00123749b143c17cbb45e94d8ed6",
+      "upstreamNormalizedSha256": "7cc9c19023b8df712b109e172d3f7613bf4e00123749b143c17cbb45e94d8ed6"
+    },
+    "apps/frontend/src/components/new-launch/providers/instagram/instagram.audio.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "5660ee6a8a873dee5f19bd7d3bd65eb40395468fe6a576e2a334b39aa31f1955",
+      "upstreamNormalizedSha256": "5660ee6a8a873dee5f19bd7d3bd65eb40395468fe6a576e2a334b39aa31f1955"
+    },
+    "apps/frontend/src/components/new-launch/providers/instagram/instagram.preview.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "cbdda4bf98534c0f55ac4a21595e0e5caf31d60e4d6b86ffcfaec04589b26120",
+      "upstreamNormalizedSha256": "cbdda4bf98534c0f55ac4a21595e0e5caf31d60e4d6b86ffcfaec04589b26120"
+    },
+    "apps/frontend/src/components/new-launch/providers/instagram/instagram.tags.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "29de2b8a818f8c0c573f56b2b813b6f24fa2796ece10e2d875c387ce479d47e6",
+      "upstreamNormalizedSha256": "29de2b8a818f8c0c573f56b2b813b6f24fa2796ece10e2d875c387ce479d47e6"
+    },
+    "apps/frontend/src/components/new-launch/providers/lemmy/lemmy.provider.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "e151b9c372cf2713fc9e3988ad40e6764ca8193c2b27fca89df78e3dbc74d644",
+      "upstreamNormalizedSha256": "e151b9c372cf2713fc9e3988ad40e6764ca8193c2b27fca89df78e3dbc74d644"
+    },
+    "apps/frontend/src/components/new-launch/providers/lemmy/subreddit.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "69528dccabb2f868bf2ae31f0d554c684532e88a61572142cb6597a963066d35",
+      "upstreamNormalizedSha256": "69528dccabb2f868bf2ae31f0d554c684532e88a61572142cb6597a963066d35"
+    },
+    "apps/frontend/src/components/new-launch/providers/linkedin/linkedin.preview.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "96ad56d36698b419b3ecd67dd8c0a040854c4febd67fe71f0a2d6040093d9874",
+      "upstreamNormalizedSha256": "96ad56d36698b419b3ecd67dd8c0a040854c4febd67fe71f0a2d6040093d9874"
+    },
+    "apps/frontend/src/components/new-launch/providers/listmonk/select.list.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "47d76dc6cec9fbd40fdbab1284c2d1bafd2ab051a59e14db7fb0e1408b5c0d6a",
+      "upstreamNormalizedSha256": "47d76dc6cec9fbd40fdbab1284c2d1bafd2ab051a59e14db7fb0e1408b5c0d6a"
+    },
+    "apps/frontend/src/components/new-launch/providers/listmonk/select.templates.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "26dc7b45a8b5d6d8ebce232c47886aa553f103c9dd3f71a043f543f3658f196e",
+      "upstreamNormalizedSha256": "26dc7b45a8b5d6d8ebce232c47886aa553f103c9dd3f71a043f543f3658f196e"
+    },
+    "apps/frontend/src/components/new-launch/providers/medium/medium.publications.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "8cfb49cb7c876f92f93b19d502f752dffe91ed3158e7f17b793d69b99d8c6c80",
+      "upstreamNormalizedSha256": "8cfb49cb7c876f92f93b19d502f752dffe91ed3158e7f17b793d69b99d8c6c80"
+    },
+    "apps/frontend/src/components/new-launch/providers/medium/medium.tags.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "96e10457031f02d7f0e886b8b844507535335d0d648d6d826d815e9ecd2131f5",
+      "upstreamNormalizedSha256": "96e10457031f02d7f0e886b8b844507535335d0d648d6d826d815e9ecd2131f5"
+    },
+    "apps/frontend/src/components/new-launch/providers/mewe/mewe.group.select.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "5c61fcd09b0465f80274484df91e65afd90cf6a40656c4f5c0237de4facd274a",
+      "upstreamNormalizedSha256": "5c61fcd09b0465f80274484df91e65afd90cf6a40656c4f5c0237de4facd274a"
+    },
+    "apps/frontend/src/components/new-launch/providers/pinterest/pinterest.board.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "9433a804c33f3cec9125c576ff83d9227cbeb1429b36ccf29a34dcc18dda6079",
+      "upstreamNormalizedSha256": "9433a804c33f3cec9125c576ff83d9227cbeb1429b36ccf29a34dcc18dda6079"
+    },
+    "apps/frontend/src/components/new-launch/providers/reddit/reddit.provider.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "6c3a927a3c788a694f51465e725a6f27b1fab1585daec9940d1506c0887339d2",
+      "upstreamNormalizedSha256": "6c3a927a3c788a694f51465e725a6f27b1fab1585daec9940d1506c0887339d2"
+    },
+    "apps/frontend/src/components/new-launch/providers/reddit/subreddit.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "66088346b1a89239f19966c1a3df34d20648d760e51493f7b9b6f37d2c8094b2",
+      "upstreamNormalizedSha256": "66088346b1a89239f19966c1a3df34d20648d760e51493f7b9b6f37d2c8094b2"
+    },
+    "apps/frontend/src/components/new-launch/providers/skool/skool.group.select.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "94d9e05230aab95284124c6b9617757119a87c008efc4e493d293aca687e374f",
+      "upstreamNormalizedSha256": "94d9e05230aab95284124c6b9617757119a87c008efc4e493d293aca687e374f"
+    },
+    "apps/frontend/src/components/new-launch/providers/skool/skool.label.select.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "f0811c2ebba22db81d561f1d58fac63d3aebd215ba589d8be9ebfd0276e15775",
+      "upstreamNormalizedSha256": "f0811c2ebba22db81d561f1d58fac63d3aebd215ba589d8be9ebfd0276e15775"
+    },
+    "apps/frontend/src/components/new-launch/providers/slack/slack.channel.select.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "6f42168c06d62033e33d827faee3ce1c78bc0cad4c9f8b44a880c1ef5a677e27",
+      "upstreamNormalizedSha256": "6f42168c06d62033e33d827faee3ce1c78bc0cad4c9f8b44a880c1ef5a677e27"
+    },
+    "apps/frontend/src/components/new-launch/providers/tiktok/tiktok.location.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "f5bffc3e4d45f36112770463e8f0283e1b9d75477f36574a6890b49bb7e32216",
+      "upstreamNormalizedSha256": "f5bffc3e4d45f36112770463e8f0283e1b9d75477f36574a6890b49bb7e32216"
+    },
+    "apps/frontend/src/components/new-launch/providers/tiktok/tiktok.music.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "2a62bf1ce941d410e7b493cb5078f8232252d0eb82014efb21d0369ab03c0e9c",
+      "upstreamNormalizedSha256": "2a62bf1ce941d410e7b493cb5078f8232252d0eb82014efb21d0369ab03c0e9c"
+    },
+    "apps/frontend/src/components/new-launch/providers/tiktok/tiktok.preview.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "7fff03436cca06c670c1f757470177142c8f3fe04f4957a4d975206cd2c3047e",
+      "upstreamNormalizedSha256": "7fff03436cca06c670c1f757470177142c8f3fe04f4957a4d975206cd2c3047e"
+    },
+    "apps/frontend/src/components/new-launch/providers/warpcast/subreddit.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "c1b2d2cff8b3cb3618fb9d6a685219e4f813fdea3a1f663b47ddf1d3c6ac4b0a",
+      "upstreamNormalizedSha256": "c1b2d2cff8b3cb3618fb9d6a685219e4f813fdea3a1f663b47ddf1d3c6ac4b0a"
+    },
+    "apps/frontend/src/components/new-launch/providers/warpcast/warpcast.provider.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "dbbcf49a856a1cd0c05ea9a7a9cfd2057e66d2cd89a3ed0ae2de9ba313780c86",
+      "upstreamNormalizedSha256": "dbbcf49a856a1cd0c05ea9a7a9cfd2057e66d2cd89a3ed0ae2de9ba313780c86"
+    },
+    "apps/frontend/src/components/new-launch/providers/whop/whop.company.select.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "521a7e8434102bd8e7cf4baa13a5eeb7e9b1a1db035063227fa29abe6a1ae405",
+      "upstreamNormalizedSha256": "521a7e8434102bd8e7cf4baa13a5eeb7e9b1a1db035063227fa29abe6a1ae405"
+    },
+    "apps/frontend/src/components/new-launch/providers/whop/whop.experience.select.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "77a941297825575dcb21b16b5fe44a04d9dc2ab157886653bb0d7c169738b930",
+      "upstreamNormalizedSha256": "77a941297825575dcb21b16b5fe44a04d9dc2ab157886653bb0d7c169738b930"
+    },
+    "apps/frontend/src/components/new-launch/providers/wordpress/wordpress.post.type.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "a6c21e9ba6b5f214e901aac77caed45ce4d008c6ff2047773778dd270977a08b",
+      "upstreamNormalizedSha256": "a6c21e9ba6b5f214e901aac77caed45ce4d008c6ff2047773778dd270977a08b"
+    },
+    "apps/frontend/src/components/new-launch/providers/wordpress/wordpress.terms.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "1e4cf1d0b281fd6293f99a94537c0c84f2caebc7ac4a5741b6dcacca497b78d5",
+      "upstreamNormalizedSha256": "1e4cf1d0b281fd6293f99a94537c0c84f2caebc7ac4a5741b6dcacca497b78d5"
+    },
+    "apps/frontend/src/components/new-launch/providers/youtube/youtube.preview.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "deed7083fd7e0572beefa8ce7f44e1b3dfb7645e57ebea42a57a5c7f6b733b79",
+      "upstreamNormalizedSha256": "deed7083fd7e0572beefa8ce7f44e1b3dfb7645e57ebea42a57a5c7f6b733b79"
+    },
+    "apps/frontend/src/components/new-launch/select.current.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "aad453760aa71a69d612c977a76a14cf85d59f15ba74e322e56e46dda22303e2",
+      "upstreamNormalizedSha256": "aad453760aa71a69d612c977a76a14cf85d59f15ba74e322e56e46dda22303e2"
+    },
+    "apps/frontend/src/components/new-layout/change.dir.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "cf1d50176657df33b01eceaec037adba089ec7c507791a0443cd8a212386e15b",
+      "upstreamNormalizedSha256": "cf1d50176657df33b01eceaec037adba089ec7c507791a0443cd8a212386e15b"
+    },
+    "apps/frontend/src/components/new-layout/layout.component.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "ef183ac66e9b8ccee61cb507ab278898a9c0f8a2faa6520a1c020d9ffdc075e8",
+      "upstreamNormalizedSha256": "ef183ac66e9b8ccee61cb507ab278898a9c0f8a2faa6520a1c020d9ffdc075e8"
+    },
+    "apps/frontend/src/components/new-layout/mobile.integration.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "e7cb1d3362c58670b0e90b96825ba4d38f2ec140262614245a134519b84ceef8",
+      "upstreamNormalizedSha256": "e7cb1d3362c58670b0e90b96825ba4d38f2ec140262614245a134519b84ceef8"
+    },
+    "apps/frontend/src/components/new-layout/sentry.feedback.component.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "141836830ba7090b02c6fe64046547eb97b3ed073884b2576fcf8e5cea80f725",
+      "upstreamNormalizedSha256": "141836830ba7090b02c6fe64046547eb97b3ed073884b2576fcf8e5cea80f725"
+    },
+    "apps/frontend/src/components/notifications/notification.component.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "c4c950a08eaa2b795994390a592e55fa9c234bcf1a562140c65e6d500ba10f45",
+      "upstreamNormalizedSha256": "c4c950a08eaa2b795994390a592e55fa9c234bcf1a562140c65e6d500ba10f45"
+    },
+    "apps/frontend/src/components/oauth/authorize.component.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "31f0b684a375a776398897298dc2d8a55ce3f8045109e09f50d5755743878fde",
+      "upstreamNormalizedSha256": "31f0b684a375a776398897298dc2d8a55ce3f8045109e09f50d5755743878fde"
+    },
+    "apps/frontend/src/components/oauth/self.hosted.component.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "90b8a39c5b1278ba1c03f80c9fb17a1d2987d3d5ead2d193bb188658dc03dc96",
+      "upstreamNormalizedSha256": "90b8a39c5b1278ba1c03f80c9fb17a1d2987d3d5ead2d193bb188658dc03dc96"
+    },
+    "apps/frontend/src/components/onboarding/github.onboarding.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "36bcdae94dae70eadf5c414904aa23d575f5c8289c562a55230de0b1c801c816",
+      "upstreamNormalizedSha256": "36bcdae94dae70eadf5c414904aa23d575f5c8289c562a55230de0b1c801c816"
+    },
+    "apps/frontend/src/components/onboarding/onboarding.modal.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "dfc374c86ecb858ee46fb086d105644180f6d0daf6a77089b1be78d590785a59",
+      "upstreamNormalizedSha256": "dfc374c86ecb858ee46fb086d105644180f6d0daf6a77089b1be78d590785a59"
+    },
+    "apps/frontend/src/components/onboarding/onboarding.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "e78b2ae54381bd598e75e5f5f6a1e0c22c46ddfc63319ae8148efc4b0c9a4151",
+      "upstreamNormalizedSha256": "e78b2ae54381bd598e75e5f5f6a1e0c22c46ddfc63319ae8148efc4b0c9a4151"
+    },
+    "apps/frontend/src/components/platform-analytics/platform.analytics.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "8153cc0c3225acd3a07aa01e6026eeed46abe9a33845cf1e250a9916449b4660",
+      "upstreamNormalizedSha256": "8153cc0c3225acd3a07aa01e6026eeed46abe9a33845cf1e250a9916449b4660"
+    },
+    "apps/frontend/src/components/platform-analytics/render.analytics.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "dfab8131d7c8fe9feaa7939f5d7715c1d2aa5be9df1e8c533d59cca44732e495",
+      "upstreamNormalizedSha256": "dfab8131d7c8fe9feaa7939f5d7715c1d2aa5be9df1e8c533d59cca44732e495"
+    },
+    "apps/frontend/src/components/plugs/plug.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "19669cd629f83ef1aa077f7044470a17c4a8dc77c4b28239bb519af5d9228bc6",
+      "upstreamNormalizedSha256": "19669cd629f83ef1aa077f7044470a17c4a8dc77c4b28239bb519af5d9228bc6"
+    },
+    "apps/frontend/src/components/plugs/plugs.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "e3e5b1a0e748f50725487ec76da7b90b2ca5861a7e68f79d4668b37b7bd8a0ec",
+      "upstreamNormalizedSha256": "e3e5b1a0e748f50725487ec76da7b90b2ca5861a7e68f79d4668b37b7bd8a0ec"
+    },
+    "apps/frontend/src/components/post-url-selector/post.url.selector.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "dfcaaf1edc4c0ef5ea73cda79a191bc7b36d4fccf526bc0e9d81449c0c3a4241",
+      "upstreamNormalizedSha256": "dfcaaf1edc4c0ef5ea73cda79a191bc7b36d4fccf526bc0e9d81449c0c3a4241"
+    },
+    "apps/frontend/src/components/preview/comments.components.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "2a5242e4a9566073723871975c5f9a8c91ccb7bfecbbfa90b233a3f39b239973",
+      "upstreamNormalizedSha256": "2a5242e4a9566073723871975c5f9a8c91ccb7bfecbbfa90b233a3f39b239973"
+    },
+    "apps/frontend/src/components/preview/copy.client.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "5277642d99f95953b1187fecbe738350899813f042e13c5aeab5ca3529f73c8b",
+      "upstreamNormalizedSha256": "5277642d99f95953b1187fecbe738350899813f042e13c5aeab5ca3529f73c8b"
+    },
+    "apps/frontend/src/components/preview/preview.comments.context.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "bb709495118826ae805c3daef1aaac6ee1f70759f1bc2b218cf5783b719355d7",
+      "upstreamNormalizedSha256": "bb709495118826ae805c3daef1aaac6ee1f70759f1bc2b218cf5783b719355d7"
+    },
+    "apps/frontend/src/components/preview/preview.wrapper.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "ebf5323cbe20463be24da5dc3f019a99f60509e578bd5e5db179f0157e3af6b5",
+      "upstreamNormalizedSha256": "ebf5323cbe20463be24da5dc3f019a99f60509e578bd5e5db179f0157e3af6b5"
+    },
+    "apps/frontend/src/components/public-api/mcp.client.icons.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "14fca1cc3f8e24183881e3f548d25da191ece090236bf97c61f9d74a77a928b3",
+      "upstreamNormalizedSha256": "14fca1cc3f8e24183881e3f548d25da191ece090236bf97c61f9d74a77a928b3"
+    },
+    "apps/frontend/src/components/public-api/public.component.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "06ceeecc1118f84ff2c4f4d8ba85d97833c7397e2768e51b85a3980321ab7094",
+      "upstreamNormalizedSha256": "06ceeecc1118f84ff2c4f4d8ba85d97833c7397e2768e51b85a3980321ab7094"
+    },
+    "apps/frontend/src/components/sets/sets.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "069df44d6cf578c498938f35944b70b06addcfe613b13f52aa500f258c5a267e",
+      "upstreamNormalizedSha256": "069df44d6cf578c498938f35944b70b06addcfe613b13f52aa500f258c5a267e"
+    },
+    "apps/frontend/src/components/settings/delete-account.component.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "43b68aac1720230e65d04464e5cf0aa76c19907ae26baeb05d79400eea09d073",
+      "upstreamNormalizedSha256": "43b68aac1720230e65d04464e5cf0aa76c19907ae26baeb05d79400eea09d073"
+    },
+    "apps/frontend/src/components/settings/email-notifications.component.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "241746c90623a0811aff068b8781237630c66288ed7efc0a29623ca55e428b11",
+      "upstreamNormalizedSha256": "241746c90623a0811aff068b8781237630c66288ed7efc0a29623ca55e428b11"
+    },
+    "apps/frontend/src/components/settings/github.component.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "796f6542935a3988dcd31af0f820b96e0630221570bf71d0e064bc90f33b7a8a",
+      "upstreamNormalizedSha256": "796f6542935a3988dcd31af0f820b96e0630221570bf71d0e064bc90f33b7a8a"
+    },
+    "apps/frontend/src/components/settings/metric.component.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "d3304c935944a7f7ca9e9e07ab6241e9c16580353730bb53b9289af48018399b",
+      "upstreamNormalizedSha256": "d3304c935944a7f7ca9e9e07ab6241e9c16580353730bb53b9289af48018399b"
+    },
+    "apps/frontend/src/components/settings/shortlink-preference.component.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "895837887de66e103f70a3b214adbab31d297e25158ad962d24f675aa18d4450",
+      "upstreamNormalizedSha256": "895837887de66e103f70a3b214adbab31d297e25158ad962d24f675aa18d4450"
+    },
+    "apps/frontend/src/components/settings/signatures.component.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "02a0c03095b41d5b1baa389e95103cc0e4ee5552e64b6b9e39b5943f53206a09",
+      "upstreamNormalizedSha256": "02a0c03095b41d5b1baa389e95103cc0e4ee5552e64b6b9e39b5943f53206a09"
+    },
+    "apps/frontend/src/components/settings/teams.component.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "a6cc89905c66f0a6901b026e357f447bfec5e746387744e1d72cd92140c31aa8",
+      "upstreamNormalizedSha256": "a6cc89905c66f0a6901b026e357f447bfec5e746387744e1d72cd92140c31aa8"
+    },
+    "apps/frontend/src/components/signature.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "76fe4c1f0551f1dbeb6316c90fdafc3d21ad136dd626b72ce4c1aaf44de4aaee",
+      "upstreamNormalizedSha256": "76fe4c1f0551f1dbeb6316c90fdafc3d21ad136dd626b72ce4c1aaf44de4aaee"
+    },
+    "apps/frontend/src/components/standalone-modal/standalone.modal.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "970fc6d1801595422c5e6f4375a88a22679b5e0f85f70e20f0de0310c609a565",
+      "upstreamNormalizedSha256": "970fc6d1801595422c5e6f4375a88a22679b5e0f85f70e20f0de0310c609a565"
+    },
+    "apps/frontend/src/components/third-parties/providers/heygen.provider.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "3dbf9a3add5270f226ce70af774a42c4c59498f9878df608d99e4445ff0981b7",
+      "upstreamNormalizedSha256": "3dbf9a3add5270f226ce70af774a42c4c59498f9878df608d99e4445ff0981b7"
+    },
+    "apps/frontend/src/components/third-parties/third-party.component.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "b602021ba8963acadf975220ffb7965fd914c510e7989bb993f68c40d59b5c32",
+      "upstreamNormalizedSha256": "b602021ba8963acadf975220ffb7965fd914c510e7989bb993f68c40d59b5c32"
+    },
+    "apps/frontend/src/components/third-parties/third-party.function.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "45aca456eb729255ef864a4ba69ea9d9b8629c9a5407214a9b62fc306880d0a5",
+      "upstreamNormalizedSha256": "45aca456eb729255ef864a4ba69ea9d9b8629c9a5407214a9b62fc306880d0a5"
+    },
+    "apps/frontend/src/components/third-parties/third-party.list.component.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "8edf591e8008d3b534aca4487def6516c10e9f92f0cd61cd4d3980e6224947ce",
+      "upstreamNormalizedSha256": "8edf591e8008d3b534aca4487def6516c10e9f92f0cd61cd4d3980e6224947ce"
+    },
+    "apps/frontend/src/components/third-parties/third-party.media-library.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "470bc25ef264cda0e7361e64ef289005c1670d2e389803736c501e6a02499fca",
+      "upstreamNormalizedSha256": "470bc25ef264cda0e7361e64ef289005c1670d2e389803736c501e6a02499fca"
+    },
+    "apps/frontend/src/components/third-parties/third-party.media.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "e9a5ed7667584fa77363932973d571b15d5a9bdfc99a2a5d844df295b5a74537",
+      "upstreamNormalizedSha256": "e9a5ed7667584fa77363932973d571b15d5a9bdfc99a2a5d844df295b5a74537"
+    },
+    "apps/frontend/src/components/ui/icons/index.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "20b6e8ff0e0d66d298db9bdeb4aef31ba5901633e205e7910cf126ab17065454",
+      "upstreamNormalizedSha256": "20b6e8ff0e0d66d298db9bdeb4aef31ba5901633e205e7910cf126ab17065454"
+    },
+    "apps/frontend/src/components/videos/providers/image-text-slides.provider.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "cabbc4ed2f95764112c14a4acc14c0347436b9f323c200779a67d0393b4a4d92",
+      "upstreamNormalizedSha256": "cabbc4ed2f95764112c14a4acc14c0347436b9f323c200779a67d0393b4a4d92"
+    },
+    "apps/frontend/src/components/videos/video.render.component.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "2bef2c2c59c019fb854214b06d65f18b8d0387462aa2e38e33dc218f9d1d2d05",
+      "upstreamNormalizedSha256": "2bef2c2c59c019fb854214b06d65f18b8d0387462aa2e38e33dc218f9d1d2d05"
+    },
+    "apps/frontend/src/components/webhooks/webhooks.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "e346e13babee6d5285ba36fa0de75f76d3b550be70228adcbc1dc169a8a97d1a",
+      "upstreamNormalizedSha256": "e346e13babee6d5285ba36fa0de75f76d3b550be70228adcbc1dc169a8a97d1a"
+    },
+    "eslint.config.mjs": {
+      "baselineIdentical": false,
+      "upstreamIdentical": false,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "b24ee1ec16e182ed9ccb9648ffc3b0d410513f49255b902c626c9eb6b6e6c52c",
+      "upstreamNormalizedSha256": "296678db3d1017139a0cb0daeecdce1615711cccba39aee6249e539802fe8360"
+    },
+    "jest.config.ts": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "2f84dea99da9a854ceceef9e3125fbd57b6d2d174d3c6562b53355f3f0affcaa",
+      "upstreamNormalizedSha256": "2f84dea99da9a854ceceef9e3125fbd57b6d2d174d3c6562b53355f3f0affcaa"
+    },
+    "jest.preset.js": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "2a1bad0e8ed09f34acbf5391bb4f96467dba5c533a927bacb7075c3ed04d73c2",
+      "upstreamNormalizedSha256": "2a1bad0e8ed09f34acbf5391bb4f96467dba5c533a927bacb7075c3ed04d73c2"
+    },
+    "libraries/helpers/src/decorators/plug.decorator.ts": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "7b26a0419543e6760ad572df3c1f5881a499727aa930a8cf5ee7203ac251b87e",
+      "upstreamNormalizedSha256": "7b26a0419543e6760ad572df3c1f5881a499727aa930a8cf5ee7203ac251b87e"
+    },
+    "libraries/helpers/src/decorators/post.plug.ts": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "c7847c89092fb4a3e42c031dbc0b56eaf3f8fec163c53e8eccebdb2164884ebd",
+      "upstreamNormalizedSha256": "c7847c89092fb4a3e42c031dbc0b56eaf3f8fec163c53e8eccebdb2164884ebd"
+    },
+    "libraries/helpers/src/utils/custom.fetch.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "2dbb01f2f29d6d391539b88c095083402e7dbb92a3b1312bdbb583d905663c8b",
+      "upstreamNormalizedSha256": "2dbb01f2f29d6d391539b88c095083402e7dbb92a3b1312bdbb583d905663c8b"
+    },
+    "libraries/helpers/src/utils/use.wait.for.class.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "d9fd50b94922cf7235bca7d032e64429ab312a80a04b888a3699745234b56851",
+      "upstreamNormalizedSha256": "d9fd50b94922cf7235bca7d032e64429ab312a80a04b888a3699745234b56851"
+    },
+    "libraries/helpers/src/utils/utm.saver.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "e16b381e118916c240fa62a66202bd9f91fb29e47f2fb057786d7f99f3cf5465",
+      "upstreamNormalizedSha256": "e16b381e118916c240fa62a66202bd9f91fb29e47f2fb057786d7f99f3cf5465"
+    },
+    "libraries/nestjs-libraries/src/integrations/social/bluesky.provider.ts": {
+      "baselineIdentical": true,
+      "upstreamIdentical": false,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "bf93e6c5009740f27a8e7251d94e816e7de8cd77bd3b5321155ee7c0ce77ce59",
+      "upstreamNormalizedSha256": "012be119d88f4bf97e2c99f800c7dbe4d145af73eec8bfe86753f67e254e2ea2"
+    },
+    "libraries/nestjs-libraries/src/integrations/social/facebook.provider.ts": {
+      "baselineIdentical": false,
+      "upstreamIdentical": false,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "9fb803dcb5326315c27d913f2a58f29545c9dbf276bf764f0649c4c30de4fdfb",
+      "upstreamNormalizedSha256": "10d1c7b9bb5dacd6e107b2db4f81ca526e773a03b0f694975ac745a12db7193c"
+    },
+    "libraries/nestjs-libraries/src/integrations/social/instagram.provider.ts": {
+      "baselineIdentical": false,
+      "upstreamIdentical": false,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "b3d46c33c90a67538b8ad208c09c30e7a0030c9931ed6899bc89be4ddc0a0391",
+      "upstreamNormalizedSha256": "264d708994e26af082ed6998f2fec11baf955ece4d37fe6533b3a98e304fcd29"
+    },
+    "libraries/nestjs-libraries/src/integrations/social/linkedin.provider.ts": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "a7ddd6c61af388a712b74ce816c61a02bf3c5250bd0d7d200fb58c45f2631673",
+      "upstreamNormalizedSha256": "a7ddd6c61af388a712b74ce816c61a02bf3c5250bd0d7d200fb58c45f2631673"
+    },
+    "libraries/nestjs-libraries/src/integrations/social/mastodon.provider.ts": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "b1d88da57082682cffef7bb6948f258e88af5af99524c7c68c21aac05ad15988",
+      "upstreamNormalizedSha256": "b1d88da57082682cffef7bb6948f258e88af5af99524c7c68c21aac05ad15988"
+    },
+    "libraries/nestjs-libraries/src/integrations/social/pinterest.provider.ts": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "9460758a17f80c2e29e2c1282f7f30b0d53f7a3862fe7c403ba31bdfd5e6efcd",
+      "upstreamNormalizedSha256": "9460758a17f80c2e29e2c1282f7f30b0d53f7a3862fe7c403ba31bdfd5e6efcd"
+    },
+    "libraries/nestjs-libraries/src/integrations/social/reddit.provider.ts": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "29ea3019b8064e826edff1bcbd5f0fc13ed5c6bd587b94444372ea81874b7268",
+      "upstreamNormalizedSha256": "29ea3019b8064e826edff1bcbd5f0fc13ed5c6bd587b94444372ea81874b7268"
+    },
+    "libraries/nestjs-libraries/src/integrations/social/threads.provider.ts": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "8845235158c690cb3a557cad360ccfe5a8047f318294ba149a8ccfd76480d970",
+      "upstreamNormalizedSha256": "8845235158c690cb3a557cad360ccfe5a8047f318294ba149a8ccfd76480d970"
+    },
+    "libraries/nestjs-libraries/src/integrations/social/x.provider.ts": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "d50a5bd269237fbb6b4965dc0413ac7a2b481017426049b32b6a292b2c1e63f9",
+      "upstreamNormalizedSha256": "d50a5bd269237fbb6b4965dc0413ac7a2b481017426049b32b6a292b2c1e63f9"
+    },
+    "libraries/nestjs-libraries/src/integrations/social/youtube.provider.ts": {
+      "baselineIdentical": false,
+      "upstreamIdentical": false,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "25f12a314866ae9dca1d2150dff6d2880ba2f9c196247ab73f155a342889454e",
+      "upstreamNormalizedSha256": "94dddc293c2408ca0a7f0c568daebb74d80c7ebdbdcbbbedd00cb865afac01a2"
+    },
+    "libraries/nestjs-libraries/src/services/stripe.service.ts": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "23d3722261c4bac8222ab263e0869d7eb0f5edc02e0ccde0c1c7e3d4bd185689",
+      "upstreamNormalizedSha256": "23d3722261c4bac8222ab263e0869d7eb0f5edc02e0ccde0c1c7e3d4bd185689"
+    },
+    "libraries/nestjs-libraries/src/upload/cloudflare.storage.ts": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "475adb40aedf55e25c608918c81df4c295e9a5ccb66d4c6f8c1ffe5ab7781448",
+      "upstreamNormalizedSha256": "475adb40aedf55e25c608918c81df4c295e9a5ccb66d4c6f8c1ffe5ab7781448"
+    },
+    "libraries/nestjs-libraries/src/upload/custom.upload.validation.ts": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "da5428eecd70b34e0490c02b82c2b729fb6f1fcbcd0c8862b9e5b1b13d6f1b3e",
+      "upstreamNormalizedSha256": "da5428eecd70b34e0490c02b82c2b729fb6f1fcbcd0c8862b9e5b1b13d6f1b3e"
+    },
+    "libraries/nestjs-libraries/src/upload/local.storage.ts": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "6cfd9f071d65a78416fd1eb0f558466abb7320c93d5f8a3765286d7e2ef8afe8",
+      "upstreamNormalizedSha256": "6cfd9f071d65a78416fd1eb0f558466abb7320c93d5f8a3765286d7e2ef8afe8"
+    },
+    "libraries/nestjs-libraries/src/upload/r2.uploader.ts": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "9456573af8613363d8cbf860d83c6786b0512544ddc3d7aa3ba4db951879a6f8",
+      "upstreamNormalizedSha256": "9456573af8613363d8cbf860d83c6786b0512544ddc3d7aa3ba4db951879a6f8"
+    },
+    "libraries/react-shared-libraries/src/form/canonical.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "aaafdecd5b08c949c01328e708aea076f815097f614a5711861f76f82c94430c",
+      "upstreamNormalizedSha256": "aaafdecd5b08c949c01328e708aea076f815097f614a5711861f76f82c94430c"
+    },
+    "libraries/react-shared-libraries/src/form/checkbox.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "d0534e38fb4b8852fa6ddce60580ce443352ad339ea61e05b02b58751e9dd04f",
+      "upstreamNormalizedSha256": "d0534e38fb4b8852fa6ddce60580ce443352ad339ea61e05b02b58751e9dd04f"
+    },
+    "libraries/react-shared-libraries/src/form/color.picker.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "a9fc23d70a7cd0e5cca07c0d1eb66e30fcb6a270a75189242b721c91b61e1b2b",
+      "upstreamNormalizedSha256": "a9fc23d70a7cd0e5cca07c0d1eb66e30fcb6a270a75189242b721c91b61e1b2b"
+    },
+    "libraries/react-shared-libraries/src/form/custom.select.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "0bd7d031f29b806a30388a699eb133b39be4bb214fd1588688afdff0486dad58",
+      "upstreamNormalizedSha256": "0bd7d031f29b806a30388a699eb133b39be4bb214fd1588688afdff0486dad58"
+    },
+    "libraries/react-shared-libraries/src/form/input.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "18b7b6a624f8e16909f7d6f4c173edfaaa0b54c33752e3f449c5efcbb4839bdc",
+      "upstreamNormalizedSha256": "18b7b6a624f8e16909f7d6f4c173edfaaa0b54c33752e3f449c5efcbb4839bdc"
+    },
+    "libraries/react-shared-libraries/src/form/multi.select.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "9dc782ec3103a49245d36449ec3d582fef0d590ba73f264aea18d4a53958f555",
+      "upstreamNormalizedSha256": "9dc782ec3103a49245d36449ec3d582fef0d590ba73f264aea18d4a53958f555"
+    },
+    "libraries/react-shared-libraries/src/form/select.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "aa1bcc2c6fac9f24ba081cc45c9e64e3b9d235205986c0af2c73f0c9b9490213",
+      "upstreamNormalizedSha256": "aa1bcc2c6fac9f24ba081cc45c9e64e3b9d235205986c0af2c73f0c9b9490213"
+    },
+    "libraries/react-shared-libraries/src/form/slider.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "d7c1b3142f21265554131f5eb1106d51034d22301731dc0f47b126fa2d652f6b",
+      "upstreamNormalizedSha256": "d7c1b3142f21265554131f5eb1106d51034d22301731dc0f47b126fa2d652f6b"
+    },
+    "libraries/react-shared-libraries/src/form/textarea.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "f7ca0b87e474991202f8198310114ba18a5e12ac1d07f593dd40e19219c88664",
+      "upstreamNormalizedSha256": "f7ca0b87e474991202f8198310114ba18a5e12ac1d07f593dd40e19219c88664"
+    },
+    "libraries/react-shared-libraries/src/form/total.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "5ae56c31c5bd25435dfae8b2e13425a691459c197bb8ede67df766137043d390",
+      "upstreamNormalizedSha256": "5ae56c31c5bd25435dfae8b2e13425a691459c197bb8ede67df766137043d390"
+    },
+    "libraries/react-shared-libraries/src/helpers/image.with.fallback.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "8f739f31e756905995fe73f0daa7c71d3290a1b920e29fc8845d9232fe2eca2f",
+      "upstreamNormalizedSha256": "8f739f31e756905995fe73f0daa7c71d3290a1b920e29fc8845d9232fe2eca2f"
+    },
+    "libraries/react-shared-libraries/src/helpers/safe.image.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "43297c1ac69834f810e4db9879761661eb06fc158f9ab87fc6095fe247d909d4",
+      "upstreamNormalizedSha256": "43297c1ac69834f810e4db9879761661eb06fc158f9ab87fc6095fe247d909d4"
+    },
+    "libraries/react-shared-libraries/src/helpers/use.is.visible.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "899144e260fb8e4a6e23601ed0bfc0b6d8d4199f1e931dab600fed8a5ee77c2b",
+      "upstreamNormalizedSha256": "899144e260fb8e4a6e23601ed0bfc0b6d8d4199f1e931dab600fed8a5ee77c2b"
+    },
+    "libraries/react-shared-libraries/src/helpers/use.track.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "df83654e3ce1309bb53186985be7a464b1eb5956e0a4e90e2715e9f4a7919faf",
+      "upstreamNormalizedSha256": "df83654e3ce1309bb53186985be7a464b1eb5956e0a4e90e2715e9f4a7919faf"
+    },
+    "libraries/react-shared-libraries/src/helpers/variable.context.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "e00a6508facb3db45a00e995960c886e6d00504b08916a06fe8d488b48448d20",
+      "upstreamNormalizedSha256": "e00a6508facb3db45a00e995960c886e6d00504b08916a06fe8d488b48448d20"
+    },
+    "libraries/react-shared-libraries/src/helpers/video.or.image.tsx": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "1e238364f6f0dea52529d11cc010ddf8daa8e0c1362b220803a641a9830f8b2c",
+      "upstreamNormalizedSha256": "1e238364f6f0dea52529d11cc010ddf8daa8e0c1362b220803a641a9830f8b2c"
+    },
+    "libraries/react-shared-libraries/src/sentry/initialize.sentry.next.basic.ts": {
+      "baselineIdentical": true,
+      "upstreamIdentical": true,
+      "presentUpstream": true,
+      "stagingNormalizedSha256": "6f172b83b96dd49ab7ee06dcbe9d82b0934b7876594529c846fe0d7644ada937",
+      "upstreamNormalizedSha256": "6f172b83b96dd49ab7ee06dcbe9d82b0934b7876594529c846fe0d7644ada937"
+    }
+  }
+}

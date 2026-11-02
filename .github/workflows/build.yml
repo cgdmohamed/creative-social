@@ -58,6 +58,9 @@ jobs:
       - name: Integration lint
         run: pnpm run lint:integration
 
+      - name: Staging-critical safety lint
+        run: pnpm run lint:safety
+
       - name: Combined Inbox and Reporting tests
         run: pnpm run test:combined
 
@@ -65,6 +68,12 @@ jobs:
         run: |
           pnpm exec tsc --noEmit -p apps/backend/tsconfig.json
           pnpm exec tsc --noEmit -p apps/orchestrator/tsconfig.json
+
+      - name: Production deployment tests and lint (no daemon needed)
+        run: |
+          pnpm run lint:deployment
+          pnpm run test:deployment
+          docker compose --env-file .env.production.example -f docker-compose.production.yaml config --quiet
 
       - name: Build
         run: pnpm run build
