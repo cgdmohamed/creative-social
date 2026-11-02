@@ -1,3 +1,5 @@
+import { ReportingModule } from '../reporting/reporting.module';
+import { ReportsController } from './routes/reports.controller';
 import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { AuthController } from '@gitroom/backend/api/routes/auth.controller';
 import { AuthService } from '@gitroom/backend/services/auth/auth.service';
@@ -62,6 +64,8 @@ const authenticatedController = [
   UsersController,
   AnalyticsController,
   InboxController,
+
+  ReportsController,
   IntegrationsController,
   SettingsController,
   PostsController,
@@ -82,7 +86,7 @@ const authenticatedController = [
   AdminController,
 ];
 @Module({
-  imports: [UploadModule],
+  imports: [UploadModule, ReportingModule],
   controllers: process.env.MCP_ONLY
     ? [
         RootController,
