@@ -31,4 +31,9 @@ Base: `gitroomhq/postiz-app`; integration branch: `feature/unified-inbox` (creat
 5. Do not merge to main or deploy until verified.
 6. Postmill report implementation is substantially embedded in its initial snapshot; selective porting is more appropriate than a blind cherry-pick.
 
-Status: **planning only**; none of the above commits has been applied.
+Status: **Inbox port implemented on `feature/unified-inbox`**. All thirteen inbox
+commits have been applied with source attribution; incompatible publishing/schema/
+cron changes were adapted and unrelated analytics dependencies were excluded.
+See [INBOX.md](INBOX.md) for compatibility details, API permissions, database upgrade,
+limits and validation requirements. Analytics/reporting inspection and porting
+remain Task 2. No production deployment has been performed.

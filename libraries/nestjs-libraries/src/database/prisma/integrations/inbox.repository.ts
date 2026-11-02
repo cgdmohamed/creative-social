@@ -22,6 +22,7 @@ export class InboxRepository {
         // potrzebne, zeby pokazac nasza odpowiedz w watku pod komentarzem.
         organizationId: org,
         kind,
+        integration: { disabled: false, deletedAt: null },
         ...(integrationIds?.length
           ? { integrationId: { in: integrationIds } }
           : {}),
@@ -76,6 +77,12 @@ export class InboxRepository {
     }>
   ) {
     for (const item of items) {
+      const existing = await this.findItem(
+        org,
+        integrationId,
+        item.externalId,
+        kind
+      );
       const data = {
         authorName: item.authorName,
         authorId: item.authorId,
@@ -88,6 +95,9 @@ export class InboxRepository {
         payload: item.payload ?? undefined,
         happenedAt: item.happenedAt,
         isOwn: !!item.isOwn,
+        ...(existing && item.happenedAt > existing.happenedAt
+          ? { isRead: false }
+          : {}),
       };
 
       await this._items.model.inboxItem.upsert({
@@ -110,6 +120,17 @@ export class InboxRepository {
     }
   }
 
+  findItem(
+    org: string,
+    integrationId: string,
+    externalId: string,
+    kind: string
+  ) {
+    return this._items.model.inboxItem.findFirst({
+      where: { organizationId: org, integrationId, externalId, kind },
+    });
+  }
+
   markRead(org: string, ids: string[], read: boolean) {
     return this._items.model.inboxItem.updateMany({
       where: { organizationId: org, externalId: { in: ids } },
@@ -124,7 +145,10 @@ export class InboxRepository {
   }
 
   saveSync(org: string, integrationId: string, kind: string, error?: string) {
-    const data = { lastSyncAt: new Date(), lastError: error || null };
+    const data = {
+      ...(error ? {} : { lastSyncAt: new Date() }),
+      lastError: error || null,
+    };
     return this._sync.model.inboxSync.upsert({
       where: { integrationId_kind: { integrationId, kind } },
       create: { organizationId: org, integrationId, kind, ...data },

@@ -66,7 +66,7 @@ const when = (iso: string) => {
   const d = new Date(iso);
   return isNaN(d.getTime())
     ? ''
-    : d.toLocaleString('pl-PL', {
+    : d.toLocaleString(undefined, {
         day: '2-digit',
         month: '2-digit',
         hour: '2-digit',
@@ -266,6 +266,7 @@ export const Inbox: FC<{ mode: 'comments' | 'chats' }> = ({ mode }) => {
   const [activeId, setActiveId] = useState('');
   const [text, setText] = useState('');
   const [busy, setBusy] = useState(false);
+  const [loadError, setLoadError] = useState('');
   const [onlyUnread, setOnlyUnread] = useState(false);
 
   const loadChannels = useCallback(async () => {
@@ -279,7 +280,11 @@ export const Inbox: FC<{ mode: 'comments' | 'chats' }> = ({ mode }) => {
   }, [fetch]);
 
   useEffect(() => {
-    loadChannels();
+    loadChannels().catch(() => {
+      setLoadError(
+        'Unable to load connected channels. Try refreshing the page.'
+      );
+    });
   }, [loadChannels]);
 
   // Wszystko jednym zapytaniem do naszej bazy. Platformy odpytuje cron w tle,
@@ -288,13 +293,15 @@ export const Inbox: FC<{ mode: 'comments' | 'chats' }> = ({ mode }) => {
   const loadData = useCallback(
     async (sync = false) => {
       setLoading(true);
+      setLoadError('');
       try {
         const kind = tab === 'comments' ? 'comment' : 'conversation';
-        const res = sync
-          ? await (
-              await fetch(`/inbox/sync/${kind}`, { method: 'POST' })
-            ).json()
-          : await (await fetch(`/inbox/db/${kind}`)).json();
+        const response = sync
+          ? await fetch(`/inbox/sync/${kind}`, { method: 'POST' })
+          : await fetch(`/inbox/db/${kind}`);
+        if (!response.ok)
+          throw new Error('Unable to load the inbox. Try refreshing.');
+        const res = await response.json();
 
         setRows(res.items || []);
         setSync(res.sync || []);
@@ -303,8 +310,10 @@ export const Inbox: FC<{ mode: 'comments' | 'chats' }> = ({ mode }) => {
             (res.items || []).filter((i: any) => i.isRead).map((i: any) => i.id)
           )
         );
-      } catch {
-        setRows([]);
+      } catch (error) {
+        setLoadError(
+          error instanceof Error ? error.message : 'Unable to load the inbox'
+        );
       } finally {
         setLoading(false);
       }
@@ -452,12 +461,18 @@ export const Inbox: FC<{ mode: 'comments' | 'chats' }> = ({ mode }) => {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(body),
         });
-        if (!res.ok) throw new Error(String(res.status));
+        if (!res.ok) {
+          const error = await res.json().catch(() => ({}));
+          throw new Error(explain(error.message || res.status));
+        }
         toaster.show(ok, 'success');
         setText('');
         loadData(true);
-      } catch {
-        toaster.show('Action failed', 'warning');
+      } catch (error) {
+        toaster.show(
+          error instanceof Error ? error.message : 'Action failed',
+          'warning'
+        );
       } finally {
         setBusy(false);
       }
@@ -524,6 +539,11 @@ export const Inbox: FC<{ mode: 'comments' | 'chats' }> = ({ mode }) => {
         </div>
 
         <div className="flex-1 overflow-y-auto">
+          {loadError && (
+            <p role="alert" className="p-3 text-red-400">
+              {loadError}
+            </p>
+          )}
           {shown.map((item) => {
             const isRead = read.has(item.id);
             const isActive = item.id === activeId;

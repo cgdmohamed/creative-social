@@ -1,4 +1,7 @@
 import {
+  BadRequestException,
+  ForbiddenException,
+  NotFoundException,
   forwardRef,
   HttpException,
   HttpStatus,
@@ -10,7 +13,6 @@ import { InboxRepository } from '@gitroom/nestjs-libraries/database/prisma/integ
 import { IntegrationManager } from '@gitroom/nestjs-libraries/integrations/integration.manager';
 import {
   AnalyticsData,
-  AuthTokenDetails,
   SocialComment,
   SocialConversation,
   SocialProvider,
@@ -222,10 +224,11 @@ export class IntegrationService {
     newProvider: string,
     auth: { id: string; username: string }
   ) {
-    const existing = await this._integrationRepository.getIntegrationByInternalId(
-      org,
-      oldInternalId
-    );
+    const existing =
+      await this._integrationRepository.getIntegrationByInternalId(
+        org,
+        oldInternalId
+      );
 
     if (
       !existing ||
@@ -473,12 +476,13 @@ export class IntegrationService {
    * bez uprawnien potrafi odpowiadac minutami zamiast od razu zglosic blad.
    */
   private withTimeout<T>(promise: Promise<T>, ms: number, label: string) {
+    let timeout: ReturnType<typeof setTimeout>;
     return Promise.race([
       promise,
-      new Promise<T>((_, reject) =>
-        setTimeout(() => reject(new Error(`TIMEOUT: ${label}`)), ms)
-      ),
-    ]);
+      new Promise<T>((_, reject) => {
+        timeout = setTimeout(() => reject(new Error(`TIMEOUT: ${label}`)), ms);
+      }),
+    ]).finally(() => clearTimeout(timeout));
   }
 
   /** Token kanalu, odswiezony jesli wygasl. Null = kanal wymaga ponownego logowania. */
@@ -501,27 +505,41 @@ export class IntegrationService {
     commentId: string,
     action: 'hide' | 'unhide' | 'delete'
   ) {
+    if (!['hide', 'unhide', 'delete'].includes(action)) {
+      throw new BadRequestException('Invalid moderation action');
+    }
     const integration = await this.getIntegrationById(org.id, id);
-    if (!integration) {
-      throw new Error('Invalid integration');
+    if (!integration || integration.disabled || integration.deletedAt) {
+      throw new NotFoundException('Invalid integration');
+    }
+    if (
+      !(await this._inboxRepository.findItem(org.id, id, commentId, 'comment'))
+    ) {
+      throw new NotFoundException(
+        'Comment not found in this channel; refresh the inbox'
+      );
     }
     const provider = this._integrationManager.getSocialIntegration(
       integration.providerIdentifier
     );
     const token = await this.freshToken(org, integration);
     if (!token) {
-      throw new Error('RELOGIN');
+      throw new BadRequestException('RELOGIN');
     }
 
     if (action === 'delete') {
       if (!provider?.deleteComment) {
-        throw new Error('Provider does not support deleting comments');
+        throw new BadRequestException(
+          'Provider does not support deleting comments'
+        );
       }
       return provider.deleteComment(commentId, token);
     }
 
     if (!provider?.hideComment) {
-      throw new Error('Provider does not support hiding comments');
+      throw new BadRequestException(
+        'Provider does not support hiding comments'
+      );
     }
     return provider.hideComment(commentId, action === 'hide', token);
   }
@@ -561,7 +579,9 @@ export class IntegrationService {
         const ownHandles = new Set(
           all
             .map((i: any) =>
-              String(i.profile || '').replace(/^@/, '').toLowerCase()
+              String(i.profile || '')
+                .replace(/^@/, '')
+                .toLowerCase()
             )
             .filter(Boolean)
         );
@@ -750,7 +770,9 @@ export class IntegrationService {
           profile: i.profile,
           // Klient (customer) jest juz dociagany przez getIntegrationsList -
           // panel grupuje po nim kanaly tak samo jak menu w kalendarzu.
-          customer: i.customer ? { id: i.customer.id, name: i.customer.name } : null,
+          customer: i.customer
+            ? { id: i.customer.id, name: i.customer.name }
+            : null,
           supportsComments: !!provider?.recentComments,
           supportsChats: !!provider?.conversations,
         };
@@ -818,7 +840,8 @@ export class IntegrationService {
       if (nested) return nested;
     }
 
-    const direct = err.message || err.error?.message || err.body?.error?.message;
+    const direct =
+      err.message || err.error?.message || err.body?.error?.message;
     if (typeof direct === 'string' && direct) {
       const nested = this.unwrapPlatformError(direct);
       return (nested || direct).slice(0, 200);
@@ -891,8 +914,8 @@ export class IntegrationService {
    *  `force` pomija cache (przycisk odswiezania). */
   async getChannelComments(org: Organization, id: string, force = false) {
     const integration = await this.getIntegrationById(org.id, id);
-    if (!integration) {
-      throw new Error('Invalid integration');
+    if (!integration || integration.disabled || integration.deletedAt) {
+      throw new NotFoundException('Invalid integration');
     }
 
     const integrations = await this._integrationRepository.getIntegrationsList(
@@ -903,7 +926,11 @@ export class IntegrationService {
     );
     const ownHandles = new Set(
       integrations
-        .map((i: any) => String(i.profile || '').replace(/^@/, '').toLowerCase())
+        .map((i: any) =>
+          String(i.profile || '')
+            .replace(/^@/, '')
+            .toLowerCase()
+        )
         .filter(Boolean)
     );
 
@@ -952,8 +979,8 @@ export class IntegrationService {
   /** Rozmowy JEDNEGO kanalu. `force` pomija cache. */
   async getChannelConversations(org: Organization, id: string, force = false) {
     const integration = await this.getIntegrationById(org.id, id);
-    if (!integration) {
-      throw new Error('Invalid integration');
+    if (!integration || integration.disabled || integration.deletedAt) {
+      throw new NotFoundException('Invalid integration');
     }
     const provider = this._integrationManager.getSocialIntegration(
       integration.providerIdentifier
@@ -1007,7 +1034,11 @@ export class IntegrationService {
     );
     const ownHandles = new Set(
       integrations
-        .map((i: any) => String(i.profile || '').replace(/^@/, '').toLowerCase())
+        .map((i: any) =>
+          String(i.profile || '')
+            .replace(/^@/, '')
+            .toLowerCase()
+        )
         .filter(Boolean)
     );
 
@@ -1077,18 +1108,25 @@ export class IntegrationService {
     message: string
   ) {
     const integration = await this.getIntegrationById(org.id, id);
-    if (!integration) {
-      throw new Error('Invalid integration');
+    if (!integration || integration.disabled || integration.deletedAt) {
+      throw new NotFoundException('Invalid integration');
+    }
+    if (
+      !(await this._inboxRepository.findItem(org.id, id, commentId, 'comment'))
+    ) {
+      throw new NotFoundException(
+        'Comment not found in this channel; refresh the inbox'
+      );
     }
     const provider = this._integrationManager.getSocialIntegration(
       integration.providerIdentifier
     );
     if (!provider?.reply) {
-      throw new Error('Provider does not support replies');
+      throw new BadRequestException('Provider does not support replies');
     }
     const token = await this.freshToken(org, integration);
     if (!token) {
-      throw new Error('RELOGIN');
+      throw new BadRequestException('RELOGIN');
     }
     return provider.reply(integration.internalId, commentId, message, token);
   }
@@ -1153,20 +1191,41 @@ export class IntegrationService {
     message: string
   ) {
     const integration = await this.getIntegrationById(org.id, id);
-    if (!integration) {
-      throw new Error('Invalid integration');
+    if (!integration || integration.disabled || integration.deletedAt) {
+      throw new NotFoundException('Invalid integration');
     }
     const provider = this._integrationManager.getSocialIntegration(
       integration.providerIdentifier
     );
-    if (!provider?.sendMessage) {
-      throw new Error('Provider does not support messages');
+    if (!provider?.sendInboxMessage || !provider?.conversations) {
+      throw new BadRequestException('Provider does not support messages');
     }
     const token = await this.freshToken(org, integration);
     if (!token) {
-      throw new Error('RELOGIN');
+      throw new BadRequestException('RELOGIN');
     }
-    return provider.sendMessage(
+    const threads = await this.withTimeout(
+      provider.conversations!(integration.internalId, token, { limit: 100 }),
+      25000,
+      integration.name
+    );
+    const thread = threads.find((item) => item.participantId === recipientId);
+    const incoming = thread?.messages.filter((item) => !item.isFromUs);
+    const latest = Math.max(
+      ...(incoming || []).map((item) => Date.parse(item.createdAt))
+    );
+    const elapsed = Date.now() - latest;
+    if (
+      !thread ||
+      !Number.isFinite(elapsed) ||
+      elapsed < 0 ||
+      elapsed >= 86400000
+    ) {
+      throw new ForbiddenException(
+        'No active customer-initiated conversation within 24 hours'
+      );
+    }
+    return provider.sendInboxMessage(
       integration.internalId,
       recipientId,
       message,

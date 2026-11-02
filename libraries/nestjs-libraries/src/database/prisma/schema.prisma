@@ -397,6 +397,7 @@ model Integration {
   plugs                 Plugs[]
   posts                 Post[]
   inboxItems            InboxItem[]
+  inboxSyncs            InboxSync[]
 
   @@unique([organizationId, internalId])
   @@index([rootInternalId])
@@ -409,7 +410,6 @@ model Integration {
   @@index([inBetweenSteps])
   @@index([refreshNeeded])
   @@index([disabled])
-  inboxItems           InboxItem[]
 }
 
 model Signatures {
@@ -1890,6 +1890,7 @@ model InboxSync {
   id             String    @id @default(uuid())
   organizationId String
   integrationId  String
+  integration    Integration @relation(fields: [integrationId], references: [id], onDelete: Cascade)
   kind           String
   lastSyncAt     DateTime?
   lastError      String?

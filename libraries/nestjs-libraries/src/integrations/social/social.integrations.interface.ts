@@ -169,7 +169,7 @@ export interface ISocialMediaIntegration {
     options?: CommentsQuery
   ): Promise<SocialConversation[]>; // Reads private message threads
 
-  sendMessage?(
+  sendInboxMessage?(
     id: string,
     recipientId: string,
     message: string,

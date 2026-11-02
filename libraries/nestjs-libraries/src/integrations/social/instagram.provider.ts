@@ -42,6 +42,7 @@ export class InstagramProvider
   scopes = [
     'instagram_basic',
     'pages_show_list',
+    'pages_manage_metadata',
     'pages_read_engagement',
     'business_management',
     'instagram_content_publish',
@@ -49,7 +50,7 @@ export class InstagramProvider
     'instagram_manage_insights',
     // Wiadomosci: dodatkowo wymaga zdolnosci po stronie aplikacji Meta
     // (App Review), samo uprawnienie w tokenie nie wystarczy.
-    'instagram_business_manage_messages',
+    'instagram_manage_messages',
   ];
   override maxConcurrentJob = 400;
   editor = 'normal' as const;
@@ -429,8 +430,9 @@ export class InstagramProvider
     if (body.indexOf('too little or too many attachments') > -1) {
       return {
         type: 'bad-body' as const,
-        value: 'Instagram carousel should have between 2 and 10 media attachments',
-      }
+        value:
+          'Instagram carousel should have between 2 and 10 media attachments',
+      };
     }
 
     if (body.indexOf('2207027') > -1) {
@@ -444,7 +446,7 @@ export class InstagramProvider
       return {
         type: 'bad-body' as const,
         value:
-          "One of the collaborators could not be tagged, please check the username is correct, the account is public, and that it allows collaborator invites",
+          'One of the collaborators could not be tagged, please check the username is correct, the account is public, and that it allows collaborator invites',
       };
     }
 
@@ -740,7 +742,9 @@ export class InstagramProvider
           : { data: [] };
       const mediaId = data?.[0]?.id || '';
       console.log(
-        `Instagram blocked media_publish for container ${containerId}: status ${status}, media ${mediaId || 'none'}`
+        `Instagram blocked media_publish for container ${containerId}: status ${status}, media ${
+          mediaId || 'none'
+        }`
       );
       return mediaId;
     } catch (e) {
@@ -808,9 +812,9 @@ export class InstagramProvider
             ? isStory
               ? `video_url=${m.path}&media_type=STORIES`
               : m?.thumbnail
-              ? `video_url=${m.path}&media_type=REELS&cover_url=${encodeURIComponent(
-                  m.thumbnail
-                )}`
+              ? `video_url=${
+                  m.path
+                }&media_type=REELS&cover_url=${encodeURIComponent(m.thumbnail)}`
               : `video_url=${m.path}&media_type=REELS&thumb_offset=${
                   m?.thumbnailTimestamp || 0
                 }`
@@ -1039,7 +1043,9 @@ export class InstagramProvider
       // re-running this is safe)
       const { id: containerId } = await (
         await this.fetch(
-          `https://${pendingData.type}/${META_GRAPH_API_VERSION}/${igId}/media?caption=${encodeURIComponent(
+          `https://${
+            pendingData.type
+          }/${META_GRAPH_API_VERSION}/${igId}/media?caption=${encodeURIComponent(
             pendingData.message || ''
           )}&media_type=CAROUSEL&children=${encodeURIComponent(
             pendingData.containers.join(',')
@@ -1262,14 +1268,15 @@ export class InstagramProvider
   async comments(
     id: string,
     postId: string,
-    accessToken: string,
+    token: string,
     options?: CommentsQuery
   ): Promise<SocialComment[]> {
+    const [accessToken] = token.split('___');
     const limit = options?.limit ?? 100;
 
     const { data } = await (
       await this.fetch(
-        `https://graph.facebook.com/v20.0/${postId}/comments?access_token=${accessToken}&limit=${limit}&fields=id,text,timestamp,username,replies{id,text,timestamp,username}`,
+        `https://graph.facebook.com/${META_GRAPH_API_VERSION}/${postId}/comments?access_token=${accessToken}&limit=${limit}&fields=id,text,timestamp,username,replies{id,text,timestamp,username}`,
         {},
         'read comments'
       )
@@ -1308,11 +1315,12 @@ export class InstagramProvider
     id: string,
     commentId: string,
     message: string,
-    accessToken: string
+    token: string
   ): Promise<SocialCommentReply> {
+    const [accessToken] = token.split('___');
     const data = await (
       await this.fetch(
-        `https://graph.facebook.com/v20.0/${commentId}/replies?message=${encodeURIComponent(
+        `https://graph.facebook.com/${META_GRAPH_API_VERSION}/${commentId}/replies?message=${encodeURIComponent(
           message
         )}&access_token=${accessToken}`,
         {
@@ -1335,7 +1343,7 @@ export class InstagramProvider
   ): Promise<{ success: boolean }> {
     const [accessToken] = token.split('___');
     await this.fetch(
-      `https://graph.facebook.com/v20.0/${commentId}?hide=${hidden}&access_token=${accessToken}`,
+      `https://graph.facebook.com/${META_GRAPH_API_VERSION}/${commentId}?hide=${hidden}&access_token=${accessToken}`,
       { method: 'POST' },
       hidden ? 'hide comment' : 'unhide comment'
     );
@@ -1348,7 +1356,7 @@ export class InstagramProvider
   ): Promise<{ success: boolean }> {
     const [accessToken] = token.split('___');
     await this.fetch(
-      `https://graph.facebook.com/v20.0/${commentId}?access_token=${accessToken}`,
+      `https://graph.facebook.com/${META_GRAPH_API_VERSION}/${commentId}?access_token=${accessToken}`,
       { method: 'DELETE' },
       'delete comment'
     );
@@ -1363,7 +1371,7 @@ export class InstagramProvider
     const [accessToken] = token.split('___');
     const { data } = await (
       await this.fetch(
-        `https://graph.facebook.com/v20.0/${id}/media?fields=id,caption,permalink` +
+        `https://graph.facebook.com/${META_GRAPH_API_VERSION}/${id}/media?fields=id,caption,permalink` +
           `&limit=${options?.limit ?? 15}&access_token=${accessToken}`,
         {},
         'read media'
@@ -1390,17 +1398,31 @@ export class InstagramProvider
   // Rozmowy na Instagramie ida przez powiazana strone Facebooka
   // (platform=instagram). Wymaga App Review - bez niego Graph zwraca
   // (#3) "Application does not have the capability".
+  private async inboxPageId(accessToken: string): Promise<string> {
+    const page = await (
+      await this.fetch(
+        `https://graph.facebook.com/${META_GRAPH_API_VERSION}/me?fields=id&access_token=${accessToken}`,
+        {},
+        'resolve messaging page'
+      )
+    ).json();
+    if (!page.id)
+      throw new Error('Reconnect this channel to obtain a Page access token');
+    return page.id;
+  }
+
   async conversations(
     id: string,
     token: string,
     options?: CommentsQuery
   ): Promise<SocialConversation[]> {
     const [accessToken] = token.split('___');
+    const pageId = await this.inboxPageId(accessToken);
     const limit = options?.limit ?? 25;
 
     const { data } = await (
       await this.fetch(
-        `https://graph.facebook.com/v20.0/${id}/conversations?access_token=${accessToken}` +
+        `https://graph.facebook.com/${META_GRAPH_API_VERSION}/${pageId}/conversations?access_token=${accessToken}` +
           `&platform=instagram&limit=${limit}` +
           '&fields=id,updated_time,unread_count,participants,' +
           'messages.limit(25){id,message,created_time,from}',
@@ -1411,22 +1433,28 @@ export class InstagramProvider
 
     return (data || []).map((thread: any): SocialConversation => {
       const other = (thread.participants?.data || []).find(
-        (p: any) => String(p.id) !== String(id)
+        (p: any) =>
+          String(p.id) !== String(id) && String(p.id) !== String(pageId)
       );
 
       const messages: SocialMessage[] = (thread.messages?.data || [])
-        .map((m: any): SocialMessage => ({
-          id: m.id,
-          text: m.message || '',
-          createdAt: dayjs(m.created_time).toISOString(),
-          fromId: m.from?.id,
-          fromName: m.from?.username || m.from?.name,
-          isFromUs: String(m.from?.id) === String(id),
-        }))
+        .map(
+          (m: any): SocialMessage => ({
+            id: m.id,
+            text: m.message || '',
+            createdAt: dayjs(m.created_time).toISOString(),
+            fromId: m.from?.id,
+            fromName: m.from?.username || m.from?.name,
+            isFromUs:
+              String(m.from?.id) === String(id) ||
+              String(m.from?.id) === String(pageId),
+          })
+        )
         .reverse();
 
       const lastFromThem = [...messages].reverse().find((m) => !m.isFromUs);
-      const canReplyFreely = !!lastFromThem &&
+      const canReplyFreely =
+        !!lastFromThem &&
         dayjs().diff(dayjs(lastFromThem.createdAt), 'hour') < 24;
 
       return {
@@ -1441,17 +1469,18 @@ export class InstagramProvider
     });
   }
 
-  async sendMessage(
+  async sendInboxMessage(
     id: string,
     recipientId: string,
     message: string,
     token: string
   ): Promise<{ id: string }> {
     const [accessToken] = token.split('___');
+    const pageId = await this.inboxPageId(accessToken);
 
     const data = await (
       await this.fetch(
-        `https://graph.facebook.com/v20.0/${id}/messages?access_token=${accessToken}`,
+        `https://graph.facebook.com/${META_GRAPH_API_VERSION}/${pageId}/messages?access_token=${accessToken}`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },

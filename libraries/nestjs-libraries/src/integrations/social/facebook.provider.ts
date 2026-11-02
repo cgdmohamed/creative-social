@@ -40,10 +40,12 @@ export class FacebookProvider extends SocialAbstract implements SocialProvider {
   isBetweenSteps = true;
   scopes = [
     'pages_show_list',
+    'pages_manage_metadata',
     'business_management',
     'pages_manage_posts',
     'pages_manage_engagement',
     'pages_read_engagement',
+    'pages_read_user_content',
     'read_insights',
     // Wiadomosci: wymaga ponownego zalogowania kanalu, zeby token je poniosl.
     'pages_messaging',
@@ -149,7 +151,7 @@ export class FacebookProvider extends SocialAbstract implements SocialProvider {
       return {
         type: 'bad-body' as const,
         value: 'Invalid file',
-      }
+      };
     }
 
     if (body.indexOf('1404102') > -1) {
@@ -1046,7 +1048,7 @@ export class FacebookProvider extends SocialAbstract implements SocialProvider {
 
     const { data } = await (
       await this.fetch(
-        `https://graph.facebook.com/v20.0/${postId}/comments?access_token=${accessToken}&filter=stream&order=reverse_chronological&limit=${limit}&fields=id,message,created_time,permalink_url,from{id,name},parent{id}`,
+        `https://graph.facebook.com/${META_GRAPH_API_VERSION}/${postId}/comments?access_token=${accessToken}&filter=stream&order=reverse_chronological&limit=${limit}&fields=id,message,created_time,permalink_url,from{id,name},parent{id}`,
         {},
         'read comments'
       )
@@ -1087,7 +1089,7 @@ export class FacebookProvider extends SocialAbstract implements SocialProvider {
   ): Promise<SocialCommentReply> {
     const data = await (
       await this.fetch(
-        `https://graph.facebook.com/v20.0/${commentId}/comments?access_token=${accessToken}&fields=id,permalink_url`,
+        `https://graph.facebook.com/${META_GRAPH_API_VERSION}/${commentId}/comments?access_token=${accessToken}&fields=id,permalink_url`,
         {
           method: 'POST',
           headers: {
@@ -1111,7 +1113,7 @@ export class FacebookProvider extends SocialAbstract implements SocialProvider {
     accessToken: string
   ): Promise<{ success: boolean }> {
     await this.fetch(
-      `https://graph.facebook.com/v23.0/${commentId}?access_token=${accessToken}`,
+      `https://graph.facebook.com/${META_GRAPH_API_VERSION}/${commentId}?access_token=${accessToken}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -1127,7 +1129,7 @@ export class FacebookProvider extends SocialAbstract implements SocialProvider {
     accessToken: string
   ): Promise<{ success: boolean }> {
     await this.fetch(
-      `https://graph.facebook.com/v23.0/${commentId}?access_token=${accessToken}`,
+      `https://graph.facebook.com/${META_GRAPH_API_VERSION}/${commentId}?access_token=${accessToken}`,
       { method: 'DELETE' },
       'delete comment'
     );
@@ -1141,7 +1143,7 @@ export class FacebookProvider extends SocialAbstract implements SocialProvider {
   ): Promise<SocialComment[]> {
     const { data } = await (
       await this.fetch(
-        `https://graph.facebook.com/v23.0/${id}/posts?fields=id,message,permalink_url` +
+        `https://graph.facebook.com/${META_GRAPH_API_VERSION}/${id}/posts?fields=id,message,permalink_url` +
           `&limit=${options?.limit ?? 15}&access_token=${accessToken}`,
         {},
         'read posts'
@@ -1176,7 +1178,7 @@ export class FacebookProvider extends SocialAbstract implements SocialProvider {
 
     const { data } = await (
       await this.fetch(
-        `https://graph.facebook.com/v23.0/${id}/conversations?access_token=${accessToken}` +
+        `https://graph.facebook.com/${META_GRAPH_API_VERSION}/${id}/conversations?access_token=${accessToken}` +
           `&platform=messenger&limit=${limit}` +
           '&fields=id,updated_time,unread_count,participants,' +
           'messages.limit(25){id,message,created_time,from}',
@@ -1191,21 +1193,24 @@ export class FacebookProvider extends SocialAbstract implements SocialProvider {
       );
 
       const messages: SocialMessage[] = (thread.messages?.data || [])
-        .map((m: any): SocialMessage => ({
-          id: m.id,
-          text: m.message || '',
-          createdAt: dayjs(m.created_time).toISOString(),
-          fromId: m.from?.id,
-          fromName: m.from?.name,
-          isFromUs: String(m.from?.id) === String(id),
-        }))
+        .map(
+          (m: any): SocialMessage => ({
+            id: m.id,
+            text: m.message || '',
+            createdAt: dayjs(m.created_time).toISOString(),
+            fromId: m.from?.id,
+            fromName: m.from?.name,
+            isFromUs: String(m.from?.id) === String(id),
+          })
+        )
         .reverse();
 
       // Meta pozwala odpisac swobodnie tylko w ciagu 24h od ostatniej wiadomosci
       // rozmowcy. Poza tym oknem trzeba uzyc oznaczonych typow wiadomosci,
       // dlatego UI nie moze wtedy pokazywac zwyklego pola odpowiedzi.
       const lastFromThem = [...messages].reverse().find((m) => !m.isFromUs);
-      const canReplyFreely = !!lastFromThem &&
+      const canReplyFreely =
+        !!lastFromThem &&
         dayjs().diff(dayjs(lastFromThem.createdAt), 'hour') < 24;
 
       return {
@@ -1220,7 +1225,7 @@ export class FacebookProvider extends SocialAbstract implements SocialProvider {
     });
   }
 
-  async sendMessage(
+  async sendInboxMessage(
     id: string,
     recipientId: string,
     message: string,
@@ -1228,7 +1233,7 @@ export class FacebookProvider extends SocialAbstract implements SocialProvider {
   ): Promise<{ id: string }> {
     const data = await (
       await this.fetch(
-        `https://graph.facebook.com/v23.0/${id}/messages?access_token=${accessToken}`,
+        `https://graph.facebook.com/${META_GRAPH_API_VERSION}/${id}/messages?access_token=${accessToken}`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
