@@ -9,6 +9,9 @@ on:
 
 jobs:
   build-containers-common:
+    # Inherited publisher targets gitroomhq's registry. Never publish there from
+    # this fork; Creative Social builds use Dockerfile.production via Coolify.
+    if: github.repository == 'gitroomhq/postiz-app'
     runs-on: ubuntu-latest
     outputs:
       containerver: ${{ steps.getcontainerver.outputs.containerver }}

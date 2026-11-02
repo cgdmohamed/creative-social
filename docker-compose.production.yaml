@@ -1,0 +1,326 @@
+# Coolify: Compose from Git, repository root as Base Directory. No host ports.
+# Normal startup checks existing schemas. Fresh initialization is opt-in.
+x-public: &public
+  NODE_ENV: production
+  PUBLIC_URL: ${PUBLIC_URL:?Set the public HTTPS origin without a trailing slash}
+  CREATIVE_REVISION: ${CREATIVE_REVISION:?Set the reviewed full Git commit SHA}
+  MAIN_URL: ${PUBLIC_URL}
+  FRONTEND_URL: ${PUBLIC_URL}
+  NEXT_PUBLIC_BACKEND_URL: ${PUBLIC_URL}/api
+  BACKEND_INTERNAL_URL: http://backend:3000
+  STORAGE_PROVIDER: local
+  UPLOAD_DIRECTORY: /app/uploads
+  NEXT_PUBLIC_UPLOAD_DIRECTORY: /uploads
+  NEXT_PUBLIC_UPLOAD_STATIC_DIRECTORY: /uploads
+  IS_GENERAL: 'true'
+  DISABLE_REGISTRATION: ${DISABLE_REGISTRATION:-true}
+  NEXT_TELEMETRY_DISABLED: '1'
+
+x-runtime: &runtime
+  <<: *public
+  DATABASE_URL: postgresql://creative:${APP_DB_PASSWORD:?Set a unique hexadecimal application DB password}@postgres:5432/creative?connection_limit=10&pool_timeout=30
+  REDIS_URL: redis://:${REDIS_PASSWORD:?Set a unique hexadecimal Redis password}@redis:6379
+  JWT_SECRET: ${JWT_SECRET:?Set a unique secret of at least 64 random characters}
+  TEMPORAL_ADDRESS: temporal:7233
+  TEMPORAL_NAMESPACE: ${TEMPORAL_NAMESPACE:-creative-production}
+  ORCHESTRATOR_PORT: '3002'
+  WORKER_CONCURRENCY_DIVIDER: '1'
+  INBOX_COLLECTION_ENABLED: ${INBOX_COLLECTION_ENABLED:-false}
+  REPORTING_COLLECTION_ENABLED: ${REPORTING_COLLECTION_ENABLED:-false}
+  REPORT_CHROMIUM_EXECUTABLE_PATH: /usr/bin/chromium
+  FACEBOOK_APP_ID: ${FACEBOOK_APP_ID:-}
+  FACEBOOK_APP_SECRET: ${FACEBOOK_APP_SECRET:-}
+  INSTAGRAM_APP_ID: ${INSTAGRAM_APP_ID:-}
+  INSTAGRAM_APP_SECRET: ${INSTAGRAM_APP_SECRET:-}
+  YOUTUBE_CLIENT_ID: ${YOUTUBE_CLIENT_ID:-}
+  YOUTUBE_CLIENT_SECRET: ${YOUTUBE_CLIENT_SECRET:-}
+  LINKEDIN_CLIENT_ID: ${LINKEDIN_CLIENT_ID:-}
+  LINKEDIN_CLIENT_SECRET: ${LINKEDIN_CLIENT_SECRET:-}
+  X_API_KEY: ${X_API_KEY:-}
+  X_API_SECRET: ${X_API_SECRET:-}
+  TIKTOK_CLIENT_ID: ${TIKTOK_CLIENT_ID:-}
+  TIKTOK_CLIENT_SECRET: ${TIKTOK_CLIENT_SECRET:-}
+  TIKTOK_BUSINESS_CLIENT_ID: ${TIKTOK_BUSINESS_CLIENT_ID:-}
+  TIKTOK_BUSINESS_CLIENT_SECRET: ${TIKTOK_BUSINESS_CLIENT_SECRET:-}
+  PINTEREST_CLIENT_ID: ${PINTEREST_CLIENT_ID:-}
+  PINTEREST_CLIENT_SECRET: ${PINTEREST_CLIENT_SECRET:-}
+  THREADS_APP_ID: ${THREADS_APP_ID:-}
+  THREADS_APP_SECRET: ${THREADS_APP_SECRET:-}
+  EMAIL_PROVIDER: ${EMAIL_PROVIDER:-}
+  EMAIL_FROM_ADDRESS: ${EMAIL_FROM_ADDRESS:-}
+  EMAIL_FROM_NAME: ${EMAIL_FROM_NAME:-Creative Social}
+  EMAIL_HOST: ${EMAIL_HOST:-}
+  EMAIL_PORT: ${EMAIL_PORT:-587}
+  EMAIL_SECURE: ${EMAIL_SECURE:-false}
+  EMAIL_USER: ${EMAIL_USER:-}
+  EMAIL_PASS: ${EMAIL_PASS:-}
+  RESEND_API_KEY: ${RESEND_API_KEY:-}
+
+x-image: &image
+  image: creative-social:${CREATIVE_REVISION}
+  pull_policy: build
+  build:
+    context: .
+    dockerfile: Dockerfile.production
+    args:
+      PUBLIC_URL: ${PUBLIC_URL}
+      SOURCE_REVISION: ${CREATIVE_REVISION}
+
+x-service: &service
+  restart: unless-stopped
+  init: true
+  stop_grace_period: 90s
+  logging:
+    driver: json-file
+    options: { max-size: 10m, max-file: '3' }
+
+x-temporal-db: &temporal-db
+  POSTGRES_SEEDS: temporal-postgres
+  DB_PORT: '5432'
+  POSTGRES_USER: temporal
+  POSTGRES_PWD: ${TEMPORAL_DB_PASSWORD:?Set a unique hexadecimal Temporal DB password}
+  DBNAME: temporal
+  VISIBILITY_DBNAME: temporal_visibility
+
+services:
+  postgres:
+    <<: *service
+    image: creative-social-postgres:${CREATIVE_REVISION}
+    pull_policy: build
+    build:
+      { context: ., dockerfile: deploy/coolify/production/Dockerfile.postgres }
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_DB: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_ADMIN_PASSWORD:?Set a separate PostgreSQL admin password}
+      POSTGRES_INITDB_ARGS: --auth-host=scram-sha-256
+      RUNTIME_DB_USER: creative
+      RUNTIME_DB_NAME: creative
+      RUNTIME_DB_PASSWORD: ${APP_DB_PASSWORD}
+    volumes: [app-postgres:/var/lib/postgresql/data]
+    networks: [data]
+    mem_limit: 1g
+    healthcheck:
+      test:
+        [
+          CMD-SHELL,
+          'PGPASSWORD="$$RUNTIME_DB_PASSWORD" psql -X -h 127.0.0.1 -U "$$RUNTIME_DB_USER" -d "$$RUNTIME_DB_NAME" -tAc "SELECT 1" | grep -qx 1',
+        ]
+      interval: 10s
+      timeout: 5s
+      start_period: 40s
+      retries: 12
+
+  redis:
+    <<: *service
+    image: creative-social-redis:${CREATIVE_REVISION}
+    pull_policy: build
+    build:
+      { context: ., dockerfile: deploy/coolify/production/Dockerfile.redis }
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+    volumes: [app-redis:/data]
+    networks: [data]
+    mem_limit: 512m
+    healthcheck:
+      test:
+        [
+          CMD-SHELL,
+          'REDISCLI_AUTH="$$REDIS_PASSWORD" redis-cli -h 127.0.0.1 ping | grep -qx PONG',
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  temporal-postgres:
+    <<: *service
+    image: creative-social-temporal-postgres:${CREATIVE_REVISION}
+    pull_policy: build
+    build:
+      context: .
+      dockerfile: deploy/coolify/production/Dockerfile.postgres
+      args:
+        POSTGRES_IMAGE: postgres:16-bookworm@sha256:e8a07d2c7579b038938cdba6c539e580e5001caf9ea203d397b5cc83e76bd938
+    environment:
+      POSTGRES_USER: temporal_admin
+      POSTGRES_DB: postgres
+      POSTGRES_PASSWORD: ${TEMPORAL_POSTGRES_ADMIN_PASSWORD:?Set a separate Temporal PostgreSQL admin password}
+      POSTGRES_INITDB_ARGS: --auth-host=scram-sha-256
+      RUNTIME_DB_USER: temporal
+      RUNTIME_DB_NAME: temporal
+      RUNTIME_VISIBILITY_DB: temporal_visibility
+      RUNTIME_DB_PASSWORD: ${TEMPORAL_DB_PASSWORD}
+    volumes: [temporal-postgres:/var/lib/postgresql/data]
+    networks: [temporal-data]
+    mem_limit: 1g
+    healthcheck:
+      test:
+        [
+          CMD-SHELL,
+          'PGPASSWORD="$$RUNTIME_DB_PASSWORD" psql -X -h 127.0.0.1 -U "$$RUNTIME_DB_USER" -d "$$RUNTIME_DB_NAME" -tAc "SELECT 1" | grep -qx 1',
+        ]
+      interval: 10s
+      timeout: 5s
+      start_period: 40s
+      retries: 12
+
+  temporal-schema:
+    image: creative-social-temporal-tools:${CREATIVE_REVISION}
+    pull_policy: build
+    build:
+      {
+        context: .,
+        dockerfile: deploy/coolify/production/Dockerfile.temporal-tools,
+      }
+    restart: 'no'
+    environment:
+      <<: *temporal-db
+      INITIALIZE_EMPTY_TEMPORAL_DATABASES: ${INITIALIZE_EMPTY_TEMPORAL_DATABASES:-false}
+    networks: [temporal-data]
+    depends_on:
+      temporal-postgres: { condition: service_healthy }
+
+  temporal:
+    <<: *service
+    image: temporalio/server:1.28.1@sha256:acaf8454947544312216c6e153929b7db060571f736bbced290bfaf76e287499
+    environment:
+      <<: *temporal-db
+      DB: postgres12
+      ENABLE_ES: 'false'
+      BIND_ON_IP: 0.0.0.0
+      NUM_HISTORY_SHARDS: '64'
+      LOG_LEVEL: warn
+    networks: [temporal-data]
+    mem_limit: 1536m
+    depends_on:
+      temporal-schema: { condition: service_completed_successfully }
+    healthcheck:
+      test:
+        [CMD, temporal, operator, cluster, health, --address, '127.0.0.1:7233']
+      interval: 15s
+      timeout: 10s
+      start_period: 60s
+      retries: 20
+
+  app-schema:
+    <<: *image
+    command: [schema-check]
+    restart: 'no'
+    init: true
+    environment:
+      DATABASE_URL: postgresql://creative:${APP_DB_PASSWORD}@postgres:5432/creative?connection_limit=2&pool_timeout=30
+      INITIALIZE_EMPTY_DATABASE: ${INITIALIZE_EMPTY_DATABASE:-false}
+    networks: [data]
+    depends_on:
+      postgres: { condition: service_healthy }
+
+  temporal-namespace:
+    <<: *image
+    command: [namespace-check]
+    restart: 'no'
+    init: true
+    environment:
+      TEMPORAL_ADDRESS: temporal:7233
+      TEMPORAL_NAMESPACE: ${TEMPORAL_NAMESPACE:-creative-production}
+      TEMPORAL_RETENTION_DAYS: ${TEMPORAL_RETENTION_DAYS:-30}
+      INITIALIZE_TEMPORAL_NAMESPACE: ${INITIALIZE_TEMPORAL_NAMESPACE:-false}
+    networks: [temporal-data]
+    depends_on:
+      temporal: { condition: service_healthy }
+
+  backend:
+    <<: [*image, *service]
+    command: [backend]
+    environment: *runtime
+    volumes: [app-uploads:/app/uploads]
+    networks: [web, data, temporal-data, egress]
+    mem_limit: 2g
+    shm_size: 256m
+    depends_on:
+      app-schema: { condition: service_completed_successfully }
+      temporal-namespace: { condition: service_completed_successfully }
+      redis: { condition: service_healthy }
+    healthcheck:
+      test: [CMD, curl, -fsS, 'http://127.0.0.1:3000/']
+      interval: 30s
+      timeout: 10s
+      start_period: 120s
+      retries: 5
+
+  frontend:
+    <<: [*image, *service]
+    command: [frontend]
+    environment: *public
+    networks: [web, egress]
+    mem_limit: 1536m
+    depends_on:
+      backend: { condition: service_healthy }
+    healthcheck:
+      test: [CMD, curl, -fsS, 'http://127.0.0.1:4200/auth/login']
+      interval: 30s
+      timeout: 10s
+      start_period: 120s
+      retries: 5
+
+  orchestrator:
+    <<: [*image, *service]
+    command: [orchestrator]
+    environment: *runtime
+    volumes: [app-uploads:/app/uploads]
+    networks: [data, temporal-data, egress]
+    mem_limit: 4g
+    depends_on:
+      backend: { condition: service_healthy }
+    healthcheck:
+      test: [CMD, curl, -fsS, 'http://127.0.0.1:3002/health/status']
+      interval: 30s
+      timeout: 20s
+      start_period: 180s
+      retries: 6
+
+  gateway:
+    <<: *service
+    image: creative-social-gateway:${CREATIVE_REVISION}
+    pull_policy: build
+    build:
+      { context: ., dockerfile: deploy/coolify/production/Dockerfile.gateway }
+    expose: ['8080']
+    volumes: [app-uploads:/app/uploads:ro]
+    networks: [default, web]
+    mem_limit: 128m
+    depends_on:
+      frontend: { condition: service_healthy }
+      backend: { condition: service_healthy }
+    healthcheck:
+      test: [CMD-SHELL, 'wget -q -O /dev/null http://127.0.0.1:8080/healthz']
+      interval: 30s
+      timeout: 5s
+      retries: 5
+
+  temporal-maintenance:
+    image: creative-social-temporal-tools:${CREATIVE_REVISION}
+    pull_policy: build
+    build:
+      {
+        context: .,
+        dockerfile: deploy/coolify/production/Dockerfile.temporal-tools,
+      }
+    profiles: [maintenance]
+    command: [upgrade]
+    restart: 'no'
+    environment: *temporal-db
+    networks: [temporal-data]
+    depends_on:
+      temporal-postgres: { condition: service_healthy }
+
+volumes:
+  app-postgres:
+  app-redis:
+  temporal-postgres:
+  app-uploads:
+networks:
+  default:
+  web: { internal: true }
+  data: { internal: true }
+  temporal-data: { internal: true }
+  egress:

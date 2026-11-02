@@ -43,3 +43,8 @@ remain Task 2. No production deployment has been performed.
 
 See [STAGING.md](STAGING.md) for combined migration order, opt-in collection flags,
 Coolify candidate configuration and remaining staging/live API validation.
+
+For the separate repository-built production candidate, use
+[PRODUCTION_COOLIFY.md](PRODUCTION_COOLIFY.md) and its executed
+[validation record](PRODUCTION_VALIDATION.md). Deployment remains subject to
+review and explicit approval; no server deployment has been performed.

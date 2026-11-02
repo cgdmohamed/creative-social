@@ -1,0 +1,5 @@
+**
+!deploy
+!deploy/coolify
+!deploy/coolify/production
+!deploy/coolify/production/redis-entrypoint.sh

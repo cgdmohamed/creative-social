@@ -1,0 +1,35 @@
+# syntax=docker/dockerfile:1
+FROM node:22.23.4-bookworm-slim@sha256:4b150b48b4116e2a22f2c39cc27025fbf4f153e2078fd3b14d159fdb5c7279da AS build
+RUN apt-get update && apt-get install -y --no-install-recommends python3 make g++ pkg-config libcairo2-dev libpango1.0-dev libjpeg62-turbo-dev libgif-dev librsvg2-dev ca-certificates openssl git && rm -rf /var/lib/apt/lists/*
+RUN npm install --global pnpm@10.6.1
+WORKDIR /app
+COPY . .
+ARG PUBLIC_URL
+ARG SOURCE_REVISION
+ENV NEXT_TELEMETRY_DISABLED=1 STORAGE_PROVIDER=local UPLOAD_DIRECTORY=/app/uploads NEXT_PUBLIC_UPLOAD_DIRECTORY=/uploads NEXT_PUBLIC_UPLOAD_STATIC_DIRECTORY=/uploads
+ENV MAIN_URL=${PUBLIC_URL} FRONTEND_URL=${PUBLIC_URL} NEXT_PUBLIC_BACKEND_URL=${PUBLIC_URL}/api BACKEND_INTERNAL_URL=http://backend:3000 IS_GENERAL=true
+# No real credentials are accepted as build arguments.
+RUN node deploy/coolify/production/build-info.cjs "$PUBLIC_URL" "$SOURCE_REVISION"
+RUN test -f 'apps/frontend/src/app/(app)/(site)/reports/page.tsx' && test -f LICENSE
+RUN DATABASE_URL=postgresql://unused:unused@localhost/unused pnpm install --frozen-lockfile
+# Only bcrypt is approved by the repository install policy. Canvas is also
+# required by eagerly imported jsdom; explicitly build this reviewed dependency.
+RUN npm --prefix node_modules/canvas run install
+RUN node --experimental-require-module -e "require('bcrypt'); require('canvas'); require('sharp'); require('jsdom'); require('@temporalio/core-bridge')"
+RUN NODE_OPTIONS=--max-old-space-size=4096 pnpm run build
+RUN DATABASE_URL=postgresql://unused:unused@localhost/unused node node_modules/prisma/build/index.js migrate diff --from-empty --to-schema-datamodel libraries/nestjs-libraries/src/database/prisma/schema.prisma --script > deploy/coolify/production/schema.sql
+
+FROM node:22.23.4-bookworm-slim@sha256:4b150b48b4116e2a22f2c39cc27025fbf4f153e2078fd3b14d159fdb5c7279da AS runtime
+RUN apt-get update && apt-get install -y --no-install-recommends chromium fonts-noto-core fonts-noto-extra ca-certificates openssl curl postgresql-client libcairo2 libpango-1.0-0 libpangocairo-1.0-0 libjpeg62-turbo libgif7 librsvg2-2 && rm -rf /var/lib/apt/lists/*
+WORKDIR /app
+# Preserve hoisted workspace resolution and corresponding AGPL source.
+# Compiler OS packages stay in build. No PM2 or automatic db push.
+COPY --from=build --chown=node:node /app /app
+RUN mkdir -p /app/uploads && chown node:node /app/uploads && chmod 755 deploy/coolify/production/app-entrypoint.sh
+ARG SOURCE_REVISION
+LABEL org.opencontainers.image.source="https://github.com/cgdmohamed/creative-social" org.opencontainers.image.revision=${SOURCE_REVISION} org.opencontainers.image.licenses="AGPL-3.0"
+ENV NODE_ENV=production NEXT_TELEMETRY_DISABLED=1 REPORT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium
+USER node
+RUN node --experimental-require-module -e "require('bcrypt'); require('canvas'); require('sharp'); require('jsdom'); require('@temporalio/core-bridge')"
+ENTRYPOINT ["/app/deploy/coolify/production/app-entrypoint.sh"]
+CMD ["backend"]

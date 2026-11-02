@@ -1,0 +1,5 @@
+FROM temporalio/admin-tools:1.28.1-tctl-1.18.4-cli-1.4.1@sha256:01537b62d995f27a0f0d33a01ac4caa6779622f454fb2eb36fed0dccd45c6244
+RUN command -v psql && command -v temporal-sql-tool && test -d /etc/temporal/schema/postgresql/v12/temporal/versioned
+COPY --chmod=755 deploy/coolify/production/temporal-schema.sh /opt/creative/temporal-schema.sh
+ENTRYPOINT ["/opt/creative/temporal-schema.sh"]
+CMD ["check-or-initialize"]
