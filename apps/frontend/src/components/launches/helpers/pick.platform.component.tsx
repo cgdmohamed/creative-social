@@ -16,7 +16,14 @@ export const PickPlatforms: FC<{
   isMain: boolean;
   toolTip?: boolean;
 }> = (props) => {
-  const { hide, isMain, integrations, selectedIntegrations, onChange } = props;
+  const {
+    hide,
+    isMain,
+    integrations,
+    selectedIntegrations,
+    onChange,
+    singleSelect,
+  } = props;
   const ref = useRef<HTMLDivElement>(null);
   const [isLeft, setIsLeft] = useState(false);
   const [isRight, setIsRight] = useState(false);
@@ -27,15 +34,6 @@ export const PickPlatforms: FC<{
       ...p,
     }))
   );
-  useEffect(() => {
-    if (
-      props.singleSelect &&
-      selectedAccounts.length &&
-      integrations.indexOf(selectedAccounts?.[0]) === -1
-    ) {
-      addPlatform(integrations[0])();
-    }
-  }, [integrations, selectedAccounts]);
   const checkLeftRight = (test = true) => {
     const scrollWidth = ref.current?.scrollWidth;
     const offsetWidth = +(ref.current?.offsetWidth || 0);
@@ -56,20 +54,10 @@ export const PickPlatforms: FC<{
   useEffect(() => {
     checkLeftRight();
   }, [selectedIntegrations, integrations]);
-  useMoveToIntegrationListener(
-    [integrations],
-    props.singleSelect,
-    ({ identifier, toPreview }: { identifier: string; toPreview: boolean }) => {
-      const findIntegration = integrations.find((p) => p.id === identifier);
-      if (findIntegration) {
-        addPlatform(findIntegration)();
-      }
-    }
-  );
   const addPlatform = useCallback(
     (integration: Integrations) => async () => {
       const promises = [];
-      if (props.singleSelect) {
+      if (singleSelect) {
         promises.push(
           new Promise((res) => {
             onChange([integration], () => {
@@ -91,7 +79,7 @@ export const PickPlatforms: FC<{
           ({ id }) => id !== integration.id
         );
         if (
-          !props.singleSelect &&
+          !singleSelect &&
           !(await deleteDialog(
             'Are you sure you want to remove this platform?'
           ))
@@ -132,8 +120,30 @@ export const PickPlatforms: FC<{
       await timer(500);
       await Promise.all(promises);
     },
-    [onChange, props.singleSelect, selectedAccounts, setSelectedAccounts]
+    [onChange, singleSelect, selectedAccounts, setSelectedAccounts]
   );
+  useMoveToIntegrationListener(
+    singleSelect,
+    ({ identifier, toPreview }: { identifier: string; toPreview: boolean }) => {
+      const findIntegration = integrations.find((p) => p.id === identifier);
+      if (findIntegration) {
+        addPlatform(findIntegration)();
+      }
+    }
+  );
+  useEffect(() => {
+    if (
+      singleSelect &&
+      selectedAccounts.length &&
+      integrations.length &&
+      !integrations.some(
+        (integration) => integration.id === selectedAccounts[0].id
+      )
+    ) {
+      addPlatform(integrations[0])();
+    }
+  }, [singleSelect, integrations, selectedAccounts, addPlatform]);
+
   const handler = async ({ integrationsId }: { integrationsId: string[] }) => {
     const selected = selectedIntegrations.map((p) => p.id);
     const notToRemove = selected.filter((p) => integrationsId.includes(p));
@@ -175,7 +185,7 @@ export const PickPlatforms: FC<{
       selectedAccounts,
       integrations,
       onChange,
-      props.singleSelect,
+      singleSelect,
       setSelectedAccounts,
     ]
   );
@@ -183,10 +193,8 @@ export const PickPlatforms: FC<{
     return null;
   }
   return (
-    <div
-      className={clsx('flex select-none', props.singleSelect && 'gap-[10px]')}
-    >
-      {props.singleSelect && isLeft && (
+    <div className={clsx('flex select-none', singleSelect && 'gap-[10px]')}>
+      {singleSelect && isLeft && (
         <div className="flex items-center">
           {isLeft && (
             <svg
@@ -205,15 +213,10 @@ export const PickPlatforms: FC<{
           )}
         </div>
       )}
-      <div
-        className={clsx(
-          'flex-1 flex',
-          props.singleSelect && 'relative h-[40px]'
-        )}
-      >
+      <div className={clsx('flex-1 flex', singleSelect && 'relative h-[40px]')}>
         <div
           className={clsx(
-            props.singleSelect
+            singleSelect
               ? 'absolute w-full h-[40px] flex flex-nowrap overflow-hidden transition-all'
               : 'flex-1 flex'
           )}
@@ -224,7 +227,7 @@ export const PickPlatforms: FC<{
               {integrations
                 .filter((f) => !f.inBetweenSteps)
                 .map((integration) =>
-                  !props.singleSelect ? (
+                  !singleSelect ? (
                     <div
                       key={integration.id}
                       className="flex gap-[8px] items-center"
@@ -311,7 +314,7 @@ export const PickPlatforms: FC<{
           </div>
         </div>
       </div>
-      {props.singleSelect && isRight && (
+      {singleSelect && isRight && (
         <div className="flex items-center">
           <svg
             xmlns="http://www.w3.org/2000/svg"

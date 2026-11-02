@@ -6,7 +6,13 @@ import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
 import { Logo } from '@gitroom/frontend/components/new-layout/logo';
 import { OAuthSelfHosted } from '@gitroom/frontend/components/oauth/self.hosted.component';
 
-export const OAuthAuthorize: FC<{ logged: boolean }> = ({ logged }) => {
+export const OAuthAuthorize: FC<{ logged: boolean }> = (props) => {
+  const searchParams = useSearchParams();
+  // Consent state belongs to one exact request, including its redirect/PKCE.
+  return <OAuthAuthorizeRequest key={searchParams.toString()} {...props} />;
+};
+
+const OAuthAuthorizeRequest: FC<{ logged: boolean }> = ({ logged }) => {
   const searchParams = useSearchParams();
   const fetch = useFetch();
   const [appInfo, setAppInfo] = useState<any>(null);
@@ -23,18 +29,16 @@ export const OAuthAuthorize: FC<{ logged: boolean }> = ({ logged }) => {
   const codeChallengeMethod = searchParams.get('code_challenge_method');
   const resource = searchParams.get('resource');
 
+  const parameterError =
+    !clientId || !responseType
+      ? 'Missing required parameters (client_id, response_type)'
+      : responseType !== 'code'
+      ? 'Only response_type=code is supported'
+      : '';
   useEffect(() => {
-    if (!clientId || !responseType) {
-      setError('Missing required parameters (client_id, response_type)');
-      setLoading(false);
-      return;
-    }
-    if (responseType !== 'code') {
-      setError('Only response_type=code is supported');
-      setLoading(false);
-      return;
-    }
-
+    if (parameterError) return;
+    let active = true;
+    const controller = new AbortController();
     const params = new URLSearchParams({
       client_id: clientId,
       response_type: responseType,
@@ -47,9 +51,10 @@ export const OAuthAuthorize: FC<{ logged: boolean }> = ({ logged }) => {
       ...(resource ? { resource } : {}),
     });
 
-    fetch(`/oauth/authorize?${params}`)
+    fetch(`/oauth/authorize?${params}`, { signal: controller.signal })
       .then((r) => r.json())
       .then((data) => {
+        if (!active) return;
         if (data.statusCode && data.statusCode >= 400) {
           setError(data.message || 'Invalid OAuth request');
         } else {
@@ -58,10 +63,17 @@ export const OAuthAuthorize: FC<{ logged: boolean }> = ({ logged }) => {
         setLoading(false);
       })
       .catch(() => {
+        if (!active) return;
         setError('Failed to validate OAuth request');
         setLoading(false);
       });
+    return () => {
+      active = false;
+      controller.abort();
+    };
   }, [
+    fetch,
+    parameterError,
     clientId,
     responseType,
     state,
@@ -99,7 +111,7 @@ export const OAuthAuthorize: FC<{ logged: boolean }> = ({ logged }) => {
         setSubmitting(false);
       }
     },
-    [clientId, state, redirectUri, codeChallenge, codeChallengeMethod]
+    [fetch, clientId, state, redirectUri, codeChallenge, codeChallengeMethod]
   );
 
   // Sign in (or sign up) and land back on this same request
@@ -109,7 +121,7 @@ export const OAuthAuthorize: FC<{ logged: boolean }> = ({ logged }) => {
     )}`;
   }, []);
 
-  if (loading) {
+  if (loading && !parameterError) {
     return (
       <div className="flex flex-1 items-center justify-center text-white relative overflow-hidden">
         <div className="absolute inset-0 opacity-30">
@@ -120,9 +132,7 @@ export const OAuthAuthorize: FC<{ logged: boolean }> = ({ logged }) => {
           <div className="flex justify-center mb-[24px]">
             <Logo />
           </div>
-          <div className="text-[16px] text-gray-400">
-            Please wait...
-          </div>
+          <div className="text-[16px] text-gray-400">Please wait...</div>
           <div className="mt-[32px] flex justify-center">
             <div className="w-[48px] h-[48px] border-[3px] border-[#612BD3] border-t-transparent rounded-full animate-spin" />
           </div>
@@ -131,7 +141,7 @@ export const OAuthAuthorize: FC<{ logged: boolean }> = ({ logged }) => {
     );
   }
 
-  if (error) {
+  if (error || parameterError) {
     return (
       <div className="flex flex-1 items-center justify-center text-white relative overflow-hidden">
         <div className="absolute inset-0 opacity-30">
@@ -159,7 +169,7 @@ export const OAuthAuthorize: FC<{ logged: boolean }> = ({ logged }) => {
             Authorization Error
           </div>
           <div className="text-[16px] text-gray-400 max-w-[400px]">
-            {error}
+            {error || parameterError}
           </div>
         </div>
       </div>
@@ -223,8 +233,8 @@ export const OAuthAuthorize: FC<{ logged: boolean }> = ({ logged }) => {
             <>
               <div className="border-t border-[#2A2929] pt-[16px]">
                 <div className="text-[14px] text-gray-400 mb-[12px]">
-                  This application is requesting access to your Postiz
-                  account. It will be able to:
+                  This application is requesting access to your Postiz account.
+                  It will be able to:
                 </div>
                 <ul className="text-[14px] list-disc list-inside space-y-[4px]">
                   <li>Access your integrations and channels</li>

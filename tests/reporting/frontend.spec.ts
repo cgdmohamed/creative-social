@@ -128,3 +128,56 @@ test('unassigned history remains selectable after current ownership changes', as
   );
   expect(await screen.findByText('Former unassigned channel')).toBeTruthy();
 });
+
+test('late report responses cannot appear under a newly selected client', async () => {
+  let resolveReport: (value: any) => void;
+  const pending = new Promise<any>((resolve) => {
+    resolveReport = resolve;
+  });
+  mockFetch.mockImplementation(async (url: string) =>
+    url.startsWith('/reports/options')
+      ? { ok: true, json: async () => options }
+      : pending
+  );
+  render(React.createElement(Reports));
+  await screen.findByText('Historical channel');
+  fireEvent.click(screen.getByRole('button', { name: 'Build report' }));
+  await waitFor(() =>
+    expect(
+      mockFetch.mock.calls.some(([url]) =>
+        String(url).startsWith('/reports/organic?')
+      )
+    ).toBe(true)
+  );
+  fireEvent.change(screen.getByLabelText('Client'), {
+    target: { value: 'client-a' },
+  });
+  await waitFor(() =>
+    expect(mockFetch).toHaveBeenCalledWith(
+      '/reports/options?customerId=client-a',
+      undefined
+    )
+  );
+  resolveReport!({
+    ok: true,
+    json: async () => ({
+      name: 'Previous client report',
+      metrics: [],
+      channels: [],
+      collection: [],
+      warnings: [],
+    }),
+  });
+  await waitFor(() =>
+    expect(
+      (
+        screen.getByRole('button', {
+          name: 'Build report',
+        }) as HTMLButtonElement
+      ).disabled
+    ).toBe(false)
+  );
+  expect(
+    screen.queryByRole('heading', { name: 'Previous client report' })
+  ).toBeNull();
+});

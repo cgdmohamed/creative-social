@@ -1,4 +1,5 @@
 import 'reflect-metadata';
+import { ioRedis } from '@gitroom/nestjs-libraries/redis/redis.service';
 jest.mock('@prisma/client', () => ({}), { virtual: true });
 import { Module } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
@@ -38,6 +39,9 @@ jest.mock('@gitroom/nestjs-libraries/redis/redis.service', () => ({
     smembers: async () => [],
     sadd: async () => {},
     expire: async () => {},
+    set: jest.fn(async () => 'OK'),
+    get: jest.fn(async () => null),
+    eval: jest.fn(async () => 1),
   },
 }));
 jest.mock('@gitroom/nestjs-libraries/integrations/social.abstract', () => ({
@@ -287,7 +291,9 @@ test('checks the live messaging window server-side before sending', async () => 
 test('platform failures become per-channel sync errors', async () => {
   provider.recentComments.mockRejectedValueOnce(new Error('Permission denied'));
   await service.syncOrganization('org-a', 'comment');
-  expect(syncs[0].lastError).toContain('Permission denied');
+  expect(syncs[0].lastError).toBe(
+    'Platform request failed; check permissions and reconnect if needed'
+  );
   expect(rows).toEqual([]);
 });
 test('unsupported providers advertise capabilities without calling APIs', async () => {
@@ -378,3 +384,152 @@ test.each([
     }
   }
 );
+
+test.each([
+  new Error(
+    'https://graph.example/comments?access_token=SECRET_TOKEN&message=PRIVATE_TEXT'
+  ),
+  {
+    json: JSON.stringify({
+      error: { message: 'Bearer SECRET_TOKEN PRIVATE_TEXT' },
+    }),
+  },
+  { body: { error: { message: 'client_secret=SECRET_TOKEN PRIVATE_TEXT' } } },
+  'access_token=SECRET_TOKEN PRIVATE_TEXT',
+])(
+  'never persists or serves provider credentials/private payloads in Inbox sync errors',
+  async (error) => {
+    provider.recentComments.mockRejectedValueOnce(error);
+    await service.syncOrganization('org-a', 'comment');
+    const result = JSON.stringify(
+      await (await request('/inbox/db/comment')).json()
+    );
+    expect(syncs[0].lastError).toBe(
+      'Platform request failed; check permissions and reconnect if needed'
+    );
+    expect(result).not.toContain('SECRET_TOKEN');
+    expect(result).not.toContain('PRIVATE_TEXT');
+    expect(result).not.toContain('graph.example');
+  }
+);
+
+test('channel lease prevents simultaneous manual and scheduled sync', async () => {
+  (ioRedis.set as jest.Mock).mockResolvedValueOnce(null);
+  await service.syncChannel('org-a', channel, 'comment');
+  expect(provider.recentComments).not.toHaveBeenCalled();
+  expect(ioRedis.eval).not.toHaveBeenCalled();
+  expect(rows).toHaveLength(0);
+});
+
+test('rejects a channel from another tenant before provider access or token refresh', async () => {
+  await service.syncChannel('org-b', channel, 'comment');
+  expect(provider.recentComments).not.toHaveBeenCalled();
+  expect(rows).toHaveLength(0);
+  expect(syncs).toHaveLength(0);
+});
+
+test('limits organization synchronization to two channels at a time', async () => {
+  const channels = Array.from({ length: 7 }, (_, i) => ({
+    ...channel,
+    id: `channel-${i}`,
+  }));
+  const bounded = new IntegrationService(
+    { getIntegrationsList: async () => channels } as any,
+    {} as any,
+    {} as any,
+    {} as any,
+    {} as any,
+    {} as any,
+    repository
+  );
+  let active = 0,
+    peak = 0;
+  jest.spyOn(bounded, 'syncChannel').mockImplementation(async () => {
+    active++;
+    peak = Math.max(peak, active);
+    await new Promise((resolve) => setTimeout(resolve, 2));
+    active--;
+  });
+  await bounded.syncOrganization('org-a', 'comment');
+  expect(peak).toBe(2);
+  expect(bounded.syncChannel).toHaveBeenCalledTimes(7);
+});
+
+test('a stalled Inbox token refresh times out, records a safe error and releases its channel lease', async () => {
+  jest.useFakeTimers();
+  const refreshService = (service as any)._refreshIntegrationService;
+  refreshService.refresh = jest.fn(() => new Promise(() => {}));
+  try {
+    const pending = service.syncChannel(
+      'org-a',
+      { ...channel, tokenExpiration: new Date('2000-01-01') },
+      'comment'
+    );
+    await jest.advanceTimersByTimeAsync(20001);
+    await pending;
+    expect(syncs[0].lastError).toBe('Platform request timed out; retry later');
+    expect(provider.recentComments).not.toHaveBeenCalled();
+    expect(ioRedis.eval).toHaveBeenCalledTimes(1);
+  } finally {
+    delete refreshService.refresh;
+    jest.useRealTimers();
+  }
+});
+
+test('redacts legacy sync errors and cache errors when serving existing data', async () => {
+  syncs.push({
+    organizationId: 'org-a',
+    integrationId: channel.id,
+    kind: 'comment',
+    lastError: 'SECRET_TOKEN in a provider URL',
+  });
+  const db = JSON.stringify(await (await request('/inbox/db/comment')).json());
+  expect(db).not.toContain('SECRET_TOKEN');
+  (ioRedis.get as jest.Mock).mockResolvedValueOnce(
+    JSON.stringify({
+      error: 'SECRET_TOKEN from an older cached response',
+      comments: [],
+    })
+  );
+  const live = JSON.stringify(
+    await (await request('/inbox/channels/channel-a/comments')).json()
+  );
+  expect(live).not.toContain('SECRET_TOKEN');
+  expect(live).toContain('Platform request failed');
+});
+
+test('overlapping sync requests share one channel lease and only one provider call', async () => {
+  const leases = new Map<string, string>();
+  const set = ioRedis.set as jest.Mock,
+    release = ioRedis.eval as jest.Mock;
+  set.mockImplementation(async (key, value, ...options) => {
+    if (options.includes('NX') && leases.has(key)) return null;
+    leases.set(key, value);
+    return 'OK';
+  });
+  release.mockImplementation(async (_script, _count, key, owner) => {
+    if (leases.get(key) !== owner) return 0;
+    leases.delete(key);
+    return 1;
+  });
+  let resolveProvider: (value: any) => void;
+  const waiting = new Promise<any>((resolve) => {
+    resolveProvider = resolve;
+  });
+  provider.recentComments.mockReturnValueOnce(waiting);
+  try {
+    const first = service.syncChannel('org-a', channel, 'comment');
+    for (let i = 0; i < 10 && !provider.recentComments.mock.calls.length; i++)
+      await Promise.resolve();
+    expect(provider.recentComments).toHaveBeenCalledTimes(1);
+    await service.syncChannel('org-a', channel, 'comment');
+    expect(provider.recentComments).toHaveBeenCalledTimes(1);
+    resolveProvider!([]);
+    await first;
+    expect(leases.size).toBe(0);
+  } finally {
+    resolveProvider!([]);
+    set.mockImplementation(async () => 'OK');
+    release.mockImplementation(async () => 1);
+  }
+});

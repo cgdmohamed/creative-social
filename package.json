@@ -42,7 +42,8 @@
     "test:reports": "node --experimental-vm-modules node_modules/jest/bin/jest.js --config tests/reporting/jest.config.cjs --runInBand",
     "lint": "eslint .",
     "test:combined": "node --experimental-vm-modules node_modules/jest/bin/jest.js --config tests/integration/jest.config.cjs --runInBand",
-    "lint:integration": "eslint apps/backend/src/api/routes/inbox.controller.ts apps/backend/src/api/routes/reports.controller.ts apps/backend/src/api/routes/inbox.dto.ts apps/backend/src/reporting apps/backend/src/tasks/sync.inbox.ts apps/frontend/src/components/inbox apps/frontend/src/components/reporting libraries/nestjs-libraries/src/reporting tests/inbox tests/reporting tests/integration"
+    "lint:integration": "eslint apps/backend/src/api/routes/inbox.controller.ts apps/backend/src/api/routes/reports.controller.ts apps/backend/src/api/routes/inbox.dto.ts apps/backend/src/reporting apps/backend/src/tasks/sync.inbox.ts apps/frontend/src/components/inbox apps/frontend/src/components/reporting libraries/nestjs-libraries/src/reporting tests/inbox tests/reporting tests/integration",
+    "lint:safety": "eslint apps/backend/src/services/auth/auth.middleware.ts apps/backend/src/tasks/sync.inbox.ts libraries/nestjs-libraries/src/database/prisma/oauth/oauth.repository.ts libraries/nestjs-libraries/src/database/prisma/oauth/oauth.service.ts libraries/helpers/src/utils/custom.fetch.tsx libraries/nestjs-libraries/src/database/prisma/integrations/integration.service.ts apps/frontend/src/components/launches/helpers/use.move.to.integration.tsx apps/frontend/src/components/launches/helpers/pick.platform.component.tsx apps/frontend/src/components/oauth/authorize.component.tsx apps/frontend/src/components/reporting/reports.tsx tests/integration tests/inbox tests/reporting"
   },
   "dependencies": {
     "@ag-ui/mastra": "^1.1.4",

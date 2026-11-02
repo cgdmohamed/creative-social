@@ -1,0 +1,377 @@
+{
+  "apps/frontend/public/f.js": {
+    "functionality": "Optional Facebook Pixel bundle",
+    "priority": "P2",
+    "review": "Receiver aliases serve nested callbacks in compiled vendor code. Rebuild/replace from reviewed vendor source; do not mechanically rewrite aliases or expression statements. Pixel runtime/privacy/supply-chain review remains separate."
+  },
+  "apps/frontend/src/app/(provider)/provider/[p]/bridge.tsx": {
+    "functionality": "Provider connection bootstrap",
+    "priority": "P2",
+    "review": "Mount effect copies window.__PROVIDER_INIT__. Backlog: hydration-safe initialization and missing/changed bootstrap payload tests; the setter is not an authorization check."
+  },
+  "apps/frontend/src/components/auth/after.activate.tsx": {
+    "functionality": "Account activation UI",
+    "priority": "P2",
+    "review": "loadCode executes after commit, not before binding initialization. Mount-only params/fetch and failure-loader handling need single-use activation/retry/route tests before refactoring."
+  },
+  "apps/frontend/src/components/auth/providers/farcaster.provider.tsx": {
+    "functionality": "Optional Farcaster login",
+    "priority": "P2",
+    "review": "start awaits signer creation before setting QR state. Late signer creation after unmount needs cancellation tests before enabling this optional provider; avoid unstable start dependencies."
+  },
+  "apps/frontend/src/components/auth/providers/wallet.provider.tsx": {
+    "functionality": "Optional wallet login",
+    "priority": "P2",
+    "review": "Initialization awaits adapter disconnect before setting connect. Adapter lifetime/stale-wallet dependencies require connect/disconnect tests; the setter summary alone does not demonstrate an authorization bypass."
+  },
+  "apps/frontend/src/components/auth/register.tsx": {
+    "functionality": "Local/OAuth registration",
+    "priority": "P2",
+    "review": "load runs after commit. Blindly adding dependencies can repeat a single-use code exchange because code is replaced with the resulting token. Backlog: immutable exchange input, failure and route/idempotence tests."
+  },
+  "apps/frontend/src/components/billing/embedded.billing.tsx": {
+    "functionality": "Optional Stripe checkout",
+    "priority": "P2",
+    "review": "Effects synchronize checkout secret/theme and a remount flag; coupon callback runs after commit. Backlog: keyed checkout identity, listener cleanup and coupon idempotence sandbox tests."
+  },
+  "apps/frontend/src/components/billing/finish.trial.tsx": {
+    "functionality": "Optional trial completion",
+    "priority": "P2",
+    "review": "Callbacks run from effects/polling after initialization. Backlog: bounded cancellation-aware polling and single-charge retry tests; no live payment validation performed."
+  },
+  "apps/frontend/src/components/billing/first.billing.component.tsx": {
+    "functionality": "Optional initial checkout",
+    "priority": "P2",
+    "review": "Effect initializes Stripe promise; nested JoinOver remounts on render. Extract stable component and test promise lifecycle in Stripe sandbox before changing payment behavior."
+  },
+  "apps/frontend/src/components/billing/main.billing.component.tsx": {
+    "functionality": "Optional subscription management",
+    "priority": "P2",
+    "review": "Effects synchronize preview/period/channel selection; self-recursive confirmation polls after await. Backlog: keyed state, bounded polling and subscription sandbox tests."
+  },
+  "apps/frontend/src/components/launches/add.provider.component.tsx": {
+    "functionality": "Social OAuth connection UI",
+    "priority": "P2",
+    "review": "t is referenced in a deferred async callback, not executed before initialization. Backlog: dependencies and failed/reconnect browser tests. Live OAuth remains unvalidated."
+  },
+  "apps/frontend/src/components/launches/calendar.context.tsx": {
+    "functionality": "Scheduling filters/data cache",
+    "priority": "P2",
+    "review": "Effects reset selected channels for customer changes and copy fetched posts. Backlog: two-client filtering/draft-reset and optimistic update tests; no server tenant bypass confirmed at these setters."
+  },
+  "apps/frontend/src/components/launches/calendar.tsx": {
+    "functionality": "Calendar edit/duplicate publication",
+    "priority": "P2",
+    "review": "editPost self-reference builds a reopen handler inside an async event after group fetch. Binding is initialized before user invocation. Backlog: stable closure and duplicate/reopen/client-switch tests."
+  },
+  "apps/frontend/src/components/launches/comments/comment.component.tsx": {
+    "functionality": "Internal publication-review comments",
+    "priority": "P2",
+    "review": "Mount loader updates after network response. Separate from Inbox. Backlog: prop/key changes, stale responses and edit/delete dependencies."
+  },
+  "apps/frontend/src/components/launches/customer.modal.tsx": {
+    "functionality": "Channel-to-client grouping dialog",
+    "priority": "P2",
+    "review": "remove captures initial save callback in a deferred event; save uses current customer. Server scopes integration writes. Backlog: changed-input/remove/reassignment/dependency tests."
+  },
+  "apps/frontend/src/components/launches/helpers/pick.platform.component.tsx": {
+    "functionality": "Composer platform selection",
+    "priority": "P1",
+    "review": "Confirmed wrong publishing target: selected accounts are cloned, so reference identity incorrectly treats a valid channel as absent and replaces it with the first channel. Fixed ID membership, guarded empty lists, current dependencies and declaration ordering. Regression tests cover cloned/renewed lists and empty availability."
+  },
+  "apps/frontend/src/components/launches/helpers/use.move.to.integration.tsx": {
+    "functionality": "Publishing channel-selection events",
+    "priority": "P1",
+    "review": "Confirmed stale callback/enabled bug from dynamic dependency lists. Fixed with literal dependencies and exact cleanup. Rerender/disable/unmount regression tests added."
+  },
+  "apps/frontend/src/components/launches/menu/menu.tsx": {
+    "functionality": "Channel menu post creation",
+    "priority": "P2",
+    "review": "createPost self-reference constructs a reopen callback after awaited slot lookup. Deferred invocation occurs after binding initialization. Backlog: named closure plus slot/reopen/client-change tests."
+  },
+  "apps/frontend/src/components/launches/web3/providers/telegram.provider.tsx": {
+    "functionality": "Optional Telegram pairing",
+    "priority": "P2",
+    "review": "Render reads the ref-held pairing word, also used for copy/polling. Backlog: displayed identity as lazy state and pairing lifecycle tests. No bot connection exercised."
+  },
+  "apps/frontend/src/components/layout/check.payment.tsx": {
+    "functionality": "Optional subscription gate",
+    "priority": "P2",
+    "review": "Self-reference occurs in delayed recursive polling after initialization. Backlog: bounded/cancellable polling with payment sandbox tests; no charge operation performed."
+  },
+  "apps/frontend/src/components/layout/streak.component.tsx": {
+    "functionality": "Publishing streak display",
+    "priority": "P2",
+    "review": "Compiler disagrees on nullable primitive dependency. Backlog: explicit streakSince binding and midnight/timezone tests; this display calculation does not authorize requests."
+  },
+  "apps/frontend/src/components/media/media.component.tsx": {
+    "functionality": "Media library/picker",
+    "priority": "P2",
+    "review": "Effects reset search paging and selection; later setters execute after commit. Backlog: search/selection reconciliation and declaration cleanup with DOM tests; storage validation is separate."
+  },
+  "apps/frontend/src/components/media/new.uploader.tsx": {
+    "functionality": "Media upload batch ordering",
+    "priority": "P2",
+    "review": "fileOrderIndex is instance-local inside Uppy useMemo and changed by callbacks; compiler flags async reset. Backlog: concurrent batch/failure/teardown tests before changing uploader lifecycle state."
+  },
+  "apps/frontend/src/components/new-launch/delay.component.tsx": {
+    "functionality": "Composer delay selection",
+    "priority": "P2",
+    "review": "Effect copies delay text when popover opens. Backlog: controlled/keyed popover state and delay validation tests; downstream scheduling checks must remain."
+  },
+  "apps/frontend/src/components/new-launch/editor.tsx": {
+    "functionality": "Composer/editor/inline uploads",
+    "priority": "P2",
+    "review": "Effects synchronize editor identity/loading; refs expose toolbar handles and callback snapshots. Backlog: committed handles/state and aborted-render/upload tests; diagnostics do not certify posting authorization."
+  },
+  "apps/frontend/src/components/new-launch/mention.component.tsx": {
+    "functionality": "Mention autocomplete",
+    "priority": "P2",
+    "review": "Compiler propagates ref analysis through props passed to useImperativeHandle. Backlog: typed handle versus menu-data props, keyboard/index/loading tests; avoid broad editor rewrites."
+  },
+  "apps/frontend/src/components/new-launch/providers/devto/devto.tags.tsx": {
+    "functionality": "devto composer options: devto.tags",
+    "priority": "P2",
+    "review": "Mount effect reads existing React Hook Form settings into local selection; async options load separately. Search variants reset loading/results. Backlog: controlled initialization, changed-field identity, cancellation and provider option tests before removing effects. This does not validate live provider permissions."
+  },
+  "apps/frontend/src/components/new-launch/providers/devto/select.organization.tsx": {
+    "functionality": "devto composer options: select.organization",
+    "priority": "P2",
+    "review": "Mount effect reads existing React Hook Form settings into local selection; async options load separately. Search variants reset loading/results. Backlog: controlled initialization, changed-field identity, cancellation and provider option tests before removing effects. This does not validate live provider permissions."
+  },
+  "apps/frontend/src/components/new-launch/providers/discord/discord.channel.select.tsx": {
+    "functionality": "discord composer options: discord.channel.select",
+    "priority": "P2",
+    "review": "Mount effect reads existing React Hook Form settings into local selection; async options load separately. Search variants reset loading/results. Backlog: controlled initialization, changed-field identity, cancellation and provider option tests before removing effects. This does not validate live provider permissions."
+  },
+  "apps/frontend/src/components/new-launch/providers/dribbble/dribbble.teams.tsx": {
+    "functionality": "dribbble composer options: dribbble.teams",
+    "priority": "P2",
+    "review": "Mount effect reads existing React Hook Form settings into local selection; async options load separately. Search variants reset loading/results. Backlog: controlled initialization, changed-field identity, cancellation and provider option tests before removing effects. This does not validate live provider permissions."
+  },
+  "apps/frontend/src/components/new-launch/providers/hashnode/hashnode.publications.tsx": {
+    "functionality": "hashnode composer options: hashnode.publications",
+    "priority": "P2",
+    "review": "Mount effect reads existing React Hook Form settings into local selection; async options load separately. Search variants reset loading/results. Backlog: controlled initialization, changed-field identity, cancellation and provider option tests before removing effects. This does not validate live provider permissions."
+  },
+  "apps/frontend/src/components/new-launch/providers/hashnode/hashnode.tags.tsx": {
+    "functionality": "hashnode composer options: hashnode.tags",
+    "priority": "P2",
+    "review": "Mount effect reads existing React Hook Form settings into local selection; async options load separately. Search variants reset loading/results. Backlog: controlled initialization, changed-field identity, cancellation and provider option tests before removing effects. This does not validate live provider permissions. Additional computed error memo needs a primitive dependency and form tests."
+  },
+  "apps/frontend/src/components/new-launch/providers/instagram/instagram.audio.tsx": {
+    "functionality": "instagram composer options: instagram.audio",
+    "priority": "P2",
+    "review": "Mount effect reads existing React Hook Form settings into local selection; async options load separately. Search variants reset loading/results. Backlog: controlled initialization, changed-field identity, cancellation and provider option tests before removing effects. This does not validate live provider permissions."
+  },
+  "apps/frontend/src/components/new-launch/providers/instagram/instagram.tags.tsx": {
+    "functionality": "instagram composer options: instagram.tags",
+    "priority": "P2",
+    "review": "Mount effect reads existing React Hook Form settings into local selection; async options load separately. Search variants reset loading/results. Backlog: controlled initialization, changed-field identity, cancellation and provider option tests before removing effects. This does not validate live provider permissions."
+  },
+  "apps/frontend/src/components/new-launch/providers/listmonk/select.list.tsx": {
+    "functionality": "listmonk composer options: select.list",
+    "priority": "P2",
+    "review": "Mount effect reads existing React Hook Form settings into local selection; async options load separately. Search variants reset loading/results. Backlog: controlled initialization, changed-field identity, cancellation and provider option tests before removing effects. This does not validate live provider permissions."
+  },
+  "apps/frontend/src/components/new-launch/providers/listmonk/select.templates.tsx": {
+    "functionality": "listmonk composer options: select.templates",
+    "priority": "P2",
+    "review": "Mount effect reads existing React Hook Form settings into local selection; async options load separately. Search variants reset loading/results. Backlog: controlled initialization, changed-field identity, cancellation and provider option tests before removing effects. This does not validate live provider permissions."
+  },
+  "apps/frontend/src/components/new-launch/providers/medium/medium.publications.tsx": {
+    "functionality": "medium composer options: medium.publications",
+    "priority": "P2",
+    "review": "Mount effect reads existing React Hook Form settings into local selection; async options load separately. Search variants reset loading/results. Backlog: controlled initialization, changed-field identity, cancellation and provider option tests before removing effects. This does not validate live provider permissions."
+  },
+  "apps/frontend/src/components/new-launch/providers/medium/medium.tags.tsx": {
+    "functionality": "medium composer options: medium.tags",
+    "priority": "P2",
+    "review": "Mount effect reads existing React Hook Form settings into local selection; async options load separately. Search variants reset loading/results. Backlog: controlled initialization, changed-field identity, cancellation and provider option tests before removing effects. This does not validate live provider permissions."
+  },
+  "apps/frontend/src/components/new-launch/providers/mewe/mewe.group.select.tsx": {
+    "functionality": "mewe composer options: mewe.group.select",
+    "priority": "P2",
+    "review": "Mount effect reads existing React Hook Form settings into local selection; async options load separately. Search variants reset loading/results. Backlog: controlled initialization, changed-field identity, cancellation and provider option tests before removing effects. This does not validate live provider permissions."
+  },
+  "apps/frontend/src/components/new-launch/providers/pinterest/pinterest.board.tsx": {
+    "functionality": "pinterest composer options: pinterest.board",
+    "priority": "P2",
+    "review": "Mount effect reads existing React Hook Form settings into local selection; async options load separately. Search variants reset loading/results. Backlog: controlled initialization, changed-field identity, cancellation and provider option tests before removing effects. This does not validate live provider permissions."
+  },
+  "apps/frontend/src/components/new-launch/providers/skool/skool.group.select.tsx": {
+    "functionality": "skool composer options: skool.group.select",
+    "priority": "P2",
+    "review": "Mount effect reads existing React Hook Form settings into local selection; async options load separately. Search variants reset loading/results. Backlog: controlled initialization, changed-field identity, cancellation and provider option tests before removing effects. This does not validate live provider permissions."
+  },
+  "apps/frontend/src/components/new-launch/providers/skool/skool.label.select.tsx": {
+    "functionality": "skool composer options: skool.label.select",
+    "priority": "P2",
+    "review": "Mount effect reads existing React Hook Form settings into local selection; async options load separately. Search variants reset loading/results. Backlog: controlled initialization, changed-field identity, cancellation and provider option tests before removing effects. This does not validate live provider permissions."
+  },
+  "apps/frontend/src/components/new-launch/providers/slack/slack.channel.select.tsx": {
+    "functionality": "slack composer options: slack.channel.select",
+    "priority": "P2",
+    "review": "Mount effect reads existing React Hook Form settings into local selection; async options load separately. Search variants reset loading/results. Backlog: controlled initialization, changed-field identity, cancellation and provider option tests before removing effects. This does not validate live provider permissions."
+  },
+  "apps/frontend/src/components/new-launch/providers/tiktok/tiktok.location.tsx": {
+    "functionality": "tiktok composer options: tiktok.location",
+    "priority": "P2",
+    "review": "Mount effect reads existing React Hook Form settings into local selection; async options load separately. Search variants reset loading/results. Backlog: controlled initialization, changed-field identity, cancellation and provider option tests before removing effects. This does not validate live provider permissions."
+  },
+  "apps/frontend/src/components/new-launch/providers/tiktok/tiktok.music.tsx": {
+    "functionality": "tiktok composer options: tiktok.music",
+    "priority": "P2",
+    "review": "Mount effect reads existing React Hook Form settings into local selection; async options load separately. Search variants reset loading/results. Backlog: controlled initialization, changed-field identity, cancellation and provider option tests before removing effects. This does not validate live provider permissions."
+  },
+  "apps/frontend/src/components/new-launch/providers/whop/whop.company.select.tsx": {
+    "functionality": "whop composer options: whop.company.select",
+    "priority": "P2",
+    "review": "Mount effect reads existing React Hook Form settings into local selection; async options load separately. Search variants reset loading/results. Backlog: controlled initialization, changed-field identity, cancellation and provider option tests before removing effects. This does not validate live provider permissions."
+  },
+  "apps/frontend/src/components/new-launch/providers/whop/whop.experience.select.tsx": {
+    "functionality": "whop composer options: whop.experience.select",
+    "priority": "P2",
+    "review": "Mount effect reads existing React Hook Form settings into local selection; async options load separately. Search variants reset loading/results. Backlog: controlled initialization, changed-field identity, cancellation and provider option tests before removing effects. This does not validate live provider permissions."
+  },
+  "apps/frontend/src/components/new-launch/providers/wordpress/wordpress.post.type.tsx": {
+    "functionality": "wordpress composer options: wordpress.post.type",
+    "priority": "P2",
+    "review": "Mount effect reads existing React Hook Form settings into local selection; async options load separately. Search variants reset loading/results. Backlog: controlled initialization, changed-field identity, cancellation and provider option tests before removing effects. This does not validate live provider permissions."
+  },
+  "apps/frontend/src/components/new-launch/providers/wordpress/wordpress.terms.tsx": {
+    "functionality": "wordpress composer options: wordpress.terms",
+    "priority": "P2",
+    "review": "Mount effect reads existing React Hook Form settings into local selection; async options load separately. Search variants reset loading/results. Backlog: controlled initialization, changed-field identity, cancellation and provider option tests before removing effects. This does not validate live provider permissions."
+  },
+  "apps/frontend/src/components/new-layout/layout.component.tsx": {
+    "functionality": "Application navigation",
+    "priority": "P2",
+    "review": "Pathname effect closes mobile menu. Backlog: event/keyed menu lifecycle and route-transition tests; no authorization decision occurs at setter."
+  },
+  "apps/frontend/src/components/new-layout/mobile.integration.tsx": {
+    "functionality": "Mobile channel list",
+    "priority": "P2",
+    "review": "Initial async loader updates state after network response. Backlog: current dependencies, cancellation, empty/error and tenant-switch tests; server organization scope remains authoritative."
+  },
+  "apps/frontend/src/components/new-layout/sentry.feedback.component.tsx": {
+    "functionality": "Optional Sentry feedback",
+    "priority": "P2",
+    "review": "Effect copies SDK feedback handle when DSN exists and catches missing SDK. Backlog: external-store/SDK lifecycle tests; unrelated to API authorization."
+  },
+  "apps/frontend/src/components/oauth/authorize.component.tsx": {
+    "functionality": "OAuth consent/PKCE request UI",
+    "priority": "P1",
+    "review": "Confirmed old validation can populate a different request's consent screen. Fixed full-query keyed state, abort/ignore old response, derived input errors and current fetch dependencies; deferred-response tests added."
+  },
+  "apps/frontend/src/components/plugs/plug.tsx": {
+    "functionality": "Optional publication plug activation",
+    "priority": "P2",
+    "review": "Effect synchronizes persisted activation into local toggle state. Backlog: controlled toggle/revalidation/failure tests; server plug ownership checks remain necessary."
+  },
+  "apps/frontend/src/components/preview/comments.components.tsx": {
+    "functionality": "Review-thread highlight",
+    "priority": "P2",
+    "review": "Effect scrolls, starts flash and clears timer in cleanup. Backlog: event-driven highlight/focus tests; distinct from Inbox private messages."
+  },
+  "apps/frontend/src/components/settings/email-notifications.component.tsx": {
+    "functionality": "Email notification preferences",
+    "priority": "P2",
+    "review": "Render writes latest preferences to ref; effect copies fetched settings. Backlog: committed debounced state, aborted-render and rapid-toggle tests; do not reuse pattern for authorization."
+  },
+  "apps/frontend/src/components/settings/github.component.tsx": {
+    "functionality": "Optional GitHub connection settings",
+    "priority": "P2",
+    "review": "Effect synchronizes incoming GitHub props. Backlog: keyed prop-driven state and reconnect/error tests; no live OAuth performed."
+  },
+  "apps/frontend/src/components/settings/shortlink-preference.component.tsx": {
+    "functionality": "Organization short-link preference",
+    "priority": "P2",
+    "review": "Effect copies fetched preference. Backlog: optimistic save/rollback and organization-switch tests; server ownership checks remain separate."
+  },
+  "apps/frontend/src/components/settings/signatures.component.tsx": {
+    "functionality": "Publishing signatures",
+    "priority": "P2",
+    "review": "t is captured by a deferred delete confirmation before its textual declaration, invoked after initialization. Backlog: locale/dependency and failed deletion tests."
+  },
+  "apps/frontend/src/components/settings/teams.component.tsx": {
+    "functionality": "Team invitation settings",
+    "priority": "P2",
+    "review": "t is captured in an async invitation error callback, invoked after click/response. Backlog: dependencies and permission-change browser tests; server membership checks remain authoritative."
+  },
+  "jest.preset.js": {
+    "functionality": "Legacy Jest/Nx configuration",
+    "priority": "P2",
+    "review": "CommonJS require loads Nx preset outside application request paths. Backlog: coordinated config module-format migration without global suppression."
+  },
+  "libraries/helpers/src/decorators/plug.decorator.ts": {
+    "functionality": "Provider plug metadata",
+    "priority": "P2",
+    "review": "Object appears only as a decorator target type and is erased at runtime. Backlog: primitive object target plus metadata/type checks in focused change."
+  },
+  "libraries/helpers/src/decorators/post.plug.ts": {
+    "functionality": "Post plug metadata",
+    "priority": "P2",
+    "review": "Object is a decorator target type erased from emitted code. Backlog: primitive object annotation while preserving plugin contracts."
+  },
+  "libraries/helpers/src/utils/custom.fetch.tsx": {
+    "functionality": "Shared authenticated API fetch context",
+    "priority": "P1",
+    "review": "Confirmed ref freezes destination, hooks and secured mode at initial mount. Fixed input-based useMemo; tests verify rerender destination, credential mode and hook replacement."
+  },
+  "libraries/helpers/src/utils/use.wait.for.class.tsx": {
+    "functionality": "DOM readiness observer",
+    "priority": "P2",
+    "review": "Effect sets found immediately if class exists, otherwise observes mutations. found never resets on class/root change. Backlog: external-store semantics and DOM identity tests; no backend caller at this site."
+  },
+  "libraries/nestjs-libraries/src/upload/cloudflare.storage.ts": {
+    "functionality": "Cloudflare byte-type validation",
+    "priority": "P2",
+    "review": "require(file-type) is Node ESM-interop style diagnostic; code retains MIME allow-list. Backlog: consistent imports with both Nest builds and runtime/MIME tests; no live cloud validation."
+  },
+  "libraries/nestjs-libraries/src/upload/custom.upload.validation.ts": {
+    "functionality": "Streaming upload MIME/size validation",
+    "priority": "P2",
+    "review": "require loads fileTypeStream; byte sniffing, allow-list, cancellation and stream cap are present. Backlog: module import cleanup with stream tests; never remove validation for lint."
+  },
+  "libraries/nestjs-libraries/src/upload/local.storage.ts": {
+    "functionality": "Local upload validation/containment",
+    "priority": "P2",
+    "review": "require loads fileTypeFromBuffer; allow-listed bytes and resolved-directory deletion containment are present. Backlog: tested interop/import cleanup; no storage restrictions changed."
+  },
+  "libraries/nestjs-libraries/src/upload/r2.uploader.ts": {
+    "functionality": "Direct R2 validation",
+    "priority": "P2",
+    "review": "require loads fileTypeFromBuffer for existing extension/MIME checks. Backlog: coordinated import cleanup and cloud upload tests; no credentials or remote storage accessed."
+  },
+  "libraries/react-shared-libraries/src/form/canonical.tsx": {
+    "functionality": "Canonical URL form validation",
+    "priority": "P2",
+    "review": "Computed error-message dependency is compiler-incompatible. Backlog: primitive message derivation and field-name/error tests; server URL validation is independent."
+  },
+  "libraries/react-shared-libraries/src/form/input.tsx": {
+    "functionality": "Shared input validation display",
+    "priority": "P2",
+    "review": "Computed form.errors[name] dependency needs primitive binding. Backlog: field rename/revalidation tests; actual form registration unchanged."
+  },
+  "libraries/react-shared-libraries/src/form/multi.select.tsx": {
+    "functionality": "Shared multiselect validation",
+    "priority": "P2",
+    "review": "Computed form error dependency needs primitive binding. Backlog: error/name/selection tests before changing React Hook Form integration."
+  },
+  "libraries/react-shared-libraries/src/form/textarea.tsx": {
+    "functionality": "Shared textarea validation",
+    "priority": "P2",
+    "review": "Computed error dependency is compiler-incompatible. Backlog: primitive error derivation with name/message replacement tests; do not disable validation."
+  },
+  "libraries/react-shared-libraries/src/helpers/image.with.fallback.tsx": {
+    "functionality": "Profile/media image fallback",
+    "priority": "P2",
+    "review": "Effect synchronizes src and onError selects fallback. Backlog: keyed failed-src/retry state tests; no token or tenant query is controlled here."
+  },
+  "libraries/react-shared-libraries/src/helpers/use.is.visible.tsx": {
+    "functionality": "Currently unreferenced visibility helper",
+    "priority": "P2",
+    "review": "SSR return precedes hooks, page dependency is stale and cleanup removes wrong focus handler/target. Search finds definition only. Backlog: unconditional hooks/matching cleanup and SSR/page/unmount tests before adoption."
+  }
+}

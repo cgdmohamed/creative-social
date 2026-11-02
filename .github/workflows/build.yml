@@ -58,6 +58,9 @@ jobs:
       - name: Integration lint
         run: pnpm run lint:integration
 
+      - name: Staging-critical safety lint
+        run: pnpm run lint:safety
+
       - name: Combined Inbox and Reporting tests
         run: pnpm run test:combined
 

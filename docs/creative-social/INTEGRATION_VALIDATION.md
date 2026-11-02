@@ -1,5 +1,8 @@
 # develop integration validation — 2026-11-02
 
+Historical record for develop `81a871438`. The [pre-staging audit](PRE_STAGING_AUDIT.md)
+contains the subsequent safety fixes and recounted lint/test results.
+
 Local host: Windows, Node **22.23.4**, pnpm **10.6.1**, Prisma **6.5.0**.
 No deployment, production database access or live Meta/Ads API validation occurred.
 

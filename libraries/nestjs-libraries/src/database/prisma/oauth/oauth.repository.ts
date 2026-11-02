@@ -1,5 +1,12 @@
-import { Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { PrismaRepository } from '@gitroom/nestjs-libraries/database/prisma/prisma.service';
+
+const invalidGrant = (error: { code?: string }) => {
+  if (error?.code === 'P2025') {
+    throw new HttpException({ error: 'invalid_grant' }, HttpStatus.BAD_REQUEST);
+  }
+  throw error;
+};
 
 @Injectable()
 export class OAuthRepository {
@@ -206,9 +213,16 @@ export class OAuthRepository {
     });
   }
 
-  exchangeCodeForToken(id: string, encryptedToken: string) {
+  exchangeCodeForToken(id: string, encryptedToken: string, expectedCode: string) {
     return this._oauthAuth.model.oAuthAuthorization.update({
-      where: { id },
+      // Check and consume atomically: a lookup followed by update(id) permits
+      // concurrent replay, revocation races, or clearing a newer grant.
+      where: {
+        id,
+        authorizationCode: expectedCode,
+        codeExpiresAt: { gt: new Date() },
+        revokedAt: null,
+      },
       select: {
         organizationId: true,
         organization: {
@@ -225,7 +239,7 @@ export class OAuthRepository {
         codeChallengeMethod: null,
         redirectUri: null,
       },
-    });
+    }).catch(invalidGrant);
   }
 
   findByAccessToken(encryptedToken: string) {
@@ -376,9 +390,16 @@ export class OAuthRepository {
     });
   }
 
-  exchangeSelfHostedCodeForToken(id: string, encryptedToken: string) {
+  exchangeSelfHostedCodeForToken(id: string, encryptedToken: string, expectedCode: string) {
     return this._oauthSelfHosted.model.oAuthSelfHostedAuthorization.update({
-      where: { id },
+      // Check and consume atomically: a lookup followed by update(id) permits
+      // concurrent replay, revocation races, or clearing a newer grant.
+      where: {
+        id,
+        authorizationCode: expectedCode,
+        codeExpiresAt: { gt: new Date() },
+        revokedAt: null,
+      },
       select: {
         id: true,
       },
@@ -390,7 +411,7 @@ export class OAuthRepository {
         codeChallengeMethod: null,
         redirectUri: null,
       },
-    });
+    }).catch(invalidGrant);
   }
 
   findSelfHostedByAccessToken(encryptedToken: string) {

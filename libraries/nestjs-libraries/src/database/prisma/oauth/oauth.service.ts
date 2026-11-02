@@ -544,7 +544,8 @@ export class OAuthService {
       organization: { paymentId },
     } = await this._oauthRepository.exchangeCodeForToken(
       auth.id,
-      encryptedToken
+      encryptedToken,
+      encryptedCode
     );
 
     return {
@@ -622,7 +623,8 @@ export class OAuthService {
     const token = 'psh_' + makeSecureId(40);
     await this._oauthRepository.exchangeSelfHostedCodeForToken(
       auth.id,
-      AuthService.fixedEncryption(token)
+      AuthService.fixedEncryption(token),
+      AuthService.fixedEncryption(code)
     );
 
     return {
