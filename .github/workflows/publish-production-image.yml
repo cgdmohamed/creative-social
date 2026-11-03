@@ -3,15 +3,6 @@ name: Publish Creative Social production image
 on:
   push:
     branches: [main]
-    paths:
-      - 'Dockerfile.production'
-      - 'deploy/coolify/production/**'
-      - 'apps/**'
-      - 'libraries/**'
-      - 'package.json'
-      - 'pnpm-lock.yaml'
-      - 'pnpm-workspace.yaml'
-      - '.github/workflows/publish-production-image.yml'
   workflow_dispatch:
 
 permissions:
