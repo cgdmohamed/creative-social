@@ -1,6 +1,5 @@
 import { readFileSync } from 'fs';
 import { execFileSync } from 'child_process';
-import { resolve } from 'path';
 import { PGlite } from '@electric-sql/pglite';
 import { validateProductionEnv } from '../../deploy/coolify/production/validate-env.cjs';
 import {
@@ -150,7 +149,7 @@ test('a wrong existing search attribute type is never silently overwritten', asy
   expect(client.operatorService.addSearchAttributes).not.toHaveBeenCalled();
 });
 
-test('resolved Compose keeps data private, builds repository code and gates applications on schema/Temporal readiness', () => {
+test('resolved Compose keeps data private, pulls the reviewed Creative Social image and gates applications on schema/Temporal readiness', () => {
   // Only synthetic template values are resolved; no Docker daemon or server action.
   // Preserve Docker plugin-discovery variables on Windows/Linux, while every
   // interpolated application variable is replaced by the synthetic template.
@@ -186,9 +185,10 @@ test('resolved Compose keeps data private, builds repository code and gates appl
     if (name !== 'gateway')
       expect(Object.keys(service.networks || {})).not.toContain('default');
   }
-  expect(compose.services.backend.build.context).toBe(resolve('.'));
-  expect(compose.services.backend.build.dockerfile).toBe(
-    'Dockerfile.production'
+  expect(compose.services.backend.build).toBeUndefined();
+  expect(compose.services.backend.pull_policy).toBe('always');
+  expect(compose.services.backend.image).toBe(
+    `ghcr.io/cgdmohamed/creative-social:${configEnv.CREATIVE_REVISION}`
   );
   expect(compose.services.backend.depends_on['app-schema'].condition).toBe(
     'service_completed_successfully'
@@ -199,8 +199,9 @@ test('resolved Compose keeps data private, builds repository code and gates appl
   expect(
     compose.services.backend.depends_on['temporal-namespace'].condition
   ).toBe('service_completed_successfully');
-  expect(compose.services.frontend.environment.JWT_SECRET).toBeUndefined();
-  expect(compose.services.frontend.environment.DATABASE_URL).toBeUndefined();
+  expect(compose.services.frontend.environment.JWT_SECRET).toBe('');
+  expect(compose.services.frontend.environment.DATABASE_URL).toBe('');
+  expect(compose.services.backend.environment.MAX_WORKSPACES_PER_USER).toBe('10');
   expect(compose.services.backend.environment.INBOX_COLLECTION_ENABLED).toBe(
     'false'
   );

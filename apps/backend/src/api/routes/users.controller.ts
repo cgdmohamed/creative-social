@@ -18,6 +18,8 @@ import { Response, Request } from 'express';
 import { AuthService } from '@gitroom/backend/services/auth/auth.service';
 import { AuthService as AuthChecker } from '@gitroom/helpers/auth/auth.service';
 import { OrganizationService } from '@gitroom/nestjs-libraries/database/prisma/organizations/organization.service';
+import { WorkspaceDto } from '@gitroom/nestjs-libraries/dtos/settings/workspace.dto';
+import { assertWorkspaceOrigin } from '@gitroom/nestjs-libraries/database/prisma/organizations/workspace.policy';
 import { CheckPolicies } from '@gitroom/backend/services/auth/permissions/permissions.ability';
 import { getCookieUrlFromDomain } from '@gitroom/helpers/subdomain/subdomain.management';
 import { pricing } from '@gitroom/nestjs-libraries/database/prisma/subscriptions/pricing';
@@ -301,10 +303,14 @@ export class UsersController {
   }
 
   @Post('/change-org')
-  changeOrg(
+  async changeOrg(
+    @GetUserFromRequest() user: User,
     @Body('id') id: string,
+    @Req() request: Request,
     @Res({ passthrough: true }) response: Response
   ) {
+    assertWorkspaceOrigin(request.headers);
+    await this._orgService.requireMembership(user.id, id);
     response.cookie('showorg', id, {
       domain: getCookieUrlFromDomain(process.env.FRONTEND_URL!),
       ...(!process.env.NOT_SECURED
@@ -322,6 +328,30 @@ export class UsersController {
     }
 
     response.status(200).send();
+  }
+
+  @Post('/organizations')
+  async createWorkspace(
+    @GetUserFromRequest() user: User,
+    @Body() body: WorkspaceDto,
+    @Req() request: Request
+  ) {
+    assertWorkspaceOrigin(request.headers);
+    if (request.cookies.impersonate || request.headers.impersonate) {
+      throw new HttpException('Cannot create workspaces while impersonating', 403);
+    }
+    return this._orgService.createWorkspace(user.id, body.name);
+  }
+
+  @Post('/organizations/name')
+  renameWorkspace(
+    @GetUserFromRequest() user: User,
+    @GetOrgFromRequest() org: Organization,
+    @Body() body: WorkspaceDto,
+    @Req() request: Request
+  ) {
+    assertWorkspaceOrigin(request.headers);
+    return this._orgService.renameWorkspace(user.id, org.id, body.name);
   }
 
   @Get('/delete-account-info')

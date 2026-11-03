@@ -1,6 +1,7 @@
-import { PrismaRepository } from '@gitroom/nestjs-libraries/database/prisma/prisma.service';
+import { PrismaRepository, PrismaTransaction } from '@gitroom/nestjs-libraries/database/prisma/prisma.service';
 import { Role, ShortLinkPreference, SubscriptionTier } from '@prisma/client';
-import { Injectable } from '@nestjs/common';
+import { ForbiddenException, Injectable } from '@nestjs/common';
+import { workspaceLimit, workspaceName } from './workspace.policy';
 import { AuthService } from '@gitroom/helpers/auth/auth.service';
 import { CreateOrgUserDto } from '@gitroom/nestjs-libraries/dtos/auth/create.org.user.dto';
 import { makeId } from '@gitroom/nestjs-libraries/services/make.is';
@@ -11,8 +12,52 @@ export class OrganizationRepository {
   constructor(
     private _organization: PrismaRepository<'organization'>,
     private _userOrg: PrismaRepository<'userOrganization'>,
-    private _user: PrismaRepository<'user'>
+    private _user: PrismaRepository<'user'>,
+    private _transaction: PrismaTransaction
   ) {}
+
+  async createWorkspace(userId: string, value: unknown) {
+    const name = workspaceName(value);
+    const limit = workspaceLimit();
+    return this._transaction.model.$transaction(async (tx) => {
+      // Serialize creation for this account, so concurrent requests cannot exceed
+      // its quota. No existing workspace or subscription is changed.
+      await tx.$queryRaw`SELECT id FROM "User" WHERE id = ${userId} FOR UPDATE`;
+      const user = await tx.user.findFirst({
+        where: { id: userId, activated: true, deletedAt: null },
+        select: { id: true },
+      });
+      if (!user) throw new ForbiddenException('Active account required');
+      const owned = await tx.userOrganization.count({
+        where: { userId, role: Role.SUPERADMIN, organization: { deletedAt: null } },
+      });
+      if (owned >= limit) throw new ForbiddenException('Workspace ownership quota reached');
+      return tx.organization.create({
+        data: {
+          name,
+          apiKey: AuthService.fixedEncryption(makeSecureId(20)),
+          // Additional workspaces do not grant another paid plan or free trial.
+          allowTrial: false,
+          isTrailing: false,
+          users: { create: { userId, role: Role.SUPERADMIN } },
+        },
+        select: { id: true, name: true },
+      });
+    });
+  }
+
+  async renameWorkspace(userId: string, organizationId: string, value: unknown) {
+    const name = workspaceName(value);
+    const result = await this._organization.model.organization.updateMany({
+      where: {
+        id: organizationId, deletedAt: null,
+        users: { some: { userId, disabled: false, role: { in: [Role.ADMIN, Role.SUPERADMIN] } } },
+      },
+      data: { name },
+    });
+    if (!result.count) throw new ForbiddenException('Workspace administrator access required');
+    return { id: organizationId, name };
+  }
 
   createMaxUser(id: string, name: string, saasName: string, email: string) {
     return this._organization.model.organization.create({

@@ -61,6 +61,9 @@ jobs:
       - name: Staging-critical safety lint
         run: pnpm run lint:safety
 
+      - name: Workspace lint
+        run: pnpm run lint:workspace
+
       - name: Combined Inbox and Reporting tests
         run: pnpm run test:combined
 

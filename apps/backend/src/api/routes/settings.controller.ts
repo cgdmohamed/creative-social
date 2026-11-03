@@ -12,6 +12,7 @@ import { GetUserFromRequest } from '@gitroom/nestjs-libraries/user/user.from.req
 import { Organization, User } from '@prisma/client';
 import { CheckPolicies } from '@gitroom/backend/services/auth/permissions/permissions.ability';
 import { OrganizationService } from '@gitroom/nestjs-libraries/database/prisma/organizations/organization.service';
+import { assertWorkspaceManager } from '@gitroom/nestjs-libraries/database/prisma/organizations/workspace.policy';
 import { AddTeamMemberDto } from '@gitroom/nestjs-libraries/dtos/settings/add.team.member.dto';
 import { AdminAddTeamMemberDto } from '@gitroom/nestjs-libraries/dtos/settings/admin.add.team.member.dto';
 import { ShortlinkPreferenceDto } from '@gitroom/nestjs-libraries/dtos/settings/shortlink-preference.dto';
@@ -31,6 +32,7 @@ export class SettingsController {
     [AuthorizationActions.Create, Sections.ADMIN]
   )
   async getTeam(@GetOrgFromRequest() org: Organization) {
+    assertWorkspaceManager(org as Organization & { users: { role: string }[] });
     return this._organizationService.getTeam(org.id);
   }
 

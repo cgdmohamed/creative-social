@@ -10,6 +10,7 @@ import dayjs from 'dayjs';
 import { makeId } from '@gitroom/nestjs-libraries/services/make.is';
 import { Organization, ShortLinkPreference, User } from '@prisma/client';
 import { AutopostService } from '@gitroom/nestjs-libraries/database/prisma/autopost/autopost.service';
+import { assertWorkspaceManager } from './workspace.policy';
 
 @Injectable()
 export class OrganizationService {
@@ -17,6 +18,23 @@ export class OrganizationService {
     private _organizationRepository: OrganizationRepository,
     private _notificationsService: NotificationService
   ) {}
+  createWorkspace(userId: string, name: unknown) {
+    return this._organizationRepository.createWorkspace(userId, name);
+  }
+
+  renameWorkspace(userId: string, orgId: string, name: unknown) {
+    return this._organizationRepository.renameWorkspace(userId, orgId, name);
+  }
+
+  async requireMembership(userId: string, orgId: unknown) {
+    if (typeof orgId !== 'string' || !orgId.trim()) {
+      throw new HttpException('Workspace access denied', 403);
+    }
+    const organizations = await this.getOrgsByUserId(userId);
+    if (!organizations.some((org) => org.id === orgId && org.users.some((member) => !member.disabled))) {
+      throw new HttpException('Workspace access denied', 403);
+    }
+  }
   async createOrgAndUser(
     body: Omit<CreateOrgUserDto, 'providerToken'> & { providerId?: string },
     ip: string,
@@ -101,6 +119,7 @@ export class OrganizationService {
   }
 
   async inviteTeamMember(org: Organization, user: User, body: AddTeamMemberDto) {
+    assertWorkspaceManager(org as Organization & { users: { role: string }[] });
     const timeLimit = dayjs().add(2, 'day').format('YYYY-MM-DD HH:mm:ss');
     const id = makeId(5);
     // only the invite fields, the body can carry undeclared properties
@@ -183,10 +202,11 @@ export class OrganizationService {
   }
 
   async deleteTeamMember(org: Organization, userId: string) {
+    assertWorkspaceManager(org as Organization & { users: { role: string }[] });
     const userOrgs = await this._organizationRepository.getOrgsByUserId(userId);
     const findOrgToDelete = userOrgs.find((orgUser) => orgUser.id === org.id);
     if (!findOrgToDelete) {
-      throw new Error('User is not part of this organization');
+      throw new HttpException('Workspace member access denied', 403);
     }
 
     // @ts-ignore
@@ -195,8 +215,8 @@ export class OrganizationService {
     const myLevel = myRole === 'USER' ? 0 : myRole === 'ADMIN' ? 1 : 2;
     const userLevel = userRole === 'USER' ? 0 : userRole === 'ADMIN' ? 1 : 2;
 
-    if (myLevel < userLevel) {
-      throw new Error('You do not have permission to delete this user');
+    if (userRole === 'SUPERADMIN' || myLevel < userLevel) {
+      throw new HttpException('You do not have permission to delete this member', 403);
     }
 
     return this._organizationRepository.deleteTeamMember(org.id, userId);
