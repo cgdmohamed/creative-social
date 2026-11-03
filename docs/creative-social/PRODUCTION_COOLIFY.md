@@ -1,7 +1,44 @@
 # Creative Social production Compose for Coolify
 
+## GitHub-built application image (4 GB VPS deployment)
+
+The application image is built on a GitHub-hosted runner, not on the Coolify server.
+The workflow `.github/workflows/publish-production-image.yml` publishes
+`ghcr.io/cgdmohamed/creative-social:<full-main-commit-sha>`.
+Its build-time public origin is **https://smm.creativecode.com.eg**. Changing that
+origin requires modifying the workflow and rebuilding a new image.
+
+**Release procedure:**
+
+1. Merge reviewed source changes to `main`. In GitHub Actions confirm that
+   **Publish Creative Social production image** completed successfully for the exact
+   intended commit. The image does not exist until that run succeeds.
+2. Confirm the GHCR package can be pulled by the Coolify host. Make the package
+   public in GitHub package settings, or configure authenticated registry
+   access in Coolify; do not paste GHCR tokens into Docker build arguments.
+3. In Coolify keep branch `main`, Compose path `/docker-compose.production.yaml`,
+   and gateway 8080. Set `CREATIVE_REVISION` to **the full SHA of the successful
+   workflow run**, not a previous sample SHA. Keep `PUBLIC_URL` equal to
+   `https://smm.creativecode.com.eg`.
+4. **Disable automatic build-variable injection of all runtime environment
+   variables.** Only public origin and source revision were build inputs in
+   GitHub Actions. Passwords and OAuth tokens remain runtime-only.
+5. The application services `frontend`, `backend`, `orchestrator`,
+   `app-schema`, and `temporal-namespace` pull the same prebuilt image.
+   Small infrastructure images (PostgreSQL wrappers, Redis, Temporal tooling
+   and Nginx gateway) are still locally built by Compose.
+6. The first empty database boot still requires deliberate one-time initialization
+   and all acceptance tests in this guide. This image workflow does **not**
+   initialize databases, migrate data, deploy to Coolify, or verify runtime capacity.
+
+Do not attempt deployment on the prior, unpublished commit SHA after switching
+the Compose file: it will fail with image-not-found. Existing named volumes must
+not be deleted or reassigned as a workaround. The 4 GB VPS may still be
+insufficient for the full running stack; off-host builds address build OOM only.
+
+
 Prepared configuration, **not deployed or runtime-certified**. Use
-`docker-compose.production.yaml` with `Dockerfile.production`. This branch builds
+`docker-compose.production.yaml` with the GHCR-built `Dockerfile.production` application image. This branch builds
 Creative Social from this repository and includes the safety fixes in PR #4;
 review/merge the dependency before promoting a release. Main is unchanged.
 
