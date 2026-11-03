@@ -34,6 +34,7 @@ import { GlobalSettings } from '@gitroom/frontend/components/settings/global.set
 import { AppsComponent } from '@gitroom/frontend/components/settings/apps.component';
 import { ThirdPartyComponent } from '@gitroom/frontend/components/third-parties/third-party.component';
 import { Plugs } from '@gitroom/frontend/components/plugs/plugs';
+import { AdvertisingAccounts } from '@gitroom/frontend/components/settings/advertising.accounts';
 export const SettingsPopup: FC<{
   getRef?: Ref<any>;
 }> = (props) => {
@@ -87,6 +88,9 @@ export const SettingsPopup: FC<{
   const list = useMemo(() => {
     const arr = [];
     arr.push({ tab: 'global_settings', label: t('global_settings', 'Global Settings') });
+    if (user?.role === 'ADMIN' || user?.role === 'SUPERADMIN') {
+      arr.push({ tab: 'advertising', label: t('advertising_accounts', 'Advertising Accounts') });
+    }
     // Populate tabs based on user permissions
     if (user?.tier?.public_api && isGeneral && showLogout) {
       arr.push({ tab: 'agents', label: t('agents_dev', 'Agents / Dev') });
@@ -212,6 +216,7 @@ export const SettingsPopup: FC<{
                   <ThirdPartyComponent />
                 </div>
               )}
+              {tab === 'advertising' && <AdvertisingAccounts />}
 
               {tab === 'plugs' && (
                 <div>

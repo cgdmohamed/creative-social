@@ -9,6 +9,8 @@ datasource db {
 }
 
 model Organization {
+  advertisingConnections AdvertisingConnection[]
+  advertisingOAuthStates AdvertisingOAuthState[]
   reportSnapshots ReportMetricSnapshot[]
   reportCampaigns ReportCampaign[]
   reportCollectionStates ReportCollectionState[]
@@ -1985,7 +1987,7 @@ model ReportCampaignPost {
   @@id([campaignId, postId])
   @@index([postId])
 }
-// Storage contracts only: no live Ads connector or OAuth token ingestion yet.
+// Advertising credentials are separate from organic social Integration tokens.
 enum AdReportingProvider {
   META_ADS
   GOOGLE_ADS
@@ -2001,11 +2003,54 @@ model AdReportingAccount {
   currency String @db.Char(3)
   timezone String // Provider account's IANA timezone; never assume UTC Ads days.
   credentialReference String? // Reference to a future secret store, never a token.
+  connectionId String?
+  connection AdvertisingConnection? @relation(fields: [connectionId, organizationId, provider], references: [id, organizationId, provider], onDelete: Restrict, onUpdate: Cascade)
+  loginCustomerId String? // Google manager used to discover this client.
+  providerStatus String @default("UNKNOWN")
   enabled Boolean @default(false)
   createdAt DateTime @default(now())
   dailyMetrics AdReportingDailyMetric[]
   @@unique([organizationId, provider, externalAccountId])
   @@index([organizationId, customerId])
+}
+
+enum AdvertisingConnectionStatus {
+  CONNECTED
+  REAUTH_REQUIRED
+  DISCONNECTED
+}
+
+model AdvertisingConnection {
+  id String @id @default(uuid())
+  organizationId String
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  provider AdReportingProvider
+  credentialCiphertext String?
+  expiresAt DateTime?
+  status AdvertisingConnectionStatus @default(DISCONNECTED)
+  lastError String?
+  revision Int @default(0)
+  refreshLeaseUntil DateTime?
+  retryAfter DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  accounts AdReportingAccount[]
+  @@unique([organizationId, provider])
+  @@unique([id, organizationId, provider])
+}
+
+model AdvertisingOAuthState {
+  hash String @id
+  organizationId String
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  userId String
+  provider AdReportingProvider
+  verifierCiphertext String
+  connectionRevision Int
+  expiresAt DateTime
+  usedAt DateTime?
+  createdAt DateTime @default(now())
+  @@index([expiresAt])
 }
 model AdReportingDailyMetric {
   id String @id @default(uuid())

@@ -59,8 +59,13 @@ import { FarcasterProvider } from '@gitroom/backend/services/auth/providers/farc
 import { WalletProvider } from '@gitroom/backend/services/auth/providers/wallet.provider';
 import { OauthProvider } from '@gitroom/backend/services/auth/providers/oauth.provider';
 import { StripeController } from '@gitroom/backend/api/routes/stripe.controller';
+import { AdvertisingController } from './routes/advertising.controller';
+import { AdvertisingService } from '../advertising/advertising.service';
+import { MetaAdsProvider } from '@gitroom/nestjs-libraries/advertising/providers/meta.ads.provider';
+import { GoogleAdsProvider } from '@gitroom/nestjs-libraries/advertising/providers/google.ads.provider';
 
 const authenticatedController = [
+  AdvertisingController,
   UsersController,
   AnalyticsController,
   InboxController,
@@ -109,6 +114,7 @@ const authenticatedController = [
         ...authenticatedController,
       ],
   providers: [
+    AdvertisingService, MetaAdsProvider, GoogleAdsProvider,
     AuthService,
     StripeService,
     PaymentService,

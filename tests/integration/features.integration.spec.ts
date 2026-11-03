@@ -57,10 +57,22 @@ beforeAll(async () => {
       '001-unified-inbox.sql',
       '002-analytics-reports.sql',
       '003-inbox-tenant-constraints.sql',
+      '004-advertising-accounts.sql',
     ])
+    {
+      if (migration === '004-advertising-accounts.sql') {
+        await pg.exec(`
+          INSERT INTO "Organization" (id,name,"updatedAt") VALUES ('ads-legacy','Legacy client',now());
+          INSERT INTO "AdReportingAccount" (id,"organizationId",provider,"externalAccountId",name,currency,timezone,"credentialReference")
+            VALUES ('legacy-account','ads-legacy','META_ADS','act_999','Existing metadata','USD','UTC','vault:legacy-reference');
+          INSERT INTO "AdReportingDailyMetric" (id,"accountId",date,level,"externalEntityId","attributionWindow",impressions)
+            VALUES ('legacy-metric','legacy-account','2026-10-01','ACCOUNT','act_999','existing-window',17);
+        `);
+      }
       await pg.exec(
         readFileSync(`docs/creative-social/migrations/${migration}`, 'utf8')
       );
+    }
     await expected.exec(ddl(schema));
   } finally {
     unlinkSync(baseline);
@@ -71,8 +83,31 @@ afterAll(async () => {
   await expected?.close();
 });
 
-test('all three additive upgrades on the pinned main schema match the merged Prisma catalog', async () => {
+test('all additive upgrades on the pinned main schema match the merged Prisma catalog', async () => {
   expect(await catalog(pg)).toEqual(await catalog(expected));
+});
+
+test('advertising upgrade preserves old account references and metrics without assigning credentials', async () => {
+  expect((await pg.query(`SELECT "connectionId","credentialReference",enabled FROM "AdReportingAccount" WHERE id='legacy-account'`)).rows)
+    .toEqual([{ connectionId: null, credentialReference: 'vault:legacy-reference', enabled: false }]);
+  expect((await pg.query(`SELECT impressions::text FROM "AdReportingDailyMetric" WHERE id='legacy-metric'`)).rows).toEqual([{ impressions: '17' }]);
+});
+
+test('advertising database constraints reject cross-tenant/provider assignments and duplicate accounts', async () => {
+  await pg.exec(`
+    INSERT INTO "Organization" (id,name,"updatedAt") VALUES ('ads-a','Ads A',now()),('ads-b','Ads B',now());
+    INSERT INTO "AdvertisingConnection" (id,"organizationId",provider,"updatedAt") VALUES ('ads-grant','ads-a','META_ADS',now());
+    INSERT INTO "AdReportingAccount" (id,"organizationId",provider,"externalAccountId",name,currency,timezone,"connectionId")
+      VALUES ('ads-owned','ads-a','META_ADS','act_123','Owned','USD','UTC','ads-grant');
+  `);
+  await expect(pg.exec(`INSERT INTO "AdReportingAccount" (id,"organizationId",provider,"externalAccountId",name,currency,timezone,"connectionId")
+    VALUES ('ads-foreign','ads-b','META_ADS','act_456','Foreign','USD','UTC','ads-grant')`)).rejects.toThrow();
+  await expect(pg.exec(`INSERT INTO "AdReportingAccount" (id,"organizationId",provider,"externalAccountId",name,currency,timezone,"connectionId")
+    VALUES ('ads-wrong-provider','ads-a','GOOGLE_ADS','456','Wrong provider','USD','UTC','ads-grant')`)).rejects.toThrow();
+  await expect(pg.exec(`INSERT INTO "AdReportingAccount" (id,"organizationId",provider,"externalAccountId",name,currency,timezone)
+    VALUES ('ads-duplicate','ads-a','META_ADS','act_123','Duplicate','USD','UTC')`)).rejects.toThrow();
+  await expect(pg.exec(`INSERT INTO "AdvertisingConnection" (id,"organizationId",provider,"updatedAt")
+    VALUES ('ads-duplicate-grant','ads-a','META_ADS',now())`)).rejects.toThrow();
 });
 
 test('Inbox read markers coexist with tenant-scoped reporting snapshots and cascading channel deletion', async () => {
