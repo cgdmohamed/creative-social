@@ -67,6 +67,8 @@ function validateProductionEnv(role, env, buildInfo) {
     'DISABLE_REGISTRATION',
     'INBOX_COLLECTION_ENABLED',
     'REPORTING_COLLECTION_ENABLED',
+    'PAID_ANALYTICS_SYNC_ENABLED',
+    'PAID_REPORT_SCHEDULES_ENABLED',
   ]) {
     if (env[name] !== undefined && !['true', 'false'].includes(env[name]))
       throw new Error(`${name} must be true or false`);

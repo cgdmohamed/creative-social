@@ -8,6 +8,9 @@ import { OrganicReport } from './reporting.types';
 export class ReportingPdf {
   private active = 0;
   async render(report: OrganicReport): Promise<Buffer> {
+    return this.renderHtml(reportHtml(report));
+  }
+  async renderHtml(html: string): Promise<Buffer> {
     const executablePath = process.env.REPORT_CHROMIUM_EXECUTABLE_PATH;
     if (!executablePath)
       throw new ServiceUnavailableException(
@@ -33,7 +36,7 @@ export class ReportingPdf {
         void request.abort().catch(() => {});
       });
       page.setDefaultTimeout(20000);
-      await page.setContent(reportHtml(report), { waitUntil: 'load' });
+      await page.setContent(html, { waitUntil: 'load' });
       return Buffer.from(
         await page.pdf({
           format: 'A4',

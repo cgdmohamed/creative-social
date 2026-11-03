@@ -14,6 +14,20 @@ const accountSelect = { id: true, externalAccountId: true, name: true, currency:
 @Injectable()
 export class AdvertisingService {
   constructor(private db: PrismaService, private meta: MetaAdsProvider, private google: GoogleAdsProvider) {}
+  // Internal read-only reporting boundary. Tokens stay inside this callback,
+  // never in the return value or an HTTP DTO. Workers do not bypass account scope.
+  async readForReporting<T>(org: string, id: string, read: (account: any, token: string, signal: AbortSignal) => Promise<T>) {
+    const account = await this.db.adReportingAccount.findFirst({ where: { id, organizationId: org, enabled: true,
+      organization: { deletedAt: null } } });
+    if (!account) throw new ForbiddenException('Advertising account unavailable');
+    const name = account.provider === 'META_ADS' ? 'meta' : 'google';
+    const grant = await this.credentials(org, name);
+    if (account.connectionId !== grant.connection.id) throw new ForbiddenException('Advertising account connection changed');
+    try {
+      const value = await read(account, grant.tokens.accessToken, AbortSignal.timeout(60000));
+      return { value, account, connectionId: grant.connection.id, connectionRevision: grant.connection.revision };
+    } catch (failure) { return this.providerFailure(grant.connection, failure); }
+  }
   private provider(name: string) {
     if (name !== 'meta' && name !== 'google') throw new BadRequestException('Unsupported advertising provider');
     const type = providers[name];

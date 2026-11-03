@@ -63,8 +63,13 @@ import { AdvertisingController } from './routes/advertising.controller';
 import { AdvertisingService } from '../advertising/advertising.service';
 import { MetaAdsProvider } from '@gitroom/nestjs-libraries/advertising/providers/meta.ads.provider';
 import { GoogleAdsProvider } from '@gitroom/nestjs-libraries/advertising/providers/google.ads.provider';
+import { PaidAnalyticsController } from './routes/paid-analytics.controller';
+import { PaidAnalyticsService } from '../advertising/paid-analytics.service';
+import { PaidSyncService } from '../advertising/paid-sync.service';
+import { PaidReportsService } from '../advertising/paid-reports.service';
 
 const authenticatedController = [
+  PaidAnalyticsController,
   AdvertisingController,
   UsersController,
   AnalyticsController,
@@ -114,6 +119,7 @@ const authenticatedController = [
         ...authenticatedController,
       ],
   providers: [
+    PaidAnalyticsService, PaidSyncService, PaidReportsService,
     AdvertisingService, MetaAdsProvider, GoogleAdsProvider,
     AuthService,
     StripeService,

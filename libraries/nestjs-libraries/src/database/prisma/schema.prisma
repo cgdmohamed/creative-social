@@ -9,6 +9,8 @@ datasource db {
 }
 
 model Organization {
+  paidReportSchedules PaidReportSchedule[]
+  paidReportRuns PaidReportRun[]
   advertisingConnections AdvertisingConnection[]
   advertisingOAuthStates AdvertisingOAuthState[]
   reportSnapshots ReportMetricSnapshot[]
@@ -2007,9 +2009,14 @@ model AdReportingAccount {
   connection AdvertisingConnection? @relation(fields: [connectionId, organizationId, provider], references: [id, organizationId, provider], onDelete: Restrict, onUpdate: Cascade)
   loginCustomerId String? // Google manager used to discover this client.
   providerStatus String @default("UNKNOWN")
+  reportingRevision Int @default(0)
+  valueTrackingVerified Boolean @default(false)
   enabled Boolean @default(false)
   createdAt DateTime @default(now())
   dailyMetrics AdReportingDailyMetric[]
+  paidSyncJobs PaidSyncJob[]
+  reachSnapshots PaidReachSnapshot[]
+  @@unique([id, organizationId])
   @@unique([organizationId, provider, externalAccountId])
   @@index([organizationId, customerId])
 }
@@ -2067,7 +2074,98 @@ model AdReportingDailyMetric {
   spend Decimal? @db.Decimal(20, 6)
   conversions Decimal? @db.Decimal(20, 6)
   conversionValue Decimal? @db.Decimal(20, 6)
+  customerId String?
+  definitionVersion String @default("legacy")
+  attributionFingerprint String?
+  entityName String?
+  currency String? @db.Char(3)
+  timezone String?
+  reach BigInt?
+  leads Decimal? @db.Decimal(20, 6)
+  purchaseConversionValue Decimal? @db.Decimal(20, 6)
+  valueTrackingVerified Boolean @default(false)
   collectedAt DateTime @default(now())
   @@unique([accountId, date, level, externalEntityId, attributionWindow])
   @@index([accountId, date])
+}
+
+model PaidReachSnapshot {
+  id String @id @default(uuid())
+  accountId String
+  account AdReportingAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  customerId String?
+  fromDate DateTime @db.Date
+  toDate DateTime @db.Date
+  level String
+  externalEntityId String
+  attributionWindow String
+  reach BigInt
+  collectedAt DateTime @default(now())
+  @@unique([accountId, fromDate, toDate, level, externalEntityId, attributionWindow])
+}
+
+model PaidSyncJob {
+  id String @id @default(uuid())
+  organizationId String
+  accountId String
+  account AdReportingAccount @relation(fields: [accountId, organizationId], references: [id, organizationId], onDelete: Cascade)
+  dedupeKey String @unique
+  requestedById String?
+  reportingRevision Int
+  level String
+  kind String @default("DAILY")
+  fromDate DateTime @db.Date
+  toDate DateTime @db.Date
+  attributionWindow String
+  attributionFingerprint String?
+  attributionDetails Json?
+  status String @default("PENDING")
+  attempts Int @default(0)
+  leaseToken String?
+  leaseUntil DateTime?
+  nextAttemptAt DateTime @default(now())
+  errorCode String?
+  completedAt DateTime?
+  createdAt DateTime @default(now())
+  @@index([status, nextAttemptAt])
+  @@index([accountId, level, fromDate, toDate])
+}
+
+model PaidReportSchedule {
+  id String @id @default(uuid())
+  organizationId String
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdById String
+  name String
+  revision Int @default(0)
+  query Json
+  rollingDays Int
+  cadenceDays Int
+  format String
+  delivery String
+  recipient String?
+  requireFresh Boolean @default(true)
+  enabled Boolean @default(true)
+  nextRunAt DateTime
+  leaseUntil DateTime?
+  runs PaidReportRun[]
+  @@unique([id, organizationId])
+  @@index([enabled, nextRunAt])
+}
+
+model PaidReportRun {
+  id String @id @default(uuid())
+  organizationId String
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  scheduleId String?
+  schedule PaidReportSchedule? @relation(fields: [scheduleId, organizationId], references: [id, organizationId], onDelete: Restrict)
+  periodKey String @unique
+  format String
+  status String @default("GENERATING")
+  deliveryStatus String @default("NOT_REQUESTED")
+  errorCode String?
+  artifact Bytes?
+  createdAt DateTime @default(now())
+  completedAt DateTime?
+  @@index([organizationId, createdAt])
 }
