@@ -246,7 +246,31 @@ services:
   frontend:
     <<: [*image, *service]
     command: [frontend]
-    environment: *public
+    # Coolify can inject a project-wide env_file into every Compose service.
+    # Compose environment values override env_file, so shadow all private
+    # project credentials here. Keep the production runtime guard enabled.
+    environment:
+      <<: *public
+      DATABASE_URL: ''
+      REDIS_URL: ''
+      JWT_SECRET: ''
+      POSTGRES_ADMIN_PASSWORD: ''
+      APP_DB_PASSWORD: ''
+      REDIS_PASSWORD: ''
+      TEMPORAL_POSTGRES_ADMIN_PASSWORD: ''
+      TEMPORAL_DB_PASSWORD: ''
+      FACEBOOK_APP_SECRET: ''
+      INSTAGRAM_APP_SECRET: ''
+      YOUTUBE_CLIENT_SECRET: ''
+      LINKEDIN_CLIENT_SECRET: ''
+      X_API_KEY: ''
+      X_API_SECRET: ''
+      TIKTOK_CLIENT_SECRET: ''
+      TIKTOK_BUSINESS_CLIENT_SECRET: ''
+      PINTEREST_CLIENT_SECRET: ''
+      THREADS_APP_SECRET: ''
+      EMAIL_PASS: ''
+      RESEND_API_KEY: ''
     networks: [web, egress]
     mem_limit: 1536m
     depends_on:
