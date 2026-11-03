@@ -56,15 +56,11 @@ x-runtime: &runtime
   EMAIL_PASS: ${EMAIL_PASS:-}
   RESEND_API_KEY: ${RESEND_API_KEY:-}
 
+# Application image is built once in GitHub Actions and pulled on the VPS.
+# The tag must match CREATIVE_REVISION and the build-time PUBLIC_URL.
 x-image: &image
-  image: creative-social:${CREATIVE_REVISION}
-  pull_policy: build
-  build:
-    context: .
-    dockerfile: Dockerfile.production
-    args:
-      PUBLIC_URL: ${PUBLIC_URL}
-      SOURCE_REVISION: ${CREATIVE_REVISION}
+  image: ghcr.io/cgdmohamed/creative-social:${CREATIVE_REVISION}
+  pull_policy: always
 
 x-service: &service
   restart: unless-stopped
