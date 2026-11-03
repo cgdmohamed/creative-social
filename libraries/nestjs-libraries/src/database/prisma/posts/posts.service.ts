@@ -58,6 +58,7 @@ import { stripHtmlValidation } from '@gitroom/helpers/utils/strip.html.validatio
 import { postContentPlainText } from '@gitroom/helpers/utils/sanitize.post.content';
 import { CreatePublicCommentDto } from '@gitroom/nestjs-libraries/dtos/comments/add.comment.dto';
 import { countLength } from '@gitroom/helpers/utils/count.length';
+import { resolveWorkspaceMedia } from './resolve.workspace.media';
 
 type PostWithConditionals = Post & {
   integration?: Integration;
@@ -503,35 +504,19 @@ export class PostsService {
     );
   }
 
-  async updateMedia(id: string, imagesList: any[], convertToJPEG = false) {
+  async updateMedia(id: string, imagesList: any[], convertToJPEG = false, organizationId?: string) {
+    if (!organizationId) throw new Error('Workspace is required to resolve post media');
     try {
       let imageUpdateNeeded = false;
       const getImageList = await Promise.all(
         (
-          await Promise.all(
-            (imagesList || []).map(async (p: any) => {
-              if (!p.id) {
-                return p;
-              }
-
-              if (!p.path) {
-                imageUpdateNeeded = true;
-                return this._mediaService.getMediaById(p.id);
-              }
-
-              // the normalizer may have replaced the file after the post was
-              // composed; a record still processing publishes the original
-              const fresh = await this._mediaService.getMediaById(p.id);
-              if (fresh?.status === 'ready' && fresh.path !== p.path) {
-                imageUpdateNeeded = true;
-                return { ...p, name: fresh.name, path: fresh.path };
-              }
-
-              return p;
-            })
+          await resolveWorkspaceMedia(
+            imagesList || [], organizationId,
+            (mediaId, orgId) => this._mediaService.getMediaById(mediaId, orgId),
+            () => { imageUpdateNeeded = true; }
           )
         )
-          .filter((m) => this.isAllowedMediaPath(m?.path))
+          .filter((m) => m && this.isAllowedMediaPath(m.path))
           .map((m) => {
             return {
               ...m,
@@ -613,9 +598,8 @@ export class PostsService {
 
       return getImageList;
     } catch (err: any) {
-      return (imagesList || []).filter((m) =>
-        this.isAllowedMediaPath(m?.path)
-      );
+      // Do not fall back to unverified media IDs if tenant-scoped resolution fails.
+      throw new Error('Unable to resolve workspace media');
     }
   }
 
@@ -745,7 +729,8 @@ export class PostsService {
           image: await this.updateMedia(
             post.id,
             JSON.parse(post.image || '[]'),
-            convertToJPEG
+            convertToJPEG,
+            post.organizationId
           ),
         }))
       ),

@@ -48,3 +48,8 @@ For the separate repository-built production candidate, use
 [PRODUCTION_COOLIFY.md](PRODUCTION_COOLIFY.md) and its executed
 [validation record](PRODUCTION_VALIDATION.md). Deployment remains subject to
 review and explicit approval; no server deployment has been performed.
+
+## Phase 1: multiple workspaces
+
+See [MULTI_WORKSPACE.md](MULTI_WORKSPACE.md) for authenticated creation, quotas,
+switching, role checks, tenant-boundary changes and validation on the latest main.
