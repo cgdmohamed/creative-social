@@ -196,7 +196,21 @@ freshness and mocked email queueing. Nest HTTP tests use real middleware and DTO
 validation with fixture storage. Migration/catalog/FK tests use ephemeral PGlite.
 Provider responses and email delivery are mocked, not live Meta/Google/SMTP tests.
 
-Actual final lint, tests, type checks and build results are recorded in the PR.
+Verified on 2026-11-03 with the pinned Node 22 toolchain:
+
+| Check | Result |
+| --- | --- |
+| Combined integration suites, including existing organic/Inbox tests | 258 passed across 24 suites |
+| Deployment safety tests | 23 passed |
+| Paid implementation, navigation and modified supporting files ESLint | 0 errors, 0 warnings |
+| Backend standalone TypeScript; frontend Next TypeScript | Passed |
+| Prisma validation/client generation and ephemeral migration/catalog tests | Passed |
+| Production and staging Compose configuration | Passed |
+
+The PR records the final sequential production build result. Repository-wide
+legacy lint was not rerun or claimed clean. Intermediate build attempts were
+superseded after preserving a stale Next cache and regenerating Prisma following
+schema changes; only the final build is used for acceptance.
 Before production: validate real Meta Insights and Google resource compatibility,
 privacy/modeling omissions, actual action/goal configurations, purchase values,
 quotas and late adjustments on test accounts; exercise multi-replica PostgreSQL
