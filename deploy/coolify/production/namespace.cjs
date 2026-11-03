@@ -63,10 +63,15 @@ if (require.main === module) {
     } finally {
       await connection.close();
     }
-  })().catch(() => {
-    console.error(
-      'Temporal namespace readiness failed; review namespace/init settings and connectivity'
-    );
+  })().catch((error) => {
+    // Never print environment variables or connection configuration.
+    // Preserve the Temporal error code/message so initialization failures
+    // can be distinguished from connectivity, enum and search-attribute errors.
+    console.error('Temporal namespace readiness failed', {
+      name: error?.name || 'Error',
+      code: error?.code ?? 'unknown',
+      message: error?.message || 'No error details supplied',
+    });
     process.exitCode = 1;
   });
 }
