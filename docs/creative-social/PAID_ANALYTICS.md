@@ -206,6 +206,7 @@ Verified on 2026-11-03 with the pinned Node 22 toolchain:
 | Backend standalone TypeScript; frontend Next TypeScript | Passed |
 | Prisma validation/client generation and ephemeral migration/catalog tests | Passed |
 | Production and staging Compose configuration | Passed |
+| Sequential production build: frontend, backend, orchestrator | Passed (exit 0) |
 
 The PR records the final sequential production build result. Repository-wide
 legacy lint was not rerun or claimed clean. Intermediate build attempts were
