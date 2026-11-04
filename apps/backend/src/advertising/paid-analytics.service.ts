@@ -71,7 +71,19 @@ export class PaidAnalyticsService {
   async report(org: string, user: string, input: PaidQuery) {
     await this.member(org, user); const query = validatePaidQuery(input); const client = await this.client(org, query.customerId);
     const previous = previousPeriod(query);
-    const accountWhere = { organizationId: org, ...(query.accountId ? { id: query.accountId } : {}), ...(query.provider ? { provider: query.provider } : {}) };
+    // Filter account candidates before applying the 100-account bound. Keep
+    // accounts with historical observations even after reassignment to a new client.
+    const accountWhere = { organizationId: org, ...(query.accountId ? { id: query.accountId } : {}), ...(query.provider ? { provider: query.provider } : {}),
+      ...(query.customerId ? { OR: [
+        { customerId: query.customerId },
+        { dailyMetrics: { some: { customerId: query.customerId, definitionVersion,
+          level: query.level, date: { gte: dateOnly(previous.from), lte: dateOnly(query.to) } } } },
+        { reachSnapshots: { some: { customerId: query.customerId, level: query.level,
+          OR: [
+            { fromDate: dateOnly(query.from), toDate: dateOnly(query.to) },
+            { fromDate: dateOnly(previous.from), toDate: dateOnly(previous.to) },
+          ] } } },
+      ] } : {}) };
     const accounts = await this.db.adReportingAccount.findMany({ where: accountWhere, select: { id: true, provider: true, name: true, externalAccountId: true,
       currency: true, timezone: true, customerId: true, valueTrackingVerified: true, enabled: true, connection: { select: { status: true, lastError: true } } }, take: 101 });
     if (accounts.length > 100) throw new BadRequestException('Filter the report to at most 100 accounts');
