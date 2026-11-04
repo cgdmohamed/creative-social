@@ -12,7 +12,7 @@ beforeEach(async () => {
   await fixture.db.adReportingAccount.create({ data: campaignAccount });
   await fixture.db.adReportingAccount.create({ data: { ...campaignAccount, id: 'account-b', organizationId: 'b' } });
   await fixture.db.advertisingConnection.create({ data: { id: 'connection-a', organizationId: 'a', revision: 0, status: 'CONNECTED' } });
-  providerRead = jest.fn(); service = new CampaignManagerService(fixture.db, { readForReporting: providerRead } as any);
+  providerRead = jest.fn(); service = new CampaignManagerService(fixture.db, { readForReporting: providerRead } as any, {} as any);
 });
 const saved = () => service.save('a', 'alice', campaignBody());
 test('stable creation key is idempotent, mismatched content is rejected and no provider is called', async () => {
@@ -56,17 +56,17 @@ test('approval requires exact account/budget/currency/schedule confirmation and 
   const draft = await saved(), review = await service.review('a', 'alice', draft.id, 0);
   await expect(service.approve('a', 'alice', review.id, review.digest, 'yes')).rejects.toThrow('confirmation');
   await expect(service.approve('a', 'alice', review.id, '0'.repeat(64), (review.snapshot as any).confirmation)).rejects.toThrow('confirmation');
-  expect((await service.approve('a', 'alice', review.id, review.digest, (review.snapshot as any).confirmation))?.status).toBe('APPROVED_BLOCKED');
+  expect((await service.approve('a', 'alice', review.id, review.digest, (review.snapshot as any).confirmation))?.status).toBe('APPROVED');
   await service.approve('a', 'alice', review.id, review.digest, (review.snapshot as any).confirmation);
-  expect(fixture.rows('adCampaignAudit').filter((r) => r.action === 'INTENT_APPROVED_NO_PROVIDER_WRITE')).toHaveLength(1);
-  for (let attempt = 0; attempt < 2; attempt++) await expect(service.submit('a', 'alice', review.id)).rejects.toMatchObject({ status: 423 });
+  expect(fixture.rows('adCampaignAudit').filter((r) => r.action === 'CAMPAIGN_CHANGE_APPROVED')).toHaveLength(1);
+  for (let attempt = 0; attempt < 2; attempt++) await expect(service.submit('a', 'alice', review.id, { digest: review.digest, confirmation: (review.snapshot as any).confirmation })).rejects.toMatchObject({ status: 403 });
   expect(providerRead).not.toHaveBeenCalled();
 });
 test.each(['expiry', 'currency', 'connection'])('approval rejects changed %s', async (change) => {
   const draft = await saved(), review = await service.review('a', 'alice', draft.id, 0);
   if (change === 'expiry') await fixture.db.adCampaignReview.updateMany({ where: { id: review.id }, data: { expiresAt: new Date(0) } });
   if (change === 'currency') await fixture.db.adReportingAccount.updateMany({ where: { id: campaignAccount.id }, data: { currency: 'EUR' } });
-  if (change === 'connection') await fixture.db.advertisingConnection.updateMany({ where: { id: 'connection-a' }, data: { revision: 1 } });
+  if (change === 'connection') await fixture.db.advertisingConnection.updateMany({ where: { id: 'connection-a' }, data: { authorizationRevision: 1 } });
   await expect(service.approve('a', 'alice', review.id, review.digest, (review.snapshot as any).confirmation)).rejects.toThrow();
   expect(fixture.rows('adCampaignDraft')[0].status).toBe('IN_REVIEW');
 });

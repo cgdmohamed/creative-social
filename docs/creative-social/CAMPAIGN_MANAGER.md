@@ -1,161 +1,46 @@
-# Phase 4: Advertising Campaign Manager
+# Advertising campaign manager: execution and recovery
 
-Based on merged Phases 1–3, main `ba3e7c1d9`. Open `/advertising`.
+Open `/advertising`. This replaces the earlier Phase 4 draft-only boundary. Real provider transports are implemented; `ADVERTISING_WRITES_ENABLED=false` remains the operator default. Saving, duplicating, reviewing and approving drafts never submits them.
 
-## Supported in this release
+## Supported workflows
 
-- Read campaigns, ad sets/ad groups and ads through official Meta Graph and Google
-  Ads search endpoints, using existing workspace-selected advertising accounts.
-  Pagination is bounded and overflow fails explicitly instead of hiding rows.
-  Google ad IDs include ad group identity, matching Phase 3 reporting keys.
-- Create, edit and duplicate **local** campaign drafts. One campaign, one ad set/
-  group and one creative/ad are planned per draft. Drafts are never submitted by
-  jobs, timers or saving a form. Creation keys are stable per request; conflicting
-  key reuse fails. Editing requires a matching revision and invalidates reviews.
-- Meta traffic (`OUTCOME_TRAFFIC`), lowest-cost link clicks, country targeting,
-  automatic or Facebook Feed placements and account-currency daily budgets.
-  Generated campaign/ad-set/ad creation plans use PAUSED throughout. Image plans
-  reference an authorized Page and an existing account-owned image hash; neither
-  ownership nor validity is inferred from typing an ID.
-- Google Search responsive search ad plans: manual CPC, maximum CPC, exact-match
-  keywords, country selections, Google Search only, separate non-shared budget,
-  paused campaign/group/ad, atomic `partialFailure: false`, `validateOnly: true`.
-  Country geoTargetConstant resolution is a blocker, not a fabricated mapping.
-  Proposed calendar dates are shown in the advertising account timezone; Google
-  campaign dates cannot enforce requested intraday UTC start/stop times.
-- Workspace image/video selection through the existing Media library. The builder
-  offers escaped text previews and a local asset reference, not an official
-  rendering or a provider upload. New uploads use the existing `/media` interface.
-- Local proposals to pause/resume existing campaigns, with account ownership
-  verified against a fresh provider campaign list when requesting review. Source
-  status and observed provider budget units appear beside the proposal.
-- Immutable review snapshots with canonical SHA-256 digests, exact typed account/
-  currency/daily-budget/schedule confirmation, 15-minute expiry, owner approval or
-  rejection, and transactional workspace audit history. An expired/rejected review
-  requires editing the draft to obtain a new revision and review.
-- Campaign performance links initialize the Phase 3 account/campaign/level filters.
-  The paid metrics and organic reporting calculation paths are unchanged.
+| Provider | Creation | Management |
+| --- | --- | --- |
+| Meta | Paused campaign → paused ad set → image/video creative → paused ad; add an ad set/ad to an existing owned parent | Campaign/ad-set/ad pause/resume; campaign name/daily budget; ad-set name/daily budget/end/targeting/bid; ad name/creative replacement; native deep copy with paused status verification |
+| Google | Atomic paused Search campaign, dedicated daily budget, paused Search group and responsive search ad; add groups/ads to existing Search parents | Campaign/group/ad status; campaign name/daily budget/end/bidding/country targeting; group name/manual CPC/positive and negative keywords; unshared responsive search ad text/final URLs |
 
-## Safety boundary and unsupported features
+Meta objectives: traffic/link clicks, awareness/reach, Page post engagement, website leads (`LEAD` Pixel event), website sales (`PURCHASE` Pixel event), app installs (authorized application and matching official app-store URL). Pixel/Page/image ownership is checked with the selected account. App authorization, objective eligibility and optimization constraints remain provider validated. Automatic placements or Facebook Feed are supported. These are specific workflows for six objective enums, not every destination supported under those objectives.
 
-**Provider execution is not implemented/enabled in this release.**
-`POST /campaign-manager/reviews/:id/submit` always returns HTTP 423 with
-`LIVE_AD_WRITES_DISABLED`. `APPROVED_BLOCKED` means approved local intent; it does
-not mean a provider accepted, created, paused or resumed anything. No environment
-variable or browser parameter can enable writes. No mutation transport is
-registered. Google POST requests used for listing are GAQL search reads.
+Meta bids: lowest cost without cap, bid cap, cost cap (eligibility depends on objective/account). Google bids: manual CPC, maximize clicks, maximize conversions, target CPA, maximize conversion value and target ROAS. Portfolio strategy management is not supported. Conversion-based bidding requires operator-configured conversion goals. Exact Decimal currency units and Google micros are used; daily budgets are not lifetime spend caps. Shared Google budget changes require explicit acknowledgement and include every affected campaign in the immutable confirmation.
 
-The Phase 2 Meta grant remains `ads_read`; this change does not request production
-permissions or upgrade it silently. Future Meta writes need explicit
-`ads_management` approval/reconnection and appropriate Page/asset access. Google
-uses its existing adwords OAuth scope, but this application still blocks writes.
+Google country targeting resolves official geo target constants and uses presence targeting. Existing negative geographic exclusions are preserved. Positive/negative keyword replacements are separately selected and preserve unchanged criteria. Google Search no longer accepts manual language targeting after September 2026: ad language/user signals determine matching. Legacy draft selections must be removed and reviewed again. Existing provider language records are preserved. See [Google criteria](https://developers.google.com/google-ads/api/docs/targeting/criteria) and [deprecations](https://developers.google.com/google-ads/api/docs/deprecations).
 
-Unsupported provider execution includes creation, pause/resume, budget/date/bid
-updates and asset uploads. Existing `UPDATE` drafts can retain a client's proposal
-but have an explicit unsupported-plan blocker. No raw provider JSON is accepted.
-There is no hidden automatic retry. A future write executor must persist provider
-IDs at every Meta step, reconcile ambiguous timeouts before retrying, validate
-Google requests before atomic commit, check fresh permissions and approval state,
-and never infer success from a network timeout.
+Google campaign dates are account-local calendar days, with an inclusive end date. Meta uses UTC timestamps. New budget-owning resources support immediate start and ongoing daily budgets, while remaining paused at creation. Child resources inherit appropriate parent budget/schedule/strategy; final review fetches actual budget owners instead of presenting draft values as existing budgets.
 
-Other unsupported workflows:
+The Creative Library supports owned workspace Media and direct PNG/JPEG/WebP/MP4 uploads (50 MiB; Google images 5 MiB). Meta video processing must reach ready with a trusted thumbnail before use. Existing Meta image hashes/videos can be imported. Google image upload/import and asset association discovery are supported; Search RSA text assets are embedded in the ad. Uploading a standalone Google image does not attach it to a campaign. Binary Google video upload is unsupported (Google uses YouTube references). Files use configured local/R2 storage only; arbitrary remote URLs are not fetched.
 
-- Meta sales, leads, awareness, app, engagement, catalog, dynamic creative,
-  Advantage+, special-ad-category and political campaigns; custom/lookalike
-  audiences, pixels, custom conversions, interests, age/gender exclusions and
-  arbitrary placement combinations. Empty `special_ad_categories` in the example
-  plan is not authorization to advertise restricted categories.
-- Google Performance Max, Display, Video, Shopping, Demand Gen, app campaigns,
-  automated/portfolio bidding, shared budget edits, extensions/assets, conversion
-  goal changes, negative keywords, audiences, location exclusions, ad schedules and
-  geoTargetConstant discovery. Google Search is a campaign type, not a claim that
-  provider conversion goals were configured.
-- Provider image/video uploading, processing/polling, official preview URLs,
-  destination crawling and policy appeal. Video can be organized locally but is
-  not included in these image/Search request plans.
-- Cloning existing provider campaigns into another account. Duplication copies
-  local drafts and clears existing campaign IDs/approval; provider assets are not
-  copied or assumed portable.
-- True delivery/billing eligibility, delivery forecasts, spend caps and provider
-  policy approval validation. Displayed provider approval is informational; a
-  campaign-level status cannot guarantee every child ad is approved.
+## Authorization and execution
 
-Daily budgets are not total campaign spend caps. Provider overdelivery rules apply.
-Meta and Google currency minor units and Google micros are handled separately;
-invalid precision and currency changes fail. Country syntax validation does not
-claim provider eligibility. Google country resolution and date semantics must be
-resolved before any future live execution. Resume needs a fresh reconciliation of
-campaign and child budgets/statuses; the local proposed budget must never replace
-that step in a future write implementation.
+1. Authorize **management** explicitly in Settings → Advertising Accounts. Existing read-only connections are not silently upgraded. Reconnect/reselect accounts; a new consent epoch invalidates stale reviews, while routine token refresh does not.
+2. An ADMIN/SUPERADMIN creates a revisioned workspace draft, selects fields to change and requests review. The snapshot records account, currency, schedule, actual budget owners/shared campaigns, source resource and canonical request digest.
+3. SUPERADMIN may validate without mutation. Google validates the complete atomic batch. Meta initial validation covers the first resource; later resources validate when confirmed parent IDs exist. Creative validity/policy still requires provider acceptance.
+4. SUPERADMIN types the exact phrase to approve. Approval expires after 15 minutes and is separate from execution.
+5. With the operator flag enabled, submission requires a second typed phrase, explicit authorization checkbox and final browser confirmation. Backend independently checks membership, tenant/account/consent epoch, digest, expiry, current financial context and provider permissions.
+6. Each mutation is durably marked SENDING and audited before transport. Returned IDs and sanitized outcomes commit atomically. Google uses `partialFailure:false`; Meta retains confirmed parents across child failure. New resources are requested PAUSED. A confirmed API result is not evidence of policy approval, billing eligibility or delivery.
 
-## Permissions and isolation
+There is no background campaign submission, automatic campaign activation, unknown-outcome retry, or provider deletion. Read/list requests use bounded pagination and explicitly fail on overflow (20,000 Google rows; 2,000 Meta resources per collection); narrow/manage large accounts in the provider UI if the supported bound is exceeded. Arbitrary provider JSON and arbitrary API URLs are not accepted.
 
-Active workspace members may list resources, previews, drafts, reviews and history.
-ADMIN/SUPERADMIN may create/edit/duplicate drafts and request reviews. Only
-workspace SUPERADMIN may approve/reject. A workspace owner may approve their own
-draft; this release does not require two distinct people. These are workspace
-roles, not global system administrator privileges. Existing JWT middleware and
-fresh membership queries enforce access. Cross-origin cookie writes and all
-impersonated writes are rejected.
+## Failure recovery
 
-Composite database foreign keys bind drafts to the workspace account and reviews
-to the workspace draft. Account tokens stay within the existing internal encrypted
-credential boundary and never enter campaign DTOs, plans, audit rows or browser
-responses. Provider errors expose bounded codes rather than raw token-bearing
-responses. Lists use no-store responses. The UI remounts when switching workspace,
-and discards in-flight resource results after account/tab changes.
+- **CONFIRMED**: provider evidence recorded. Refresh lists/status and use the analytics link. Repeating the same submission returns its ledger and never replays mutations.
+- **NO_CHANGE**: fresh reads already matched requested settings. No mutation was sent.
+- **REJECTED**: definite rejection or preflight failure. Inspect field/error codes, permissions and cooldown. Explicit recovery uses the full confirmation plus `RECOVER <execution-id>`. Confirmed parents are retained. To change a specification, abandon remaining rejected steps with `ABANDON <execution-id>`, then create a new child/change draft referencing retained IDs.
+- **UNKNOWN/SENDING**: transport timeout, malformed/5xx response or failed result persistence does not prove failure. Never create another campaign to compensate. Use **Reconcile provider outcome** after the active lease expires. Unique execution markers, account/parent ownership and requested settings are read back. Optional numeric Meta IDs must be verified in the provider UI first and are rechecked server-side. Native copy verifies paused children/counts. No evidence or ambiguous evidence leaves UNKNOWN and blocks unsafe retries. Escalate to the provider/operator rather than editing the database to reset the ledger.
+- Rate limiting uses provider cooldowns; no automatic write retry. Revoked grants disable account use and require reconnection. Report/credential epochs prevent cross-connection writes.
+- Safe rollback is a separately reviewed pause/update draft. Abandonment never deletes or enables retained provider resources. There is no reliable automatic destructive rollback across Meta steps.
 
-Audit rows record actor, workspace, action, draft/review identifiers and a bounded
-reason/digest, not tokens. No audit editing/deletion API exists. The UI shows the
-latest 200 events and 100 drafts/reviews/assets/accounts; provider listing is
-bounded to 20 pages (Google additionally 20,000 rows). There is a 100-draft workspace
-quota. There is no automatic retention/deletion process; operators must plan
-database retention and archive UX before high-volume use.
+## Explicit provider limitations
 
-## Database and staging
+Meta instant forms, catalogs/shops/dynamic creative, Advantage+ workflows, special-ad-category/political advertising, custom/lookalike/interest audiences, arbitrary age/gender/placement combinations, policy appeals and cross-account cloning are not offered. Google campaign creation is Search only; Performance Max/Display/Video/Shopping/Demand Gen/app creation, portfolio strategy management, conversion-goal edits, asset-extension association mutations, arbitrary audience/exclusion editing and intraday ad scheduling are not offered. Existing non-Search campaigns may be discovered; creation controls never imply those workflows are supported. Providers decide eligibility, policy review and billing/delivery. No live provider operation has been validated by this release's automated tests.
 
-No new secrets, external services, queues or environment variables are required.
-Apply `docs/creative-social/migrations/006-advertising-campaign-manager.sql` after
-001–005 during an explicitly approved, backed-up staging upgrade. It creates three
-tables, indexes and foreign keys transactionally; it drops/modifies no existing
-business tables or data. Generate Prisma with the repository's pinned version.
-Do not run db push/reset or remove any database volumes.
-
-Staging acceptance: verify cross-workspace listing, media selection, owner/admin/
-member behavior, concurrent revision conflicts and expired/revoked access against
-real PostgreSQL; inspect actual provider list/policy responses on authorized test
-accounts. All automated provider tests are mocked. No live ad spend, production
-API mutation, permission upgrade, merge or deployment is part of this work.
-
-## Official references and attribution
-
-This implementation uses the existing Creative Social/Postiz architecture and
-AGPL licensing. No third-party SDK code was copied.
-
-- [Google bulk mutations and validate-only](https://developers.google.com/google-ads/api/docs/mutating/bulk-mutate)
-- [Google responsive search ads](https://developers.google.com/google-ads/api/docs/responsive-search-ads/create-responsive-search-ads)
-- [Meta official SDK campaign example](https://github.com/facebook/facebook-python-business-sdk/blob/main/examples/AdAccountCampaignsPostCategories.py)
-- [Meta official SDK ad resource and execution options](https://github.com/facebook/facebook-python-business-sdk/blob/main/facebook_business/adobjects/ad.py)
-
-## Verification (2026-11-04)
-
-- Combined suites: 319 tests passed across 28 suites, including existing Inbox,
-  organic reporting, workspace, advertising connection and paid analytics tests.
-- Campaign lint and the eight modified supporting files: zero errors/warnings.
-- Standalone backend and frontend TypeScript checks passed.
-- Final sequential production build passed (exit 0): Next frontend, Nest backend
-  and Temporal orchestrator.
-- Prisma schema validation/client generation passed. Ephemeral PGlite applies all
-  six migrations, compares the generated schema catalog, preserves old data and
-  checks cross-workspace/duplicate campaign draft and review constraints.
-- New provider tests use mocked HTTP only. Nest endpoint tests run real auth
-  middleware/validation on localhost with fixture storage; they do not contact
-  Meta/Google. UI tests verify role gates, confirmation, draft-save idempotency,
-  workspace resets and paid analytics links.
-
-The first cached Next build was interrupted after it stopped making progress; its cache was moved
-to a workspace backup, preserved intact, before a fresh-cache retry.
-Repository-wide legacy lint was not rerun or claimed clean. Real PostgreSQL
-multi-process locking, live provider responses/permissions, official creative
-previews and all provider mutations remain unvalidated or unsupported as listed
-above. No production readiness or live API validation is claimed.
+See [release acceptance and real-account checklist](RELEASE_ACCEPTANCE.md), [advertising OAuth setup](ADVERTISING_ACCOUNTS.md), [paid reporting](PAID_ANALYTICS.md) and [production configuration](PRODUCTION_COOLIFY.md).

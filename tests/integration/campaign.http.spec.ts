@@ -3,6 +3,7 @@ import { Test } from '@nestjs/testing';
 import { ValidationPipe } from '@nestjs/common';
 import { CampaignManagerController } from '../../apps/backend/src/api/routes/campaign-manager.controller';
 import { CampaignManagerService } from '../../apps/backend/src/advertising/campaign-manager.service';
+import { CampaignAssetsService } from '../../apps/backend/src/advertising/campaign-assets.service';
 import { AuthMiddleware } from '../../apps/backend/src/services/auth/auth.middleware';
 import { advertisingDatabase } from './advertising.fixture';
 import { campaignAccount, campaignBody } from './campaign.fixture';
@@ -14,7 +15,7 @@ let app: any, base: string, service: CampaignManagerService, role: string;
 const oldOrigin = process.env.FRONTEND_URL;
 beforeAll(async () => {
   process.env.FRONTEND_URL = 'https://social.example.com';
-  const applicationModule = await Test.createTestingModule({ controllers: [CampaignManagerController], providers: [{ provide: CampaignManagerService,
+  const applicationModule = await Test.createTestingModule({ controllers: [CampaignManagerController], providers: [{ provide: CampaignAssetsService, useValue: {} }, { provide: CampaignManagerService,
     useFactory: () => new Proxy({}, { get: (_target, key) => typeof (service as any)?.[key] === 'function' ? (service as any)[key].bind(service) : undefined }) }] }).compile();
   app = applicationModule.createNestApplication({ logger: false });
   const auth = new AuthMiddleware({ getOrgsByUserId: async (user: string) => [{ id: user === 'alice' ? 'a' : 'b', apiKey: 'synthetic', users: [{ role, disabled: false, userId: user }] }] } as any,
@@ -28,7 +29,7 @@ beforeEach(async () => {
   fixture.db.userOrganization.findFirst.mockImplementation(async ({ where }: any) => where.organizationId === 'a' && where.userId === 'alice' && (!where.role || typeof where.role === 'string' ? !where.role || role === where.role : where.role.in.includes(role)) ? { id: 'member' } : null);
   await fixture.db.adReportingAccount.create({ data: campaignAccount });
   await fixture.db.adReportingAccount.create({ data: { ...campaignAccount, id: 'account-b', organizationId: 'b' } });
-  service = new CampaignManagerService(fixture.db, { readForReporting: jest.fn() } as any);
+  service = new CampaignManagerService(fixture.db, { readForReporting: jest.fn() } as any, {} as any);
 });
 const request = (path: string, body?: any, headers = {}) => fetch(base + '/campaign-manager' + path, { method: body === undefined ? 'GET' : 'POST',
   headers: { auth: 'alice', Origin: 'https://social.example.com', 'Content-Type': 'application/json', ...headers }, ...(body === undefined ? {} : { body: JSON.stringify(body) }) });
@@ -43,18 +44,25 @@ test('HTTP writes require trusted Origin, active manager role and no impersonati
   expect((await request('/drafts', campaignBody(), { impersonate: 'true' })).status).toBe(403);
   role = 'USER'; expect((await request('/drafts', campaignBody())).status).toBe(403); expect((await request('/catalog')).status).toBe(200);
 });
+
+test('upload authorization rejects untrusted or unprivileged requests before multipart parsing', async () => {
+  const raw = (headers: any) => fetch(base + '/campaign-manager/assets/upload', { method: 'POST', headers: { auth: 'alice', 'Content-Type': 'multipart/form-data; boundary=invalid', ...headers }, body: 'malformed-file-body' });
+  expect((await raw({ Origin: 'https://evil.example' })).status).toBe(403);
+  role = 'USER'; expect((await raw({ Origin: 'https://social.example.com' })).status).toBe(403);
+});
 test('HTTP validates input and prevents account/draft IDOR', async () => {
   expect((await request('/drafts', { ...campaignBody(), spec: null })).status).toBe(400);
   expect((await request('/drafts', { ...campaignBody(), accountId: 'account-b' })).status).toBe(403);
   expect((await request('/drafts/foreign/review', { revision: 0 })).status).toBe(403);
   expect((await request('/drafts/foreign/review', { revision: -1 })).status).toBe(400);
 });
-test('HTTP final approval cannot submit live campaigns and repeat submission remains blocked', async () => {
+test('HTTP approval stays local and separate submission requires operator enablement and confirmation', async () => {
   const draft = await (await request('/drafts', campaignBody())).json();
   const review = await (await request(`/drafts/${draft.id}/review`, { revision: draft.revision })).json();
   expect((await request(`/reviews/${review.id}/approve`, { digest: review.digest, confirmation: 'yes' })).status).toBe(409);
   role = 'ADMIN'; expect((await request(`/reviews/${review.id}/approve`, { digest: review.digest, confirmation: review.snapshot.confirmation })).status).toBe(403);
   role = 'SUPERADMIN'; const approved = await request(`/reviews/${review.id}/approve`, { digest: review.digest, confirmation: review.snapshot.confirmation });
-  expect(approved.status).toBe(201); expect((await approved.json()).status).toBe('APPROVED_BLOCKED');
-  for (let n = 0; n < 2; n++) { const response = await request(`/reviews/${review.id}/submit`, {}); expect(response.status).toBe(423); expect((await response.json()).code).toBe('LIVE_AD_WRITES_DISABLED'); }
+  expect(approved.status).toBe(201); expect((await approved.json()).status).toBe('APPROVED');
+  expect((await request(`/reviews/${review.id}/submit`, {})).status).toBe(400);
+  for (let n = 0; n < 2; n++) { const response = await request(`/reviews/${review.id}/submit`, { digest: review.digest, confirmation: review.snapshot.confirmation }); expect(response.status).toBe(403); expect((await response.json()).message).toContain('Operator'); }
 });

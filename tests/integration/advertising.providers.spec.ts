@@ -36,6 +36,12 @@ test('encryption rejects missing or malformed keys', () => {
   expect(() => seal({}, 'org')).toThrow();
 });
 
+test('Meta management scopes require explicit consent and never upgrade default authorization', () => {
+  const provider = new MetaAdsProvider();
+  expect(new URL(provider.authorize('state', 'verifier', true)).searchParams.get('scope')).toBe('ads_read,ads_management,pages_read_engagement');
+  expect(new URL(provider.authorize('state', 'verifier')).searchParams.get('scope')).toBe('ads_read');
+});
+
 test('OAuth URLs request Ads scopes only; Google uses offline PKCE and exact redirect', () => {
   const meta = new URL(new MetaAdsProvider().authorize('state', 'verifier'));
   expect(meta.searchParams.get('scope')).toBe('ads_read');

@@ -35,7 +35,7 @@ test('Google plans isolate operations, use atomic validate-only and create pause
   const plan = new GoogleCampaignAdapter().plan(account, 'A', spec);
   expect(plan.request).toMatchObject({ partialFailure: false, validateOnly: true });
   expect(JSON.stringify(plan.request)).toContain('12340000'); expect(JSON.stringify(plan.request)).not.toContain('"status":"ENABLED","ad"');
-  expect(plan.blockers.join(' ')).toContain('geoTargetConstants'); expect(plan.supported).toBe(false);
+  expect(plan.validationNotes.join(' ')).toContain('official country constants'); expect(plan.supported).toBe(true);
 });
 test('Meta list uses bounded cursor pagination and returns only sanitized fields', async () => {
   process.env.META_ADS_API_VERSION = 'v25.0'; process.env.META_ADS_APP_SECRET = 'test-secret';

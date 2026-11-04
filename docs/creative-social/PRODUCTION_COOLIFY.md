@@ -40,7 +40,9 @@ insufficient for the full running stack; off-host builds address build OOM only.
 Prepared configuration, **not deployed or runtime-certified**. Use
 `docker-compose.production.yaml` with the GHCR-built `Dockerfile.production` application image. This branch builds
 Creative Social from this repository and includes the safety fixes in PR #4;
-review/merge the dependency before promoting a release. Main is unchanged.
+The consolidated release is integrated into main only after local quality gates;
+see [RELEASE_ACCEPTANCE.md](RELEASE_ACCEPTANCE.md) for its exact configuration,
+additive migration 007, execution enablement and external acceptance checklist.
 
 ## What was inspected and replaced
 
@@ -122,15 +124,15 @@ No corresponding server action was performed while preparing this configuration.
 1. In a dedicated Coolify project/environment choose **+ New > Git repository**
    (GitHub App/deploy key or public repository), URL
    `https://github.com/cgdmohamed/creative-social`. Select the approved release
-   containing PR #4 and this configuration. Keep automatic/preview deployment off
-   during validation. The current review branch is `feature/coolify-production`.
+   on main after the image workflow succeeds. Keep automatic/preview deployment
+   off during validation; integration into main does not authorize deployment.
 2. Under **General > Build pipeline**, choose **Compose**. Set **Base Directory**
    to `/` and **Docker Compose Location** to `/docker-compose.production.yaml`.
    Reload/review parsed content. Do not select the inherited default Compose file,
    Dockerfile.dev, a Postiz registry image, or the staging-only Dockerfile.
 3. Under **Advanced > Build**, choose **Build arguments: Managed manually in
-   Dockerfile**. Compose explicitly passes only PUBLIC_URL and SOURCE_REVISION
-   (from CREATIVE_REVISION). Do not automatically inject all runtime credentials
+   Dockerfile**. The GitHub application-image workflow passes only PUBLIC_URL and
+   SOURCE_REVISION. Compose pulls that pinned image. Do not inject runtime credentials
    as build arguments. Keep password/JWT/provider/SMTP values runtime-only.
 4. Import the keys from `.env.production.example` into **Environment Variables**.
    Replace every CHANGE_ME value. Generate each of the six secrets independently

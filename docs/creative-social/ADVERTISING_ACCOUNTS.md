@@ -21,10 +21,10 @@ may be independently authorized in different workspaces; credentials and metadat
 are never shared across those workspaces. Duplicate assignment within a workspace
 and provider is prevented by the existing database unique key.
 
-This phase discovers account metadata only. It does not collect advertising
-performance metrics, create/change campaigns, modify budgets, send conversions,
-or add a spending workflow. The existing historical Ads metric contracts remain
-available for a later collection phase.
+The merged application also provides separate paid analytics and controlled
+campaign execution; see [CAMPAIGN_MANAGER.md](CAMPAIGN_MANAGER.md). Read-only
+connection remains the default. Management consent is a separate explicit action
+for each workspace/provider and is not inferred from a broad existing token.
 
 ## Required server configuration
 
@@ -57,11 +57,14 @@ remains possible. No automated key rotation or external KMS integration is inclu
    app's user permissions can affect its other grants.
 2. Configure the HTTPS site and exact valid OAuth redirect URI:
    `https://YOUR_HOST/settings/advertising/callback/meta`.
-3. The connector requests **ads_read**, not ads_management, read_insights,
-   business_management, or publishing permissions. Use permitted developer/test
+3. The default connection requests **ads_read**. The separate management action
+   requests **ads_read, ads_management, pages_read_engagement** and verifies the
+   granted management permission before saving that consent. It does not request
+   organic publishing permissions. Use permitted developer/test
    roles and test ad accounts for initial validation. Confirm the authorizing user
    has access to the intended ad accounts.
-4. For external-client access, review Meta's current ads_read Advanced Access,
+4. For external-client access, review Meta's current ads_read, ads_management and
+   pages_read_engagement Advanced Access,
    business verification and App Review requirements. Prepare the requested demo,
    privacy/data-deletion information and access instructions. Operators submit
    reviews themselves after staging validation; this task submits nothing.

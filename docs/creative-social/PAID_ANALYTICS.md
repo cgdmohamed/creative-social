@@ -1,9 +1,7 @@
 # Phase 3: paid advertising analytics and client reports
 
-Branch: `feature/paid-analytics-reports`, based on Phase 2 commit `d2f67edad`.
-Phase 1 is on main. Phase 2 PR #11 was still open when this branch was created,
-so this change is stacked on `feature/advertising-accounts`; review its separate
-diff before retargeting after Phase 2 merges. No merge or deployment is performed.
+Merged reporting infrastructure, extended by the consolidated release. All
+collection remains read-only and independent from the campaign execution flag.
 
 ## Application behavior
 
@@ -13,6 +11,23 @@ comparisons, KPI cards, spend trends, entity tables, CSV/PDF downloads, client
 assignment, sync status and scheduled client reports. Workspace members may read
 and export; ADMIN/SUPERADMIN members may change account reporting settings,
 request synchronization and manage schedules. Provider access remains read-only.
+
+Manual synchronization supports the current advertising account-local day. The
+Today control selects that day for the chosen account. Open-day snapshots are
+provisional, retain provider latency warnings and are never presented as closed
+complete periods. `PAID_INTRADAY_SYNC_ENABLED=true` adds current-day collection at
+15-minute intervals when `PAID_ANALYTICS_SYNC_ENABLED=true`; both default off.
+`PaidSyncJob.startedAt` distinguishes a collection started before midnight from a
+collection started after period close. A later clock date alone cannot promote
+an open-day collection to complete. Scheduled freshness-required reports demand
+closed current and comparison coverage. CSV/PDF include provisional status.
+
+Email schedules require a configured sender/provider and an active workspace
+member recipient. Delivery progresses from QUEUED to PROVIDER_ACCEPTED only when
+Temporal returns a positive SMTP/SES/Resend acceptance receipt. Completion without
+a receipt or failed sending becomes UNCONFIRMED, not delivered. Provider acceptance
+does not prove inbox delivery. Ambiguous email sends are not automatically retried;
+artifacts remain downloadable through authenticated tenant-scoped routes.
 
 Organic reports keep their own routes, types, snapshots and metric registry.
 The only shared PDF change extracts the existing offline Chromium render method;

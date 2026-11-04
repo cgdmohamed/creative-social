@@ -23,7 +23,7 @@ export class PaidReportsService {
     return bytes;
   }
   async recipient(org: string, address: string) {
-    if (!this.email.hasProvider()) throw new HttpException('Email delivery is not configured', 503);
+    if (!this.email.hasDeliveryConfiguration()) throw new HttpException('Email delivery requires a configured provider, sender name/address and provider credentials', 503);
     const member = await this.analytics.db.userOrganization.findFirst({ where: { organizationId: org, disabled: false,
       user: { email: { equals: address, mode: 'insensitive' }, activated: true, deletedAt: null } }, select: { id: true } });
     if (!member) throw new BadRequestException('Email report links can only be sent to active workspace members');
@@ -59,6 +59,27 @@ export class PaidReportsService {
         select: { id: true, scheduleId: true, format: true, status: true, deliveryStatus: true, errorCode: true, completedAt: true } }),
     ]);
     return { schedules, runs };
+  }
+  @Cron('0 * * * * *', { waitForCompletion: true, timeZone: 'UTC' })
+  async reconcileDelivery() {
+    const client = this.temporal.client?.getRawClient();
+    if (!client?.workflow?.getHandle) return;
+    const runs = await this.analytics.db.paidReportRun.findMany({ where: { deliveryStatus: 'QUEUED', organization: { deletedAt: null } }, orderBy: { createdAt: 'asc' }, take: 20 });
+    for (const run of runs) {
+      try {
+        const handle = client.workflow.getHandle(`paid-report-email-${run.id}`);
+        const description = await handle.describe();
+        const status = description.status.name;
+        if (status === 'RUNNING') continue;
+        let accepted = false;
+        if (status === 'COMPLETED') { const receipt = await handle.result(); accepted = receipt?.accepted === true && typeof receipt.provider === 'string' && typeof receipt.messageId === 'string'; }
+        await this.analytics.db.paidReportRun.updateMany({ where: { id: run.id, organizationId: run.organizationId, deliveryStatus: 'QUEUED' }, data: {
+          deliveryStatus: accepted ? 'PROVIDER_ACCEPTED' : 'UNCONFIRMED', errorCode: accepted ? null : 'EMAIL_ACCEPTANCE_UNCONFIRMED' } });
+      } catch {
+        // Temporal unavailable/retention expired is not evidence of delivery or
+        // non-delivery. Keep queued and do not send another email automatically.
+      }
+    }
   }
   async toggle(org: string, user: string, id: string, enabled: boolean) {
     await this.analytics.member(org, user, true);
@@ -99,7 +120,7 @@ export class PaidReportsService {
         const to = ends.length ? ends.sort()[0] : accountYesterday('UTC');
         const from = dateText(new Date(dateOnly(to).getTime() - (schedule.rollingDays - 1) * 86400000));
         const report = await this.analytics.report(schedule.organizationId, schedule.createdById, { ...(schedule.query as any), from, to });
-        if (!report.groups.length || (schedule.requireFresh && report.groups.some((g) => !g.fresh || !g.previousComplete))) throw new Error('INCOMPLETE_DATA');
+        if (!report.groups.length || (schedule.requireFresh && report.groups.some((g) => !g.complete || !g.fresh || !g.previousComplete))) throw new Error('INCOMPLETE_DATA');
         const artifact = await this.artifact(report, schedule.format);
         await db.$transaction(async (tx) => {
           await tx.$queryRaw`SELECT id FROM "PaidReportSchedule" WHERE id=${schedule.id} FOR UPDATE`;
@@ -110,7 +131,7 @@ export class PaidReportsService {
           await tx.paidReportRun.update({ where: { id: run.id }, data: { artifact, status: 'READY', completedAt: new Date(), errorCode: null } });
         });
       }
-      if (schedule.delivery === 'EMAIL' && run.deliveryStatus !== 'QUEUED') {
+      if (schedule.delivery === 'EMAIL' && !['QUEUED', 'PROVIDER_ACCEPTED', 'UNCONFIRMED'].includes(run.deliveryStatus)) {
         await this.analytics.member(schedule.organizationId, schedule.createdById, true);
         await this.recipient(schedule.organizationId, schedule.recipient);
         const current = await db.paidReportSchedule.findFirst({ where: { id: schedule.id, enabled: true, revision: schedule.revision, leaseUntil: lease } });
@@ -119,7 +140,7 @@ export class PaidReportsService {
         if (!client) throw new Error('DELIVERY_UNAVAILABLE');
         const link = `${frontendOrigin()}/api/paid-analytics/runs/${run.id}/download`;
         try {
-          await client.workflow.start('sendSingleEmailWorkflow', { taskQueue: 'main', workflowId: `paid-report-email-${run.id}`,
+          await client.workflow.start('sendPaidReportEmailWorkflow', { taskQueue: 'main', workflowId: `paid-report-email-${run.id}`,
             workflowIdReusePolicy: WorkflowIdReusePolicy.REJECT_DUPLICATE,
             args: [{ to: schedule.recipient, subject: 'Your advertising report is ready', html: `<p>Your report is ready. Sign in to your workspace to <a href="${escapeHtml(link)}">download it</a>.</p>`, addTo: 'bottom' }] });
         } catch (error: any) { if (error?.name !== 'WorkflowExecutionAlreadyStartedError') throw new Error('DELIVERY_UNAVAILABLE'); }

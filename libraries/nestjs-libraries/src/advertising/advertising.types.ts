@@ -14,7 +14,7 @@ export class AdsProviderError extends Error {
 }
 export interface AdvertisingProvider {
   configured(): boolean;
-  authorize(state: string, verifier: string): string;
+  authorize(state: string, verifier: string, management?: boolean): string;
   exchange(code: string, verifier: string): Promise<AdsTokens>;
   refresh(tokens: AdsTokens): Promise<AdsTokens>;
   accounts(accessToken: string, signal?: AbortSignal): Promise<AdsAccount[]>;

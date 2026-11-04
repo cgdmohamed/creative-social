@@ -70,4 +70,6 @@ scheduled private reports, upgrade 005 and validation limitations.
 
 See [CAMPAIGN_MANAGER.md](CAMPAIGN_MANAGER.md) for scoped provider listing,
 local campaign drafts, provider-specific request plans, explicit owner reviews,
-audit history, upgrade 006 and the server-enforced block on all provider writes.
+audit history, upgrades 006–007 and controlled, explicitly confirmed provider
+execution. See [RELEASE_ACCEPTANCE.md](RELEASE_ACCEPTANCE.md) for consolidated
+verification and the external real-account acceptance checklist.

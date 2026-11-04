@@ -29,6 +29,9 @@ model AdCampaignDraft {
 }
 
 model AdCampaignReview {
+  validation Json?
+  validatedAt DateTime?
+  execution AdCampaignExecution?
   id String @id @default(uuid())
   organizationId String
   draftId String
@@ -43,7 +46,69 @@ model AdCampaignReview {
   createdAt DateTime @default(now())
   approvedAt DateTime?
   @@unique([draftId, revision])
+  @@unique([id, organizationId])
   @@index([organizationId, status])
+}
+
+model AdCampaignExecution {
+  id String @id @default(uuid())
+  organizationId String
+  accountId String
+  account AdReportingAccount @relation(fields: [accountId, organizationId], references: [id, organizationId], onDelete: Restrict)
+  reviewId String @unique
+  review AdCampaignReview @relation(fields: [reviewId, organizationId], references: [id, organizationId], onDelete: Restrict)
+  status String @default("PREPARED")
+  actorId String
+  plan Json
+  resources Json @default("{}")
+  leaseToken String?
+  leaseUntil DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  steps AdCampaignExecutionStep[]
+  @@unique([id, organizationId])
+  @@unique([reviewId, organizationId])
+  @@index([organizationId, createdAt])
+}
+
+model AdCampaignExecutionStep {
+  id String @id @default(uuid())
+  organizationId String
+  executionId String
+  execution AdCampaignExecution @relation(fields: [executionId, organizationId], references: [id, organizationId], onDelete: Restrict)
+  position Int
+  name String
+  status String @default("PREPARED")
+  requestDigest String
+  result Json?
+  error Json?
+  requestId String?
+  sentAt DateTime?
+  completedAt DateTime?
+  @@unique([executionId, position])
+}
+
+model AdvertisingAsset {
+  id String @id @default(uuid())
+  organizationId String
+  accountId String
+  account AdReportingAccount @relation(fields: [accountId, organizationId], references: [id, organizationId], onDelete: Restrict)
+  createdBy String
+  creationKey String
+  name String
+  kind String
+  checksum String
+  status String @default("SENDING")
+  providerId String?
+  imageHash String?
+  thumbnailUrl String?
+  error Json?
+  requestId String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@unique([organizationId, creationKey])
+  @@unique([id, organizationId])
+  @@index([organizationId, accountId, createdAt])
 }
 
 model AdCampaignAudit {
@@ -2048,6 +2113,8 @@ enum AdReportingProvider {
   GOOGLE_ADS
 }
 model AdReportingAccount {
+  advertisingAssets AdvertisingAsset[]
+  executions AdCampaignExecution[]
   campaignDrafts AdCampaignDraft[]
   id String @id @default(uuid())
   organizationId String
@@ -2082,6 +2149,8 @@ enum AdvertisingConnectionStatus {
 }
 
 model AdvertisingConnection {
+  managementAuthorized Boolean @default(false)
+  authorizationRevision Int @default(0)
   id String @id @default(uuid())
   organizationId String
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
@@ -2101,6 +2170,7 @@ model AdvertisingConnection {
 }
 
 model AdvertisingOAuthState {
+  management Boolean @default(false)
   hash String @id
   organizationId String
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
@@ -2159,6 +2229,7 @@ model PaidReachSnapshot {
 }
 
 model PaidSyncJob {
+  startedAt DateTime?
   id String @id @default(uuid())
   organizationId String
   accountId String

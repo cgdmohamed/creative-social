@@ -1,7 +1,7 @@
 // Prisma-shaped unit-test storage. Real SQL constraints/migration preservation
 // are verified separately in advertising.database.spec.ts using PGlite.
 export function advertisingDatabase(extraTables: string[] = []) {
-  let store: Record<string, any[]> = { advertisingConnection: [], advertisingOAuthState: [], adReportingAccount: [] };
+  let store: Record<string, any[]> = { advertisingConnection: [], advertisingOAuthState: [], adReportingAccount: [], adCampaignExecution: [], adCampaignExecutionStep: [] };
   for (const table of extraTables) store[table] = [];
   let allowed = true;
   const matches = (row: any, where: any): boolean => Object.entries(where || {}).every(([key, value]: any) => {
@@ -54,9 +54,9 @@ export function advertisingDatabase(extraTables: string[] = []) {
       }),
       count: jest.fn(async ({ where }) => store[table].filter((row) => matches(row, where)).length),
       create: jest.fn(async ({ data, select }) => {
-        const row = { id: `record-${++sequence}`, status: 'DISCONNECTED', revision: 0, credentialCiphertext: null,
+        const row = { id: `record-${++sequence}`, status: table === 'advertisingAsset' ? 'SENDING' : 'DISCONNECTED', revision: 0, authorizationRevision: 0, credentialCiphertext: null,
           refreshLeaseUntil: null, retryAfter: null, expiresAt: null, usedAt: null, enabled: false,
-          ...(table.startsWith('adCampaign') ? { status: table === 'adCampaignDraft' ? 'DRAFT' : 'PENDING', revision: 0, createdAt: new Date(), updatedAt: new Date() } : {}),
+          ...(table.startsWith('adCampaign') ? { status: table === 'adCampaignDraft' ? 'DRAFT' : table === 'adCampaignReview' ? 'PENDING' : 'PREPARED', resources: {}, leaseToken: null, leaseUntil: null, revision: 0, createdAt: new Date(), updatedAt: new Date() } : {}),
           ...(table.startsWith('paid') || table === 'adReportingDailyMetric' ? { status: table === 'paidSyncJob' ? 'PENDING' : 'GENERATING',
             createdAt: new Date(), collectedAt: new Date(), attempts: 0, nextAttemptAt: new Date(0), leaseToken: null, leaseUntil: null,
             deliveryStatus: 'NOT_REQUESTED', artifact: null, definitionVersion: 'legacy', enabled: true, revision: 0 } : {}), ...data };

@@ -18,6 +18,7 @@ export class AdvertisingSelectionDto {
 export class AdvertisingDisconnectDto {
   @IsOptional() @IsBoolean() revoke?: boolean;
 }
+export class AdvertisingAuthorizeDto { @IsOptional() @IsBoolean() management?: boolean; }
 
 @Controller('/advertising')
 export class AdvertisingController {
@@ -35,9 +36,9 @@ export class AdvertisingController {
   }
   @Post('/:provider/authorize')
   start(@GetOrgFromRequest() org: Organization, @GetUserFromRequest() user: User,
-    @Param('provider') provider: string, @Req() request: Request, @Res({ passthrough: true }) response: Response) {
+    @Param('provider') provider: string, @Body() body: AdvertisingAuthorizeDto, @Req() request: Request, @Res({ passthrough: true }) response: Response) {
     this.write(request, response);
-    return this.service.start(org.id, user.id, provider);
+    return this.service.start(org.id, user.id, provider, body?.management === true);
   }
   @Post('/:provider/callback')
   callback(@GetOrgFromRequest() org: Organization, @GetUserFromRequest() user: User,

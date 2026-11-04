@@ -1,7 +1,7 @@
 import { BadRequestException, ForbiddenException, HttpException, Injectable } from '@nestjs/common';
 import { PrismaService } from '@gitroom/nestjs-libraries/database/prisma/prisma.service';
 import { paidContext, definitionVersion, PaidLevel, PaidQuery } from '@gitroom/nestjs-libraries/advertising/paid.types';
-import { accountYesterday, attributionFingerprint, covered, dateOnly, dateText, metrics, previousPeriod, compare, validatePaidQuery } from '@gitroom/nestjs-libraries/advertising/paid.math';
+import { accountToday, accountYesterday, attributionFingerprint, covered, dateOnly, dateText, metrics, previousPeriod, compare, validatePaidQuery } from '@gitroom/nestjs-libraries/advertising/paid.math';
 const day = 86400000;
 @Injectable()
 export class PaidAnalyticsService {
@@ -58,7 +58,7 @@ export class PaidAnalyticsService {
       ...(query.accountId ? { id: query.accountId } : {}), ...(query.provider ? { provider: query.provider } : {}),
       ...(query.customerId ? { customerId: query.customerId } : {}) }, take: 11 });
     if (!accounts.length || accounts.length > 10) throw new BadRequestException('Select 1–10 connected advertising accounts for synchronization');
-    if (accounts.some((account) => query.to > accountYesterday(account.timezone))) throw new BadRequestException('Synchronize completed days in the account timezone, not today/future dates');
+    if (accounts.some((account) => query.to > accountToday(account.timezone))) throw new BadRequestException('Cannot synchronize future dates in the selected account timezone');
     const previous = previousPeriod(query);
     const ids: string[] = [];
     for (const account of accounts) {
@@ -109,7 +109,12 @@ export class PaidAnalyticsService {
         const scoped = accountRows.filter((r) => r.currency === currency && r.timezone === timezone && r.attributionWindow === window && (r.attributionFingerprint || attributionFingerprint({})) === fingerprint);
         const current = scoped.filter((r) => dateText(r.date) >= query.from), before = scoped.filter((r) => dateText(r.date) <= previous.to);
         const accountJobs = jobs.filter((j) => j.accountId === account.id && j.attributionWindow === window && (j.attributionFingerprint === fingerprint || j.attributionFingerprint === null));
-        const complete = covered(accountJobs, query.from, query.to), previousComplete = covered(accountJobs, previous.from, previous.to);
+        const closedJobs = accountJobs.filter((job) => job.completedAt).map((job) => {
+          const closedTo = [dateText(job.toDate), accountYesterday(timezone, job.startedAt || job.completedAt!)].sort()[0];
+          return { ...job, toDate: dateOnly(closedTo) };
+        }).filter((job) => job.fromDate <= job.toDate);
+        const coverageComplete = covered(accountJobs, query.from, query.to), complete = covered(closedJobs, query.from, query.to), previousComplete = covered(closedJobs, previous.from, previous.to);
+        const provisional = coverageComplete && !complete || query.to >= accountToday(timezone);
         const periodReach = (records: any[], from: string, to: string) => {
           const entities = [...new Set(records.map((r) => r.externalEntityId))];
           if (entities.length !== 1) return null; // Never add distinct people across campaigns/ad sets/ads.
@@ -125,8 +130,8 @@ export class PaidAnalyticsService {
             current: values, previous: metrics(prior, periodReach(prior, previous.from, previous.to)) };
         });
         groups.push({ accountId: account.id, accountName: account.name, provider: account.provider, currency, timezone,
-          attribution: window, attributionFingerprint: fingerprint, attributionDetails: accountJobs.find((j) => j.attributionFingerprint === fingerprint)?.attributionDetails || {}, connection: account.connection, enabled: account.enabled, complete, previousComplete, lastSync,
-          fresh: complete && account.enabled && account.connection?.status === 'CONNECTED' && !account.connection.lastError && !!lastSync && Date.now() - new Date(lastSync).getTime() < 48 * 3600000,
+          attribution: window, attributionFingerprint: fingerprint, attributionDetails: accountJobs.find((j) => j.attributionFingerprint === fingerprint)?.attributionDetails || {}, connection: account.connection, enabled: account.enabled, complete, coverageComplete, provisional, previousComplete, lastSync,
+          fresh: coverageComplete && account.enabled && account.connection?.status === 'CONNECTED' && !account.connection.lastError && !!lastSync && Date.now() - new Date(lastSync).getTime() < (provisional ? 15 * 60000 : 48 * 3600000),
           current: total, previous: old, changes: Object.fromEntries((Object.keys(total) as (keyof typeof total)[]).map((metric) => [metric, compare(total[metric], old[metric])])), entities,
           trends: Array.from({ length: Math.round((dateOnly(query.to).getTime() - dateOnly(query.from).getTime()) / day) + 1 }, (_, index) => {
             const date = dateText(new Date(dateOnly(query.from).getTime() + index * day)); return { date, ...metrics(current.filter((r) => dateText(r.date) === date)) };
@@ -140,6 +145,7 @@ export class PaidAnalyticsService {
         conversionRate: 'Conversions / clicks × 100; not Google interaction-based conversion rate.',
         roas: 'Purchase-category value / spend, only when value tracking is verified.',
         reach: 'Exact provider period reach or a single daily row; never summed across days/entities.',
-        totals: 'One reporting level per query. No totals combined across accounts, providers, currencies or attribution contexts.' } };
+        totals: 'One reporting level per query. No totals combined across accounts, providers, currencies or attribution contexts.',
+        provisional: 'Current account-local days and periods not yet collected after closing are provisional. Provider reporting/conversion latency applies; figures can change.' } };
   }
 }

@@ -1,0 +1,443 @@
+{
+  "date": "2026-11-04",
+  "base": "156b1234cb6f7f63e000ab2742742cc4e08e1446",
+  "errors": 128,
+  "warnings": 1098,
+  "errorFiles": 71,
+  "allErrorFilesByteEquivalentToMainAfterLineEndingNormalization": true,
+  "priorAudit": {
+    "errors": 128,
+    "warnings": 1102
+  },
+  "rules": {
+    "parser": {
+      "errors": 0,
+      "warnings": 41
+    },
+    "@typescript-eslint/no-unused-expressions": {
+      "errors": 0,
+      "warnings": 512
+    },
+    "@typescript-eslint/no-this-alias": {
+      "errors": 12,
+      "warnings": 0
+    },
+    "@next/next/no-img-element": {
+      "errors": 0,
+      "warnings": 65
+    },
+    "react-hooks/set-state-in-effect": {
+      "errors": 55,
+      "warnings": 0
+    },
+    "react-hooks/exhaustive-deps": {
+      "errors": 0,
+      "warnings": 435
+    },
+    "react-hooks/immutability": {
+      "errors": 15,
+      "warnings": 0
+    },
+    "@next/next/no-location-assign-relative-destination": {
+      "errors": 0,
+      "warnings": 13
+    },
+    "react-hooks/incompatible-library": {
+      "errors": 0,
+      "warnings": 5
+    },
+    "react-hooks/static-components": {
+      "errors": 2,
+      "warnings": 0
+    },
+    "jsx-a11y/alt-text": {
+      "errors": 0,
+      "warnings": 25
+    },
+    "react-hooks/refs": {
+      "errors": 29,
+      "warnings": 0
+    },
+    "react-hooks/preserve-manual-memoization": {
+      "errors": 1,
+      "warnings": 0
+    },
+    "react-hooks/use-memo": {
+      "errors": 5,
+      "warnings": 0
+    },
+    "import/no-anonymous-default-export": {
+      "errors": 0,
+      "warnings": 2
+    },
+    "@typescript-eslint/no-require-imports": {
+      "errors": 5,
+      "warnings": 0
+    },
+    "@typescript-eslint/no-wrapper-object-types": {
+      "errors": 2,
+      "warnings": 0
+    },
+    "react-hooks/rules-of-hooks": {
+      "errors": 2,
+      "warnings": 0
+    }
+  },
+  "files": [
+    {
+      "file": "apps/frontend/public/f.js",
+      "errors": 12,
+      "warnings": 512
+    },
+    {
+      "file": "apps/frontend/src/app/(provider)/provider/[p]/bridge.tsx",
+      "errors": 1,
+      "warnings": 0
+    },
+    {
+      "file": "apps/frontend/src/components/auth/after.activate.tsx",
+      "errors": 1,
+      "warnings": 2
+    },
+    {
+      "file": "apps/frontend/src/components/auth/providers/farcaster.provider.tsx",
+      "errors": 1,
+      "warnings": 6
+    },
+    {
+      "file": "apps/frontend/src/components/auth/providers/wallet.provider.tsx",
+      "errors": 1,
+      "warnings": 6
+    },
+    {
+      "file": "apps/frontend/src/components/auth/register.tsx",
+      "errors": 1,
+      "warnings": 2
+    },
+    {
+      "file": "apps/frontend/src/components/billing/embedded.billing.tsx",
+      "errors": 3,
+      "warnings": 3
+    },
+    {
+      "file": "apps/frontend/src/components/billing/finish.trial.tsx",
+      "errors": 2,
+      "warnings": 3
+    },
+    {
+      "file": "apps/frontend/src/components/billing/first.billing.component.tsx",
+      "errors": 3,
+      "warnings": 2
+    },
+    {
+      "file": "apps/frontend/src/components/billing/main.billing.component.tsx",
+      "errors": 3,
+      "warnings": 10
+    },
+    {
+      "file": "apps/frontend/src/components/launches/add.provider.component.tsx",
+      "errors": 1,
+      "warnings": 10
+    },
+    {
+      "file": "apps/frontend/src/components/launches/calendar.context.tsx",
+      "errors": 2,
+      "warnings": 7
+    },
+    {
+      "file": "apps/frontend/src/components/launches/calendar.tsx",
+      "errors": 1,
+      "warnings": 9
+    },
+    {
+      "file": "apps/frontend/src/components/launches/comments/comment.component.tsx",
+      "errors": 1,
+      "warnings": 11
+    },
+    {
+      "file": "apps/frontend/src/components/launches/customer.modal.tsx",
+      "errors": 1,
+      "warnings": 3
+    },
+    {
+      "file": "apps/frontend/src/components/launches/menu/menu.tsx",
+      "errors": 1,
+      "warnings": 13
+    },
+    {
+      "file": "apps/frontend/src/components/launches/web3/providers/telegram.provider.tsx",
+      "errors": 1,
+      "warnings": 1
+    },
+    {
+      "file": "apps/frontend/src/components/layout/check.payment.tsx",
+      "errors": 1,
+      "warnings": 3
+    },
+    {
+      "file": "apps/frontend/src/components/layout/streak.component.tsx",
+      "errors": 1,
+      "warnings": 0
+    },
+    {
+      "file": "apps/frontend/src/components/media/media.component.tsx",
+      "errors": 3,
+      "warnings": 24
+    },
+    {
+      "file": "apps/frontend/src/components/media/new.uploader.tsx",
+      "errors": 1,
+      "warnings": 1
+    },
+    {
+      "file": "apps/frontend/src/components/new-launch/delay.component.tsx",
+      "errors": 1,
+      "warnings": 1
+    },
+    {
+      "file": "apps/frontend/src/components/new-launch/editor.tsx",
+      "errors": 15,
+      "warnings": 10
+    },
+    {
+      "file": "apps/frontend/src/components/new-launch/mention.component.tsx",
+      "errors": 15,
+      "warnings": 1
+    },
+    {
+      "file": "apps/frontend/src/components/new-launch/providers/devto/devto.tags.tsx",
+      "errors": 1,
+      "warnings": 1
+    },
+    {
+      "file": "apps/frontend/src/components/new-launch/providers/devto/select.organization.tsx",
+      "errors": 1,
+      "warnings": 1
+    },
+    {
+      "file": "apps/frontend/src/components/new-launch/providers/discord/discord.channel.select.tsx",
+      "errors": 1,
+      "warnings": 1
+    },
+    {
+      "file": "apps/frontend/src/components/new-launch/providers/dribbble/dribbble.teams.tsx",
+      "errors": 1,
+      "warnings": 1
+    },
+    {
+      "file": "apps/frontend/src/components/new-launch/providers/hashnode/hashnode.publications.tsx",
+      "errors": 1,
+      "warnings": 1
+    },
+    {
+      "file": "apps/frontend/src/components/new-launch/providers/hashnode/hashnode.tags.tsx",
+      "errors": 2,
+      "warnings": 5
+    },
+    {
+      "file": "apps/frontend/src/components/new-launch/providers/instagram/instagram.audio.tsx",
+      "errors": 2,
+      "warnings": 7
+    },
+    {
+      "file": "apps/frontend/src/components/new-launch/providers/instagram/instagram.tags.tsx",
+      "errors": 1,
+      "warnings": 3
+    },
+    {
+      "file": "apps/frontend/src/components/new-launch/providers/listmonk/select.list.tsx",
+      "errors": 1,
+      "warnings": 1
+    },
+    {
+      "file": "apps/frontend/src/components/new-launch/providers/listmonk/select.templates.tsx",
+      "errors": 1,
+      "warnings": 1
+    },
+    {
+      "file": "apps/frontend/src/components/new-launch/providers/medium/medium.publications.tsx",
+      "errors": 1,
+      "warnings": 1
+    },
+    {
+      "file": "apps/frontend/src/components/new-launch/providers/medium/medium.tags.tsx",
+      "errors": 1,
+      "warnings": 3
+    },
+    {
+      "file": "apps/frontend/src/components/new-launch/providers/mewe/mewe.group.select.tsx",
+      "errors": 1,
+      "warnings": 1
+    },
+    {
+      "file": "apps/frontend/src/components/new-launch/providers/pinterest/pinterest.board.tsx",
+      "errors": 1,
+      "warnings": 1
+    },
+    {
+      "file": "apps/frontend/src/components/new-launch/providers/skool/skool.group.select.tsx",
+      "errors": 1,
+      "warnings": 1
+    },
+    {
+      "file": "apps/frontend/src/components/new-launch/providers/skool/skool.label.select.tsx",
+      "errors": 2,
+      "warnings": 2
+    },
+    {
+      "file": "apps/frontend/src/components/new-launch/providers/slack/slack.channel.select.tsx",
+      "errors": 1,
+      "warnings": 1
+    },
+    {
+      "file": "apps/frontend/src/components/new-launch/providers/tiktok/tiktok.location.tsx",
+      "errors": 2,
+      "warnings": 2
+    },
+    {
+      "file": "apps/frontend/src/components/new-launch/providers/tiktok/tiktok.music.tsx",
+      "errors": 2,
+      "warnings": 7
+    },
+    {
+      "file": "apps/frontend/src/components/new-launch/providers/whop/whop.company.select.tsx",
+      "errors": 1,
+      "warnings": 1
+    },
+    {
+      "file": "apps/frontend/src/components/new-launch/providers/whop/whop.experience.select.tsx",
+      "errors": 2,
+      "warnings": 2
+    },
+    {
+      "file": "apps/frontend/src/components/new-launch/providers/wordpress/wordpress.post.type.tsx",
+      "errors": 1,
+      "warnings": 1
+    },
+    {
+      "file": "apps/frontend/src/components/new-launch/providers/wordpress/wordpress.terms.tsx",
+      "errors": 1,
+      "warnings": 1
+    },
+    {
+      "file": "apps/frontend/src/components/new-layout/layout.component.tsx",
+      "errors": 1,
+      "warnings": 1
+    },
+    {
+      "file": "apps/frontend/src/components/new-layout/mobile.integration.tsx",
+      "errors": 1,
+      "warnings": 2
+    },
+    {
+      "file": "apps/frontend/src/components/new-layout/sentry.feedback.component.tsx",
+      "errors": 1,
+      "warnings": 0
+    },
+    {
+      "file": "apps/frontend/src/components/plugs/plug.tsx",
+      "errors": 1,
+      "warnings": 6
+    },
+    {
+      "file": "apps/frontend/src/components/preview/comments.components.tsx",
+      "errors": 1,
+      "warnings": 3
+    },
+    {
+      "file": "apps/frontend/src/components/settings/email-notifications.component.tsx",
+      "errors": 2,
+      "warnings": 2
+    },
+    {
+      "file": "apps/frontend/src/components/settings/github.component.tsx",
+      "errors": 1,
+      "warnings": 6
+    },
+    {
+      "file": "apps/frontend/src/components/settings/shortlink-preference.component.tsx",
+      "errors": 1,
+      "warnings": 1
+    },
+    {
+      "file": "apps/frontend/src/components/settings/signatures.component.tsx",
+      "errors": 1,
+      "warnings": 5
+    },
+    {
+      "file": "apps/frontend/src/components/settings/teams.component.tsx",
+      "errors": 1,
+      "warnings": 4
+    },
+    {
+      "file": "jest.preset.js",
+      "errors": 1,
+      "warnings": 0
+    },
+    {
+      "file": "libraries/helpers/src/decorators/plug.decorator.ts",
+      "errors": 1,
+      "warnings": 0
+    },
+    {
+      "file": "libraries/helpers/src/decorators/post.plug.ts",
+      "errors": 1,
+      "warnings": 0
+    },
+    {
+      "file": "libraries/helpers/src/utils/use.wait.for.class.tsx",
+      "errors": 1,
+      "warnings": 0
+    },
+    {
+      "file": "libraries/nestjs-libraries/src/upload/cloudflare.storage.ts",
+      "errors": 1,
+      "warnings": 1
+    },
+    {
+      "file": "libraries/nestjs-libraries/src/upload/custom.upload.validation.ts",
+      "errors": 1,
+      "warnings": 1
+    },
+    {
+      "file": "libraries/nestjs-libraries/src/upload/local.storage.ts",
+      "errors": 1,
+      "warnings": 1
+    },
+    {
+      "file": "libraries/nestjs-libraries/src/upload/r2.uploader.ts",
+      "errors": 1,
+      "warnings": 1
+    },
+    {
+      "file": "libraries/react-shared-libraries/src/form/canonical.tsx",
+      "errors": 1,
+      "warnings": 3
+    },
+    {
+      "file": "libraries/react-shared-libraries/src/form/input.tsx",
+      "errors": 1,
+      "warnings": 3
+    },
+    {
+      "file": "libraries/react-shared-libraries/src/form/multi.select.tsx",
+      "errors": 1,
+      "warnings": 2
+    },
+    {
+      "file": "libraries/react-shared-libraries/src/form/textarea.tsx",
+      "errors": 1,
+      "warnings": 2
+    },
+    {
+      "file": "libraries/react-shared-libraries/src/helpers/image.with.fallback.tsx",
+      "errors": 1,
+      "warnings": 1
+    },
+    {
+      "file": "libraries/react-shared-libraries/src/helpers/use.is.visible.tsx",
+      "errors": 2,
+      "warnings": 1
+    }
+  ]
+}

@@ -68,6 +68,8 @@ function validateProductionEnv(role, env, buildInfo) {
     'INBOX_COLLECTION_ENABLED',
     'REPORTING_COLLECTION_ENABLED',
     'PAID_ANALYTICS_SYNC_ENABLED',
+    'ADVERTISING_WRITES_ENABLED',
+    'PAID_INTRADAY_SYNC_ENABLED',
     'PAID_REPORT_SCHEDULES_ENABLED',
   ]) {
     if (env[name] !== undefined && !['true', 'false'].includes(env[name]))

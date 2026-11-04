@@ -15,6 +15,10 @@ export class EmailActivity {
   async sendEmail(to: string, subject: string, html: string, replyTo?: string) {
     return this._emailService.sendEmailSync(to, subject, html, replyTo);
   }
+  @ActivityMethod()
+  async sendPaidReportEmail(to: string, subject: string, html: string) {
+    return this._emailService.sendEmailSync(to, subject, html, undefined, true);
+  }
 
   @ActivityMethod()
   async sendEmailAsync(to: string, subject: string, html: string, sendTo: 'top' | 'bottom', replyTo?: string) {

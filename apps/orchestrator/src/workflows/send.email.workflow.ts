@@ -29,6 +29,17 @@ const { sendEmail: sendBulkEmail } = proxyActivities<EmailActivity>({
   taskQueue: emailQueues.bulk.taskQueue,
   cancellationType: 'ABANDON',
 });
+const { sendPaidReportEmail } = proxyActivities<EmailActivity>({
+  startToCloseTimeout: '2 minute',
+  taskQueue: emailQueues.bulk.taskQueue,
+  retry: { maximumAttempts: 1 },
+});
+
+// A report email has one durable workflow ID and one send attempt. An ambiguous
+// SMTP/API timeout must not be turned into automatic duplicate report messages.
+export async function sendPaidReportEmailWorkflow(email: SendEmail) {
+  return sendPaidReportEmail(email.to, email.subject, email.html);
+}
 
 // One workflow per email, the Resend rate limit is enforced on the email task queues
 export async function sendSingleEmailWorkflow(email: SendEmail) {

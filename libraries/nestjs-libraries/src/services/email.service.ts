@@ -24,6 +24,9 @@ export class EmailService {
   hasProvider() {
     return !(this.emailService instanceof EmptyProvider);
   }
+  hasDeliveryConfiguration() {
+    return this.hasProvider() && !!process.env.EMAIL_FROM_ADDRESS && !!process.env.EMAIL_FROM_NAME && this.emailService.validateEnvKeys.every((key) => !!process.env[key]);
+  }
 
   selectProvider(provider: string) {
     switch (provider) {
@@ -62,13 +65,18 @@ export class EmailService {
     to: string,
     subject: string,
     html: string,
-    replyTo?: string
+    replyTo?: string,
+    requireReceipt = false
   ) {
     if (to.indexOf('@') === -1) {
+      if (requireReceipt) throw new Error('EMAIL_RECIPIENT_INVALID');
       return;
     }
 
+    if (requireReceipt && (!this.hasProvider() || this.emailService.validateEnvKeys.some((key) => !process.env[key]))) throw new Error('EMAIL_PROVIDER_NOT_CONFIGURED');
+
     if (!process.env.EMAIL_FROM_ADDRESS || !process.env.EMAIL_FROM_NAME) {
+      if (requireReceipt) throw new Error('EMAIL_SENDER_NOT_CONFIGURED');
       console.log(
         'Email sender information not found in environment variables'
       );
@@ -129,8 +137,8 @@ export class EmailService {
     </div>
     `;
 
-    let lastErr: unknown;
-    for (let attempt = 0; attempt < 3; attempt++) {
+    const attempts = requireReceipt ? 1 : 3;
+    for (let attempt = 0; attempt < attempts; attempt++) {
       try {
         const sends = await this.emailService.sendEmail(
           to,
@@ -140,16 +148,23 @@ export class EmailService {
           process.env.EMAIL_FROM_ADDRESS,
           replyTo
         );
-        console.log(sends);
+        if (requireReceipt) {
+          const accepted = Array.isArray(sends?.accepted) ? sends.accepted.some((address: unknown) => typeof address === 'string' && address.toLowerCase() === to.toLowerCase()) : false;
+          const messageId = sends?.MessageId || sends?.data?.id || (accepted ? sends?.messageId : undefined);
+          if (!messageId || typeof messageId !== 'string' || sends?.error || sends?.rejected?.includes(to)) throw new Error('EMAIL_ACCEPTANCE_NOT_CONFIRMED');
+          return { accepted: true, provider: this.emailService.name, messageId: messageId.slice(0, 200) };
+        }
+        // Never log provider responses: the optional EmptyProvider response can
+        // include password-reset links and provider errors can contain secrets.
         return;
-      } catch (err) {
-        lastErr = err;
-        console.log(`Email attempt ${attempt + 1}/3 failed:`, err);
-        if (attempt < 2) {
+      } catch {
+        if (requireReceipt) throw new Error('EMAIL_ACCEPTANCE_UNCONFIRMED');
+        console.log(`Email attempt ${attempt + 1}/${attempts} was not confirmed`);
+        if (attempt < attempts - 1) {
           await timer(700);
         }
       }
     }
-    console.log(`Email to ${to} failed after 3 attempts:`, lastErr);
+    console.log('Email notification was not confirmed after bounded retries');
   }
 }

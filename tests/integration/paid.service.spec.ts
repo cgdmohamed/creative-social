@@ -34,7 +34,7 @@ beforeEach(async () => {
   })) };
   (paidInsights as jest.Mock).mockReset().mockResolvedValue([point]);
   sync = new PaidSyncService(analytics, read);
-  email = { hasProvider: jest.fn(() => true) }; workflow = { start: jest.fn(async () => ({})) };
+  email = { hasProvider: jest.fn(() => true), hasDeliveryConfiguration: jest.fn(() => true) }; workflow = { start: jest.fn(async () => ({})) };
   reports = new PaidReportsService(analytics, { renderHtml: jest.fn(async () => Buffer.from('%PDF-synthetic')) } as any,
     email as any, { client: { getRawClient: () => ({ workflow }) } } as any);
   process.env.PAID_ANALYTICS_SYNC_ENABLED = 'true'; process.env.PAID_REPORT_SCHEDULES_ENABLED = 'true';
@@ -204,6 +204,25 @@ test('delivery failure preserves downloadable artifacts and reports unconfirmed 
   await reports.generate(fixture.rows('paidReportSchedule')[0]);
   expect(workflow.start).toHaveBeenCalled();
   expect(fixture.rows('paidReportRun')[0]).toMatchObject({ status: 'READY', deliveryStatus: 'UNCONFIRMED', errorCode: 'GENERATION_OR_DELIVERY_FAILED' });
+});
+
+test.each([['RUNNING', null, 'QUEUED'], ['COMPLETED', { accepted: true, provider: 'smtp', messageId: 'id' }, 'PROVIDER_ACCEPTED'], ['COMPLETED', undefined, 'UNCONFIRMED'], ['FAILED', null, 'UNCONFIRMED']])('delivery reconciliation %s requires a receipt, not just workflow completion', async (status, receipt, expected) => {
+  workflow.getHandle = jest.fn(() => ({ describe: async () => ({ status: { name: status } }), result: async () => receipt }));
+  await fixture.db.paidReportRun.create({ data: { id: 'delivery', organizationId: 'a', status: 'READY', deliveryStatus: 'QUEUED' } });
+  await reports.reconcileDelivery(); expect(fixture.rows('paidReportRun')[0].deliveryStatus).toBe(expected); expect(workflow.start).not.toHaveBeenCalled();
+});
+
+test('current-day collection is provisional until a collection starts after the account day closes', async () => {
+  jest.useFakeTimers({ now: new Date('2026-01-01T23:59:00Z'), doNotFake: ['nextTick', 'setImmediate'] });
+  try {
+    await collect();
+    const reportQuery = { from: '2026-01-01', to: '2026-01-01', level: 'ACCOUNT' as const };
+    let group = (await analytics.report('a', 'alice', reportQuery)).groups[0];
+    expect(group).toMatchObject({ coverageComplete: true, complete: false, provisional: true });
+    jest.setSystemTime(new Date('2026-01-02T00:10:00Z'));
+    group = (await analytics.report('a', 'alice', reportQuery)).groups[0]; expect(group.complete).toBe(false);
+    await collect(); group = (await analytics.report('a', 'alice', reportQuery)).groups[0]; expect(group).toMatchObject({ complete: true, provisional: false });
+  } finally { jest.useRealTimers(); }
 });
 test('CSV/PDF export cap and schedule editing retain tenant authorization', async () => {
   const pdf = { renderHtml: jest.fn(async () => Buffer.alloc(11 * 1024 * 1024)) };

@@ -25,10 +25,13 @@ export function previousPeriod(query: PaidQuery) {
   const days = Math.round((to.getTime() - from.getTime()) / day) + 1;
   return { from: dateText(new Date(from.getTime() - days * day)), to: dateText(new Date(from.getTime() - day)) };
 }
-export function accountYesterday(timezone: string, now = new Date()) {
+export function accountToday(timezone: string, now = new Date()) {
   const parts = new Intl.DateTimeFormat('en', { timeZone: timezone, year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(now);
   const get = (key: string) => parts.find((p) => p.type === key)!.value;
-  return dateText(new Date(dateOnly(`${get('year')}-${get('month')}-${get('day')}`).getTime() - day));
+  return `${get('year')}-${get('month')}-${get('day')}`;
+}
+export function accountYesterday(timezone: string, now = new Date()) {
+  return dateText(new Date(dateOnly(accountToday(timezone, now)).getTime() - day));
 }
 export function decimal(value: unknown): string | null {
   if (value === undefined || value === null) return null;

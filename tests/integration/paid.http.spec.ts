@@ -39,7 +39,7 @@ beforeEach(async () => {
     entityName: 'Page', currency: 'USD', timezone: 'UTC', attributionWindow: paidContext(account), definitionVersion: 'paid-v1',
     spend: '1.234567', impressions: 100n, clicks: 10n, conversions: '1.5', leads: null, purchaseConversionValue: '10', valueTrackingVerified: true, customerId: null } });
   analytics = new PaidAnalyticsService(fixture.db);
-  reports = new PaidReportsService(analytics, { renderHtml: async () => Buffer.from('%PDF-test') } as any, { hasProvider: () => false } as any, {} as any);
+  reports = new PaidReportsService(analytics, { renderHtml: async () => Buffer.from('%PDF-test') } as any, { hasDeliveryConfiguration: () => false } as any, {} as any);
 });
 const query = 'from=2026-01-01&to=2026-01-02&level=ACCOUNT';
 const request = (path: string, body?: any, headers = {}) => fetch(base + '/paid-analytics' + path, { method: body === undefined ? 'GET' : 'POST',

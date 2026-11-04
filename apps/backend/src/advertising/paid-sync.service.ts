@@ -5,7 +5,7 @@ import { AdvertisingService } from './advertising.service';
 import { PaidAnalyticsService } from './paid-analytics.service';
 import { paidInsights } from '@gitroom/nestjs-libraries/advertising/paid.providers';
 import { definitionVersion, paidContext, paidLevels, PaidLevel } from '@gitroom/nestjs-libraries/advertising/paid.types';
-import { accountYesterday, attributionFingerprint, covered, dateOnly, dateText } from '@gitroom/nestjs-libraries/advertising/paid.math';
+import { accountToday, accountYesterday, attributionFingerprint, covered, dateOnly, dateText } from '@gitroom/nestjs-libraries/advertising/paid.math';
 
 @Injectable()
 export class PaidSyncService {
@@ -34,6 +34,10 @@ export class PaidSyncService {
       const latest = await db.paidSyncJob.findFirst({ where: { accountId: account.id, status: 'COMPLETE', kind: 'DAILY' }, select: { id: true } });
       const from = dateText(new Date(dateOnly(to).getTime() - ((latest ? lookback : Math.max(28, lookback)) - 1) * 86400000));
       for (const level of paidLevels) await this.analytics.enqueueAccount(account, from, to, level, `daily:${to}`);
+      if (process.env.PAID_INTRADAY_SYNC_ENABLED === 'true') {
+        const today = accountToday(account.timezone), key = `intraday:${Math.floor(Date.now() / (15 * 60000))}`;
+        for (const level of paidLevels) await this.analytics.enqueueAccount(account, today, today, level, key);
+      }
     }
     this.cursor = accounts.length === 20 ? accounts[accounts.length - 1].id : undefined;
   }
@@ -41,7 +45,7 @@ export class PaidSyncService {
     const db = this.analytics.db, leaseToken = randomUUID();
     const acquired = await db.paidSyncJob.updateMany({ where: { id: job.id, organizationId: job.organizationId, attempts: { lt: 3 },
       OR: [{ status: 'PENDING' }, { status: 'RUNNING', leaseUntil: { lt: new Date() } }] }, data: {
-      status: 'RUNNING', leaseToken, leaseUntil: new Date(Date.now() + 120000), attempts: { increment: 1 }, errorCode: null,
+      status: 'RUNNING', leaseToken, startedAt: new Date(), leaseUntil: new Date(Date.now() + 120000), attempts: { increment: 1 }, errorCode: null,
     } });
     if (!acquired.count) return;
     try {

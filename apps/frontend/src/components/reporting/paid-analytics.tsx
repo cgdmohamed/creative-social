@@ -76,6 +76,7 @@ export const PaidAnalytics = ({ initialSelection = {} }: { initialSelection?: Re
       <label>Client <select value={query.customerId || ''} onChange={(event) => change('customerId', event.target.value)} className="bg-third"><option value="">All clients</option>{catalog?.clients.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}</select></label>
       <label>Provider <select value={query.provider || ''} onChange={(event) => change('provider', event.target.value)} className="bg-third"><option value="">Both providers</option><option value="META_ADS">Meta Ads</option><option value="GOOGLE_ADS">Google Ads</option></select></label>
       <label>Account <select value={query.accountId || ''} onChange={(event) => change('accountId', event.target.value)} className="bg-third"><option value="">All workspace accounts</option>{catalog?.accounts.map((a: any) => <option key={a.id} value={a.id}>{a.name} · {a.provider}</option>)}</select></label>
+      <Button type="button" disabled={!query.accountId} onClick={() => { const account = catalog?.accounts.find((item: any) => item.id === query.accountId); if (account) { const today = new Intl.DateTimeFormat('en-CA', { timeZone: account.timezone, year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date()); setQuery({ ...query, from: today, to: today }); } }}>Today in account timezone</Button>
       {query.level !== 'ACCOUNT' && <label>Campaign ID <input value={query.campaignId || ''} onChange={(event) => change('campaignId', event.target.value)} /></label>}
     </div>
     <div className="flex flex-wrap gap-2"><Button type="button" disabled={pending} onClick={() => { void reloadReport(); void reloadCatalog(); }}>Reload stored analytics</Button>
@@ -88,6 +89,7 @@ export const PaidAnalytics = ({ initialSelection = {} }: { initialSelection?: Re
       <h2>{group.accountName} · {group.provider} · {group.currency} · {group.timezone}</h2><small>{group.attribution}</small>
       <details><summary>Observed attribution settings · {group.attributionFingerprint?.slice(0, 12)}</summary><pre className="whitespace-pre-wrap">{JSON.stringify(group.attributionDetails || {}, null, 2)}</pre></details>
       <p>Last sync: {group.lastSync || 'never'} · {group.fresh ? 'Recent' : 'Stale / unsynchronized'} · Coverage: {group.complete ? 'complete' : 'INCOMPLETE'} · Previous: {group.previousComplete ? 'complete' : 'INCOMPLETE'} · {group.connection?.status || 'Disconnected'} {group.connection?.lastError || ''}</p>
+      {group.provisional && <p>PROVISIONAL · Current-day data and periods not collected after closing can change. Provider reporting and conversion latency still apply.</p>}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">{Object.entries(names).map(([key, label]) => <div key={key} className="bg-third p-3 rounded"><h3>{label}</h3><strong>{text(group.current[key])}</strong><small className="block">Previous {text(group.previous[key])} · Δ {text(group.changes[key].percent)}%</small></div>)}</div>
       <PaidTrend points={group.trends} />
       <h3>Period comparison · {report.previous.from} – {report.previous.to}</h3>

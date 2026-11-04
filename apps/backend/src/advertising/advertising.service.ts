@@ -5,6 +5,7 @@ import { MetaAdsProvider } from '@gitroom/nestjs-libraries/advertising/providers
 import { GoogleAdsProvider } from '@gitroom/nestjs-libraries/advertising/providers/google.ads.provider';
 import { AdsTokens, AdsProviderError, AdsAccount } from '@gitroom/nestjs-libraries/advertising/advertising.types';
 import { randomSecret, stateHash, seal, unseal, encryptionConfigured } from '@gitroom/nestjs-libraries/advertising/advertising.crypto';
+import { CampaignManagementApi } from '@gitroom/nestjs-libraries/advertising/campaigns/campaign.management-api';
 
 const providers = { meta: AdReportingProvider.META_ADS, google: AdReportingProvider.GOOGLE_ADS };
 const context = (org: string, provider: string) => `advertising:${org}:${provider}`;
@@ -14,6 +15,34 @@ const accountSelect = { id: true, externalAccountId: true, name: true, currency:
 @Injectable()
 export class AdvertisingService {
   constructor(private db: PrismaService, private meta: MetaAdsProvider, private google: GoogleAdsProvider) {}
+  // Internal only. The execution service owns approval/idempotency and never
+  // returns this API object or credentials through an HTTP response.
+  async withManagement<T>(org: string, id: string, operation: (api: CampaignManagementApi, account: any) => Promise<T>) {
+    const account = await this.db.adReportingAccount.findFirst({ where: { id, organizationId: org, enabled: true, organization: { deletedAt: null } } });
+    if (!account) throw new ForbiddenException('Advertising account unavailable');
+    const grant = await this.credentials(org, account.provider === 'META_ADS' ? 'meta' : 'google');
+    if (account.connectionId !== grant.connection.id) throw new ForbiddenException('Advertising connection changed');
+    const api = new CampaignManagementApi({ ...account, authorizationRevision: grant.connection.authorizationRevision, managementAuthorized: grant.connection.managementAuthorized }, grant.tokens.accessToken, AbortSignal.timeout(5 * 60000));
+    try { return await operation(api, account); }
+    catch (failure: any) {
+      const response = failure?.getResponse?.();
+      await this.noteManagementFailure(org, id, grant.connection.authorizationRevision, failure?.code || response?.code, failure?.retryAfter || response?.retryAfter);
+      throw failure;
+    }
+  }
+  async noteManagementFailure(org: string, accountId: string, authorizationRevision: number, code: string, retryAfter = 60) {
+    if (!['REAUTH_REQUIRED', 'MANAGEMENT_SCOPE_MISSING', 'RATE_LIMITED'].includes(code)) return;
+    const account = await this.db.adReportingAccount.findFirst({ where: { id: accountId, organizationId: org } });
+    if (!account?.connectionId) return;
+    await this.db.$transaction(async (tx) => {
+      const changed = await tx.advertisingConnection.updateMany({ where: { id: account.connectionId!, organizationId: org, authorizationRevision }, data: {
+        lastError: code, ...(code === 'RATE_LIMITED' ? { retryAfter: new Date(Date.now() + Math.max(1, Math.min(3600, retryAfter)) * 1000) } : {}),
+        ...(code === 'MANAGEMENT_SCOPE_MISSING' ? { managementAuthorized: false, authorizationRevision: { increment: 1 } } : {}),
+        ...(code === 'REAUTH_REQUIRED' ? { credentialCiphertext: null, expiresAt: null, managementAuthorized: false, status: 'REAUTH_REQUIRED', revision: { increment: 1 }, authorizationRevision: { increment: 1 } } : {}),
+      } });
+      if (changed.count && code === 'REAUTH_REQUIRED') await tx.adReportingAccount.updateMany({ where: { connectionId: account.connectionId, organizationId: org }, data: { enabled: false, providerStatus: 'REAUTH_REQUIRED' } });
+    });
+  }
   // Internal read-only reporting boundary. Tokens stay inside this callback,
   // never in the return value or an HTTP DTO. Workers do not bypass account scope.
   async readForReporting<T>(org: string, id: string, read: (account: any, token: string, signal: AbortSignal) => Promise<T>) {
@@ -43,7 +72,7 @@ export class AdvertisingService {
   async list(org: string, user: string) {
     await this.authorizeMember(org, user);
     const rows = await this.db.advertisingConnection.findMany({ where: { organizationId: org }, select: {
-      provider: true, status: true, expiresAt: true, lastError: true, retryAfter: true,
+      provider: true, status: true, expiresAt: true, lastError: true, retryAfter: true, managementAuthorized: true,
       accounts: { select: accountSelect, orderBy: { name: 'asc' } },
     } });
     return Object.entries(providers).map(([id, provider]) => {
@@ -54,13 +83,13 @@ export class AdvertisingService {
       };
     });
   }
-  async start(org: string, user: string, name: string) {
+  async start(org: string, user: string, name: string, management = false) {
     await this.authorizeMember(org, user);
     const { type, api } = this.provider(name);
     if (!encryptionConfigured()) throw new HttpException('Advertising encryption is not configured', 503);
     const state = randomSecret();
     const verifier = randomSecret();
-    const url = api.authorize(state, verifier);
+    const url = api.authorize(state, verifier, management);
     const ciphertext = seal(verifier, `${context(org, type)}:state:${stateHash(state)}`);
     await this.db.advertisingConnection.upsert({ where: { organizationId_provider: { organizationId: org, provider: type } },
       create: { organizationId: org, provider: type }, update: {} });
@@ -70,7 +99,7 @@ export class AdvertisingService {
       await tx.advertisingOAuthState.deleteMany({ where: { expiresAt: { lt: new Date() } } });
       await tx.advertisingOAuthState.updateMany({ where: { organizationId: org, userId: user, provider: type, usedAt: null }, data: { usedAt: new Date() } });
       await tx.advertisingOAuthState.create({ data: { hash: stateHash(state), organizationId: org, userId: user,
-        provider: type, verifierCiphertext: ciphertext, connectionRevision: connection.revision,
+        provider: type, verifierCiphertext: ciphertext, connectionRevision: connection.revision, management,
         expiresAt: new Date(Date.now() + 10 * 60 * 1000) } });
     });
     return { url };
@@ -93,13 +122,16 @@ export class AdvertisingService {
     try {
       const verifier = unseal<string>(attempt.verifierCiphertext, `${context(org, type)}:state:${attempt.hash}`);
       tokens = await api.exchange(body.code, verifier);
-    } catch (failure) { throw this.providerException(failure); }
+      if (attempt.management && name === 'meta') {
+        await new CampaignManagementApi({ provider: type, managementAuthorized: true }, tokens.accessToken).permissions();
+      }
+    } catch (failure) { if (failure instanceof HttpException) throw failure; throw this.providerException(failure); }
     const encrypted = seal(tokens, context(org, type));
     await this.db.$transaction(async (tx) => {
       await this.authorizeMember(org, user, tx);
       const result = await tx.advertisingConnection.updateMany({ where: { id: connection.id, organizationId: org, revision: attempt.connectionRevision },
         data: { credentialCiphertext: encrypted, status: 'CONNECTED', expiresAt: new Date(tokens.expiresAt),
-          lastError: null, retryAfter: null, refreshLeaseUntil: null, revision: { increment: 1 } } });
+          lastError: null, retryAfter: null, refreshLeaseUntil: null, managementAuthorized: attempt.management === true, revision: { increment: 1 }, authorizationRevision: { increment: 1 } } });
       if (!result.count) throw new HttpException('Connection changed; restart authorization', 409);
       // Reconnection may be a different provider identity. Require fresh discovery
       // and selection instead of silently attaching old accounts to a new grant.
@@ -121,7 +153,7 @@ export class AdvertisingService {
       }, data: {
         lastError: error.code, refreshLeaseUntil: null,
         retryAfter: error.code === 'RATE_LIMITED' ? new Date(Date.now() + error.retryAfter * 1000) : null,
-        ...(error.code === 'REAUTH_REQUIRED' ? { status: 'REAUTH_REQUIRED', credentialCiphertext: null, expiresAt: null, revision: { increment: 1 } } : {}),
+        ...(error.code === 'REAUTH_REQUIRED' ? { status: 'REAUTH_REQUIRED', credentialCiphertext: null, expiresAt: null, managementAuthorized: false, revision: { increment: 1 }, authorizationRevision: { increment: 1 } } : {}),
       } });
       if (result.count && error.code === 'REAUTH_REQUIRED') await tx.adReportingAccount.updateMany({
         where: { connectionId: connection.id, organizationId: connection.organizationId }, data: { enabled: false, providerStatus: 'REAUTH_REQUIRED' },
@@ -214,7 +246,7 @@ export class AdvertisingService {
     await this.db.$transaction(async (tx) => {
       const cleared = await tx.advertisingConnection.updateMany({ where: { id: connection.id, organizationId: org, revision: connection.revision }, data: {
         credentialCiphertext: null, expiresAt: null, refreshLeaseUntil: null, retryAfter: null,
-        status: 'DISCONNECTED', lastError: null, revision: { increment: 1 },
+        status: 'DISCONNECTED', managementAuthorized: false, lastError: null, revision: { increment: 1 }, authorizationRevision: { increment: 1 },
       } });
       if (!cleared.count) throw new HttpException('Advertising connection changed; retry disconnect', 409);
       await tx.adReportingAccount.updateMany({ where: { organizationId: org, connectionId: connection.id }, data: { enabled: false, providerStatus: 'DISCONNECTED' } });

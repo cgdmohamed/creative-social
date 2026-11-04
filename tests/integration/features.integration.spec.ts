@@ -60,6 +60,7 @@ beforeAll(async () => {
       '004-advertising-accounts.sql',
       '005-paid-analytics.sql',
       '006-advertising-campaign-manager.sql',
+      '007-advertising-execution.sql',
     ])
     {
       if (migration === '004-advertising-accounts.sql') {
@@ -142,6 +143,12 @@ test('campaign draft/review SQL ownership and idempotency constraints reject for
     VALUES ('review-foreign','campaign-b','draft-owned',0,'creator','hash','{}',now())`)).rejects.toThrow();
   await pg.exec(`INSERT INTO "AdCampaignReview" (id,"organizationId","draftId",revision,"requestedBy",digest,snapshot,"expiresAt")
     VALUES ('review-owned','campaign-a','draft-owned',0,'creator','hash','{}',now())`);
+  await pg.exec(`INSERT INTO "AdCampaignExecution" (id,"organizationId","accountId","reviewId","actorId",plan,"updatedAt") VALUES ('exec-owned','campaign-a','campaign-account','review-owned','creator','[]',now())`);
+  await expect(pg.exec(`INSERT INTO "AdCampaignExecution" (id,"organizationId","accountId","reviewId","actorId",plan,"updatedAt") VALUES ('exec-foreign','campaign-b','campaign-account','review-owned','creator','[]',now())`)).rejects.toThrow();
+  await expect(pg.exec(`INSERT INTO "AdCampaignExecution" (id,"organizationId","accountId","reviewId","actorId",plan,"updatedAt") VALUES ('exec-duplicate','campaign-a','campaign-account','review-owned','creator','[]',now())`)).rejects.toThrow();
+  await expect(pg.exec(`INSERT INTO "AdCampaignExecutionStep" (id,"organizationId","executionId",position,name,"requestDigest") VALUES ('step-foreign','campaign-b','exec-owned',0,'campaign','hash')`)).rejects.toThrow();
+  await expect(pg.exec(`INSERT INTO "AdvertisingAsset" (id,"organizationId","accountId","createdBy","creationKey",name,kind,checksum,"updatedAt") VALUES ('asset-foreign','campaign-b','campaign-account','creator','key','Asset','IMAGE','hash',now())`)).rejects.toThrow();
+  await expect(pg.exec(`DELETE FROM "AdCampaignReview" WHERE id='review-owned'`)).rejects.toThrow();
   await expect(pg.exec(`INSERT INTO "AdCampaignReview" (id,"organizationId","draftId",revision,"requestedBy",digest,snapshot,"expiresAt")
     VALUES ('review-duplicate','campaign-a','draft-owned',0,'creator','hash','{}',now())`)).rejects.toThrow();
 });

@@ -12,11 +12,11 @@ export class MetaAdsProvider implements AdvertisingProvider {
       base: `https://graph.facebook.com/${process.env.META_ADS_API_VERSION}`,
       redirect: `${frontendOrigin()}/settings/advertising/callback/meta` };
   }
-  authorize(state: string, _verifier: string) {
+  authorize(state: string, _verifier: string, management = false) {
     const c = this.settings();
     return `https://www.facebook.com/${process.env.META_ADS_API_VERSION}/dialog/oauth?` + new URLSearchParams({
       client_id: c.id, redirect_uri: c.redirect, response_type: 'code', state,
-      scope: 'ads_read', auth_type: 'rerequest',
+      scope: management ? 'ads_read,ads_management,pages_read_engagement' : 'ads_read', auth_type: 'rerequest',
     });
   }
   async exchange(code: string, _verifier: string) {

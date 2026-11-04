@@ -15,10 +15,41 @@ beforeEach(() => {
   mockData = { accounts: [campaignAccount], drafts: [], reviews: [], media: [], history: [], objectives: { META_ADS: ['OUTCOME_TRAFFIC'], GOOGLE_ADS: ['SEARCH'] } };
 });
 afterEach(() => cleanup());
+
+test('provider submission needs a second typed confirmation, explicit authorization and final browser review', async () => {
+  mockData.liveWritesEnabled = true;
+  const confirmation = 'CREATE act_123 USD 12.34/day reviewed schedule';
+  mockData.reviews = [{ id: 'approved', status: 'APPROVED', digest: 'digest', snapshot: { name: 'Approved campaign', account: campaignAccount, spec: campaignSpecification(), plan: {}, confirmation } }];
+  mockFetch.mockResolvedValue({ ok: true, json: async () => ({ status: 'CONFIRMED' }) });
+  const confirm = jest.spyOn(window, 'confirm').mockReturnValueOnce(false).mockReturnValueOnce(true);
+  try {
+    render(<CampaignManager />); fireEvent.click(screen.getByRole('button', { name: 'Approval Queue' }));
+    const button = screen.getByRole('button', { name: 'Submit confirmed change to provider' }) as HTMLButtonElement;
+    expect(button.disabled).toBe(true);
+    fireEvent.change(screen.getByLabelText('Final submission confirmation'), { target: { value: confirmation } }); expect(button.disabled).toBe(true);
+    fireEvent.click(screen.getByRole('checkbox', { name: /I authorize this provider operation/ })); expect(button.disabled).toBe(false);
+    fireEvent.click(button); expect(mockFetch).not.toHaveBeenCalled(); fireEvent.click(button);
+    await waitFor(() => expect(mockFetch).toHaveBeenCalledTimes(1));
+    expect(mockFetch.mock.calls[0][0]).toBe('/campaign-manager/reviews/approved/submit');
+    expect(JSON.parse(mockFetch.mock.calls[0][1].body)).toEqual({ digest: 'digest', confirmation });
+    await waitFor(() => expect(screen.getByRole('status').textContent).toContain('CONFIRMED'));
+  } finally { confirm.mockRestore(); }
+});
+
+test('unknown provider outcomes cannot be resubmitted from the approval queue', () => {
+  mockData.liveWritesEnabled = true;
+  mockData.reviews = [{ id: 'approved', status: 'APPROVED', snapshot: { name: 'Unknown campaign', account: campaignAccount, spec: campaignSpecification(), plan: {}, confirmation: 'phrase' } }];
+  mockData.executions = [{ id: 'run', reviewId: 'approved', status: 'UNKNOWN', steps: [] }];
+  render(<CampaignManager />); fireEvent.click(screen.getByRole('button', { name: 'Approval Queue' }));
+  fireEvent.change(screen.getByLabelText('Final submission confirmation'), { target: { value: 'phrase RECOVER run' } });
+  fireEvent.click(screen.getByRole('checkbox', { name: /I authorize this provider operation/ }));
+  expect((screen.getByRole('button', { name: 'Recover remaining confirmed-safe steps' }) as HTMLButtonElement).disabled).toBe(true);
+  expect(screen.getByRole('button', { name: 'Reconcile provider outcome' })).toBeTruthy(); expect(mockFetch).not.toHaveBeenCalled();
+});
 test('advertising navigation exposes all sections and makes disabled live writes explicit', () => {
   render(<CampaignManager />);
   for (const label of ['Campaigns', 'Ad Sets / Ad Groups', 'Ads', 'Creative Library', 'Drafts', 'Campaign Builder', 'Approval Queue', 'Change History']) expect(screen.getByRole('button', { name: label })).toBeTruthy();
-  expect(screen.getByText(/Live provider submissions and changes are disabled/)).toBeTruthy(); expect(mockFetch).not.toHaveBeenCalled();
+  expect(screen.getByText(/Provider execution requires operator enablement/)).toBeTruthy(); expect(mockFetch).not.toHaveBeenCalled();
 });
 test('read-only users cannot create drafts or approve reviews', () => {
   mockRole = 'USER'; render(<CampaignManager />); fireEvent.click(screen.getByRole('button', { name: 'Campaign Builder' }));

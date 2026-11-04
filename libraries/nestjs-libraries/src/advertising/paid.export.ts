@@ -3,7 +3,7 @@ import { escapeHtml as e, sanitizeCsvCell } from '../reporting/reporting.export'
 export const paidMetricNames = ['spend', 'impressions', 'reach', 'clicks', 'ctr', 'cpc', 'cpm', 'conversions', 'conversionRate', 'cpa', 'leads', 'cpl', 'purchaseValue', 'roas'];
 export function paidCsv(report: any) {
   const rows: unknown[][] = [['traffic', 'client_id', 'client_name', 'from', 'to', 'level', 'provider', 'account', 'currency', 'timezone', 'attribution', 'attribution_fingerprint', 'attribution_details_first_group_row',
-    'entity_id', 'entity_name', 'metric', 'current', 'previous', 'unit', 'complete', 'previous_complete', 'last_sync']];
+    'entity_id', 'entity_name', 'metric', 'current', 'previous', 'unit', 'complete', 'previous_complete', 'last_sync', 'provisional']];
   for (const group of report.groups) {
     const entities = group.entities.length ? group.entities : [{ id: '', name: 'No provider rows', current: group.current, previous: group.previous }];
     let detailsEmitted = false;
@@ -11,7 +11,7 @@ export function paidCsv(report: any) {
       'PAID', report.customerId || '', report.customerName || 'All workspace clients', report.from, report.to, report.level, group.provider, group.accountName, group.currency,
       group.timezone, group.attribution, group.attributionFingerprint || '', detailsEmitted ? '' : JSON.stringify(group.attributionDetails || {}), entity.id, entity.name, metric, entity.current[metric] ?? 'UNAVAILABLE', entity.previous[metric] ?? 'UNAVAILABLE',
       ['spend', 'cpc', 'cpm', 'cpa', 'cpl', 'purchaseValue'].includes(metric) ? group.currency : ['ctr', 'conversionRate'].includes(metric) ? 'percent' : metric === 'roas' ? 'multiple' : 'count',
-      group.complete, group.previousComplete, group.lastSync || 'NEVER',
+      group.complete, group.previousComplete, group.lastSync || 'NEVER', group.provisional === true,
     ]); detailsEmitted = true; }
   }
   return rows.map((row) => row.map(sanitizeCsvCell).join(',')).join('\r\n');
@@ -27,7 +27,7 @@ export function paidHtml(report: any) {
     ${report.groups.map((group: any) => `<section><h2>${e(group.accountName)} · ${e(group.provider)} · ${e(group.currency)}</h2>
       <p>${e(group.timezone)} · ${e(group.attribution)}<br>Attribution fingerprint ${e(group.attributionFingerprint || 'unknown')}; observed action settings are preserved in CSV.
       <br>${e(group.attributionDetails?.actions ? 'Click windows: ' + [...new Set(group.attributionDetails.actions.map((a: any) => a.clickDays ?? 'unknown'))].join(', ') + ' days; view windows: ' + [...new Set(group.attributionDetails.actions.map((a: any) => a.viewDays ?? 'unknown'))].join(', ') + ' days' : '')}
-      <br>Coverage: ${group.complete ? 'complete' : 'INCOMPLETE'}; previous: ${group.previousComplete ? 'complete' : 'INCOMPLETE'}.
+      <br>Coverage: ${group.complete ? 'complete' : 'INCOMPLETE'}; previous: ${group.previousComplete ? 'complete' : 'INCOMPLETE'}. ${group.provisional ? '<strong>PROVISIONAL: open-day/provider-latency values can change.</strong>' : ''}
       Freshness: ${group.fresh ? 'recent' : 'STALE / NOT SYNCHRONIZED'} · Last sync ${e(group.lastSync || 'never')}.</p>
       <table><thead><tr><th>Metric</th><th>Current</th><th>Previous</th><th>Change %</th></tr></thead><tbody>
       ${paidMetricNames.map((metric) => `<tr><td>${e(metric)}</td><td>${e(group.current[metric] ?? 'Unavailable')}</td><td>${e(group.previous[metric] ?? 'Unavailable')}</td><td>${e(group.changes[metric].percent ?? 'Unavailable')}</td></tr>`).join('')}</tbody></table>

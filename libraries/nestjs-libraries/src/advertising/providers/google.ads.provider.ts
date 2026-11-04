@@ -13,7 +13,7 @@ export class GoogleAdsProvider implements AdvertisingProvider {
       base: `https://googleads.googleapis.com/${process.env.GOOGLE_ADS_API_VERSION}`,
       redirect: `${frontendOrigin()}/settings/advertising/callback/google` };
   }
-  authorize(state: string, verifier: string) {
+  authorize(state: string, verifier: string, _management = false) {
     const c = this.settings();
     return 'https://accounts.google.com/o/oauth2/v2/auth?' + new URLSearchParams({
       client_id: c.id, redirect_uri: c.redirect, response_type: 'code', scope, state,

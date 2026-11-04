@@ -9,7 +9,7 @@ import { Button } from '@gitroom/react/form/button';
 type Account = { id: string; externalAccountId?: string; name: string; currency: string; timezone: string;
   status?: string; providerStatus?: string; enabled?: boolean; selected?: boolean };
 type Connection = { id: 'meta' | 'google'; configured: boolean; status: string; expiresAt?: string;
-  lastError?: string; accounts: Account[] };
+  lastError?: string; managementAuthorized?: boolean; accounts: Account[] };
 async function result(response: Response) {
   const body = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(typeof body.message === 'string' ? body.message : 'Advertising request failed. Please retry or reconnect.');
@@ -28,8 +28,9 @@ const ProviderAccounts = ({ connection, refresh }: { connection: Connection; ref
     catch (failure) { setError(failure instanceof Error ? failure.message : 'Advertising request failed'); }
     finally { setBusy(false); }
   };
-  const connect = () => action(async () => {
-    const { url } = await result(await fetch(`/advertising/${connection.id}/authorize`, { method: 'POST' }));
+  const connect = (management = false) => action(async () => {
+    if (management && !window.confirm('Authorize advertising management for this workspace? Provider writes still require operator enablement, owner review and explicit final submission. Reconnecting invalidates older approvals and requires account reselection.')) return;
+    const { url } = await result(await fetch(`/advertising/${connection.id}/authorize`, { method: 'POST', ...(management ? { body: JSON.stringify({ management: true }) } : {}) }));
     const target = new URL(url);
     if (target.protocol !== 'https:' || !['www.facebook.com', 'accounts.google.com'].includes(target.hostname)) throw new Error('Invalid authorization destination');
     window.location.assign(target.href);
@@ -56,12 +57,14 @@ const ProviderAccounts = ({ connection, refresh }: { connection: Connection; ref
   return <section aria-label={title} className="flex flex-col gap-3 border border-tableBorder rounded p-4">
     <h3>{title}</h3>
     <p>Status: {connection.status}{connection.expiresAt ? ` · Token expiry: ${new Date(connection.expiresAt).toLocaleString()}` : ''}</p>
+    <p>Workspace campaign management consent: {connection.managementAuthorized ? 'Authorized' : 'Read-only; explicit management authorization required for writes'}</p>
     {connection.lastError && <p>Last connection issue: {connection.lastError}</p>}
     {!connection.configured && <p>This provider has not been configured by the server administrator.</p>}
     <div className="flex flex-wrap gap-2">
-      <Button type="button" disabled={busy || !connection.configured} onClick={connect}>
+      <Button type="button" disabled={busy || !connection.configured} onClick={() => connect()}>
         {connection.status === 'DISCONNECTED' ? 'Connect' : 'Reconnect'} {title}
       </Button>
+      <Button type="button" disabled={busy || !connection.configured} onClick={() => connect(true)}>Authorize {title} campaign management</Button>
       {['CONNECTED', 'EXPIRED'].includes(connection.status) && <Button type="button" disabled={busy} onClick={discover}>Discover accounts</Button>}
       {connection.status !== 'DISCONNECTED' && <>
         <Button type="button" disabled={busy} onClick={() => disconnect(false)}>Disconnect locally</Button>
