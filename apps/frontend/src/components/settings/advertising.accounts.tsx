@@ -54,7 +54,7 @@ const ProviderAccounts = ({ connection, refresh }: { connection: Connection; ref
     });
   };
   const title = connection.id === 'meta' ? 'Meta Ads' : 'Google Ads';
-  return <section aria-label={title} className="flex flex-col gap-3 border border-tableBorder rounded p-4">
+  return <section aria-label={title} className="flex flex-col gap-4 bg-sixth border border-fifth rounded-[4px] text-textColor p-[24px]">
     <h3>{title}</h3>
     <p>Status: {connection.status}{connection.expiresAt ? ` · Token expiry: ${new Date(connection.expiresAt).toLocaleString()}` : ''}</p>
     <p>Workspace campaign management consent: {connection.managementAuthorized ? 'Authorized' : 'Read-only; explicit management authorization required for writes'}</p>
@@ -100,7 +100,7 @@ export const AdvertisingAccounts = () => {
   const { data, error, mutate } = useSWR<Connection[]>(manager ? ['advertising', user?.orgId] : null,
     async () => result(await fetch('/advertising')), { revalidateOnFocus: false });
   if (!manager) return <p>Workspace administrator access required.</p>;
-  return <div className="flex flex-col gap-5">
+  return <div className="flex flex-col gap-[24px] text-textColor">
     <h2>Advertising Accounts</h2>
     <p>Read-only advertising access for this workspace. These connections are separate from organic social accounts. No campaigns are created or changed.</p>
     <p>Google uses its general Ads OAuth scope; use a Google Ads user with a read-only account role. Prefer dedicated advertising developer apps.</p>

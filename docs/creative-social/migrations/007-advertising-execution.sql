@@ -112,4 +112,23 @@ ALTER TABLE "AdCampaignExecutionStep" ADD CONSTRAINT "AdCampaignExecutionStep_ex
 -- AddForeignKey
 ALTER TABLE "AdvertisingAsset" ADD CONSTRAINT "AdvertisingAsset_accountId_organizationId_fkey" FOREIGN KEY ("accountId", "organizationId") REFERENCES "AdReportingAccount"("id", "organizationId") ON DELETE RESTRICT ON UPDATE CASCADE;
 
+-- Older additive upgrades were executed by the maintenance role. Give the
+-- dedicated application role ownership of the new schema objects so Prisma's
+-- runtime datasource can introspect them and subsequent reviewed migrations
+-- do not silently create admin-owned, inaccessible objects.
+-- Execute as the PostgreSQL maintenance role on an existing installation.
+ALTER TABLE "AdvertisingConnection" OWNER TO creative;
+ALTER TABLE "AdvertisingOAuthState" OWNER TO creative;
+ALTER TABLE "PaidReachSnapshot" OWNER TO creative;
+ALTER TABLE "PaidSyncJob" OWNER TO creative;
+ALTER TABLE "PaidReportSchedule" OWNER TO creative;
+ALTER TABLE "PaidReportRun" OWNER TO creative;
+ALTER TABLE "AdCampaignDraft" OWNER TO creative;
+ALTER TABLE "AdCampaignReview" OWNER TO creative;
+ALTER TABLE "AdCampaignAudit" OWNER TO creative;
+ALTER TABLE "AdCampaignExecution" OWNER TO creative;
+ALTER TABLE "AdCampaignExecutionStep" OWNER TO creative;
+ALTER TABLE "AdvertisingAsset" OWNER TO creative;
+ALTER TYPE "AdvertisingConnectionStatus" OWNER TO creative;
+
 COMMIT;

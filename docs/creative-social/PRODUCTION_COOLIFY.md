@@ -188,7 +188,7 @@ automatically; configure external transactional email before inviting clients.
 
 Rehearse restore/upgrade on an isolated copy first. Existing Creative Social data
 needs the documented manual additive 001 -> 002 -> 003 upgrades **only if not already
-applied**. The app gate checks live datasource versus the compiled Prisma schema
+applied**. Run migrations 004–007 only when missing, in order, after a verified database backup. For existing databases, the 007 release migration also transfers ownership of the new advertising tables and enum to the `creative` role, because executing additive SQL as `postgres` alone leaves runtime introspection and DML permissions insufficient. Confirm table ownership and runtime rights before redeploying; never repeat an already committed migration. The app gate checks live datasource versus the compiled Prisma schema
 and refuses drift; it never executes `db push`, drops tables, or reapplies old SQL.
 
 A freshly initialized full schema already includes these features: do not apply

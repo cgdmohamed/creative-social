@@ -37,8 +37,8 @@ const AccountConfiguration = ({ account, clients, saved }: any) => {
   const save = async () => { setPending(true); setError(''); try {
     await json(await fetch(`/paid-analytics/accounts/${account.id}`, { method: 'POST', body: JSON.stringify({ customerId: client || null, valueTrackingVerified: verified }) })); saved();
   } catch (failure) { setError(failure instanceof Error ? failure.message : 'Could not save'); } finally { setPending(false); } };
-  return <div className="border border-tableBorder p-3 flex flex-wrap gap-3 items-center"><span>{account.name} · {account.currency} · {account.timezone}</span>
-    <label>Client <select value={client} onChange={(event) => setClient(event.target.value)} className="bg-third"><option value="">Unassigned</option>{clients.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}</select></label>
+  return <div className="border border-fifth bg-sixth text-textColor rounded-[4px] p-3 flex flex-wrap gap-3 items-center"><span>{account.name} · {account.currency} · {account.timezone}</span>
+    <label>Client <select value={client} onChange={(event) => setClient(event.target.value)} className="bg-third text-textColor border border-fifth rounded-[4px] p-2"><option value="">Unassigned</option>{clients.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}</select></label>
     <label><input type="checkbox" checked={verified} onChange={(event) => setVerified(event.target.checked)} /> Purchase values verified for ROAS</label>
     <Button type="button" disabled={pending} onClick={save}>Save account reporting settings</Button>{error && <p role="alert">{error}</p>}
   </div>;
@@ -66,16 +66,16 @@ export const PaidAnalytics = ({ initialSelection = {} }: { initialSelection?: Re
       query: Object.fromEntries(Object.entries(query).filter(([, value]) => value)), nextRunAt: new Date(Date.now() + 60000).toISOString() }) }));
     setEditing(undefined); setNotice('Schedule saved. First run is in one minute when the operator enables report scheduling.'); void reloadSchedules();
   });
-  return <main className="flex flex-col gap-5 p-5">
+  return <main className="flex flex-col gap-[24px] p-[16px] text-textColor">
     <h1>Advertising Analytics</h1><p>Paid Meta Ads and Google Ads reporting. Organic metrics are separate. Each account/currency/timezone/attribution group has its own totals.</p>
     <nav aria-label="Advertising analysis" className="flex flex-wrap gap-2">{[['ACCOUNT', 'Overview'], ['CAMPAIGN', 'Campaign performance'], ['AD_GROUP', 'Ad set / ad group analysis'], ['AD', 'Individual ad performance']].map(([value, label]) =>
       <Button type="button" key={value} onClick={() => change('level', value)} aria-pressed={query.level === value}>{label}</Button>)}</nav>
     <div className="flex flex-wrap gap-3">
       <label>From <input type="date" value={query.from} onChange={(event) => change('from', event.target.value)} /></label>
       <label>To <input type="date" value={query.to} onChange={(event) => change('to', event.target.value)} /></label>
-      <label>Client <select value={query.customerId || ''} onChange={(event) => change('customerId', event.target.value)} className="bg-third"><option value="">All clients</option>{catalog?.clients.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}</select></label>
-      <label>Provider <select value={query.provider || ''} onChange={(event) => change('provider', event.target.value)} className="bg-third"><option value="">Both providers</option><option value="META_ADS">Meta Ads</option><option value="GOOGLE_ADS">Google Ads</option></select></label>
-      <label>Account <select value={query.accountId || ''} onChange={(event) => change('accountId', event.target.value)} className="bg-third"><option value="">All workspace accounts</option>{catalog?.accounts.map((a: any) => <option key={a.id} value={a.id}>{a.name} · {a.provider}</option>)}</select></label>
+      <label>Client <select value={query.customerId || ''} onChange={(event) => change('customerId', event.target.value)} className="bg-third text-textColor border border-fifth rounded-[4px] p-2"><option value="">All clients</option>{catalog?.clients.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}</select></label>
+      <label>Provider <select value={query.provider || ''} onChange={(event) => change('provider', event.target.value)} className="bg-third text-textColor border border-fifth rounded-[4px] p-2"><option value="">Both providers</option><option value="META_ADS">Meta Ads</option><option value="GOOGLE_ADS">Google Ads</option></select></label>
+      <label>Account <select value={query.accountId || ''} onChange={(event) => change('accountId', event.target.value)} className="bg-third text-textColor border border-fifth rounded-[4px] p-2"><option value="">All workspace accounts</option>{catalog?.accounts.map((a: any) => <option key={a.id} value={a.id}>{a.name} · {a.provider}</option>)}</select></label>
       <Button type="button" disabled={!query.accountId} onClick={() => { const account = catalog?.accounts.find((item: any) => item.id === query.accountId); if (account) { const today = new Intl.DateTimeFormat('en-CA', { timeZone: account.timezone, year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date()); setQuery({ ...query, from: today, to: today }); } }}>Today in account timezone</Button>
       {query.level !== 'ACCOUNT' && <label>Campaign ID <input value={query.campaignId || ''} onChange={(event) => change('campaignId', event.target.value)} /></label>}
     </div>
@@ -85,12 +85,12 @@ export const PaidAnalytics = ({ initialSelection = {} }: { initialSelection?: Re
     {!catalog?.collectionEnabled && <p>Automatic/manual collection is disabled by the server operator. Stored reports remain readable.</p>}
     {error && <p role="alert">{error}</p>}{reportError && <p role="alert">{reportError.message}</p>}{notice && <p role="status">{notice}</p>}
     {!report?.groups.length && <p>No paid snapshots are available for this selection. Connect/select advertising accounts, assign a client and synchronize the required dates.</p>}
-    {report?.groups.map((group: any) => <section key={`${group.accountId}:${group.currency}:${group.timezone}:${group.attribution}:${group.attributionFingerprint}`} className="border border-tableBorder p-4 flex flex-col gap-4">
+    {report?.groups.map((group: any) => <section key={`${group.accountId}:${group.currency}:${group.timezone}:${group.attribution}:${group.attributionFingerprint}`} className="border border-fifth bg-sixth text-textColor rounded-[4px] p-4 flex flex-col gap-4">
       <h2>{group.accountName} · {group.provider} · {group.currency} · {group.timezone}</h2><small>{group.attribution}</small>
       <details><summary>Observed attribution settings · {group.attributionFingerprint?.slice(0, 12)}</summary><pre className="whitespace-pre-wrap">{JSON.stringify(group.attributionDetails || {}, null, 2)}</pre></details>
       <p>Last sync: {group.lastSync || 'never'} · {group.fresh ? 'Recent' : 'Stale / unsynchronized'} · Coverage: {group.complete ? 'complete' : 'INCOMPLETE'} · Previous: {group.previousComplete ? 'complete' : 'INCOMPLETE'} · {group.connection?.status || 'Disconnected'} {group.connection?.lastError || ''}</p>
       {group.provisional && <p>PROVISIONAL · Current-day data and periods not collected after closing can change. Provider reporting and conversion latency still apply.</p>}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">{Object.entries(names).map(([key, label]) => <div key={key} className="bg-third p-3 rounded"><h3>{label}</h3><strong>{text(group.current[key])}</strong><small className="block">Previous {text(group.previous[key])} · Δ {text(group.changes[key].percent)}%</small></div>)}</div>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">{Object.entries(names).map(([key, label]) => <div key={key} className="bg-third border border-fifth text-textColor p-3 rounded-[4px]"><h3>{label}</h3><strong>{text(group.current[key])}</strong><small className="block">Previous {text(group.previous[key])} · Δ {text(group.changes[key].percent)}%</small></div>)}</div>
       <PaidTrend points={group.trends} />
       <h3>Period comparison · {report.previous.from} – {report.previous.to}</h3>
       <div className="overflow-x-auto"><table><thead><tr><th>Entity</th><th>Spend ({group.currency})</th><th>Previous spend</th><th>Impressions</th><th>Clicks</th><th>Conversions</th><th>CPA</th><th>Leads</th><th>ROAS</th></tr></thead>
@@ -99,13 +99,13 @@ export const PaidAnalytics = ({ initialSelection = {} }: { initialSelection?: Re
     {report && <details><summary>Metric definitions and attribution limitations</summary>{Object.values(report.definitions).map((definition: any) => <p key={definition}>{definition}</p>)}</details>}
     {manager && <details><summary>Client assignment and purchase-value verification</summary>{catalog?.accounts.map((account: any) => <AccountConfiguration key={`${account.id}:${account.customerId}:${account.valueTrackingVerified}`} account={account} clients={catalog.clients} saved={() => { void reloadCatalog(); void reloadReport(); }} />)}</details>}
     <details><summary>Collection jobs and integration errors</summary>{catalog?.jobs.map((job: any) => <p key={job.id}>{job.accountId} · {job.level} · {job.kind} · {job.status} · {job.errorCode || 'No error'} · {job.completedAt || 'not completed'}</p>)}</details>
-    {manager && <section className="border border-tableBorder p-4 flex flex-col gap-3"><h2>Scheduled client reports</h2>
+    {manager && <section className="border border-fifth bg-sixth text-textColor rounded-[4px] p-4 flex flex-col gap-3"><h2>Scheduled client reports</h2>
       <p>{catalog?.schedulesEnabled ? 'Scheduler enabled' : 'Scheduler paused by operator'}. Archive or send an authenticated download link to a workspace member. No public report URLs.</p>
       <label>Report name <input value={schedule.name} onChange={(event) => setSchedule({ ...schedule, name: event.target.value })} /></label>
       <label>Rolling days <input type="number" min={1} max={93} value={schedule.rollingDays} onChange={(event) => setSchedule({ ...schedule, rollingDays: Number(event.target.value) })} /></label>
-      <label>Cadence <select value={schedule.cadenceDays} onChange={(event) => setSchedule({ ...schedule, cadenceDays: Number(event.target.value) })} className="bg-third"><option value={1}>Daily</option><option value={7}>Weekly</option><option value={30}>Every 30 days</option></select></label>
-      <label>Format <select value={schedule.format} onChange={(event) => setSchedule({ ...schedule, format: event.target.value })} className="bg-third"><option>PDF</option><option>CSV</option></select></label>
-      <label>Delivery <select value={schedule.delivery} onChange={(event) => setSchedule({ ...schedule, delivery: event.target.value })} className="bg-third"><option value="ARCHIVE">Private archive</option><option value="EMAIL">Email authenticated link</option></select></label>
+      <label>Cadence <select value={schedule.cadenceDays} onChange={(event) => setSchedule({ ...schedule, cadenceDays: Number(event.target.value) })} className="bg-third text-textColor border border-fifth rounded-[4px] p-2"><option value={1}>Daily</option><option value={7}>Weekly</option><option value={30}>Every 30 days</option></select></label>
+      <label>Format <select value={schedule.format} onChange={(event) => setSchedule({ ...schedule, format: event.target.value })} className="bg-third text-textColor border border-fifth rounded-[4px] p-2"><option>PDF</option><option>CSV</option></select></label>
+      <label>Delivery <select value={schedule.delivery} onChange={(event) => setSchedule({ ...schedule, delivery: event.target.value })} className="bg-third text-textColor border border-fifth rounded-[4px] p-2"><option value="ARCHIVE">Private archive</option><option value="EMAIL">Email authenticated link</option></select></label>
       {schedule.delivery === 'EMAIL' && <label>Workspace member email <input type="email" value={schedule.recipient} onChange={(event) => setSchedule({ ...schedule, recipient: event.target.value })} /></label>}
       <label><input type="checkbox" checked={schedule.requireFresh} onChange={(event) => setSchedule({ ...schedule, requireFresh: event.target.checked })} /> Require complete recent data and comparison</label>
       <Button type="button" disabled={pending} onClick={saveSchedule}>{editing ? 'Update report schedule' : 'Create report schedule from current filters'}</Button>
