@@ -143,6 +143,8 @@ AGPL licensing. No third-party SDK code was copied.
   organic reporting, workspace, advertising connection and paid analytics tests.
 - Campaign lint and the eight modified supporting files: zero errors/warnings.
 - Standalone backend and frontend TypeScript checks passed.
+- Final sequential production build passed (exit 0): Next frontend, Nest backend
+  and Temporal orchestrator.
 - Prisma schema validation/client generation passed. Ephemeral PGlite applies all
   six migrations, compares the generated schema catalog, preserves old data and
   checks cross-workspace/duplicate campaign draft and review constraints.
@@ -151,8 +153,7 @@ AGPL licensing. No third-party SDK code was copied.
   Meta/Google. UI tests verify role gates, confirmation, draft-save idempotency,
   workspace resets and paid analytics links.
 
-The PR records the final sequential production build result. The first cached
-Next build was interrupted after it stopped making progress; its cache was moved
+The first cached Next build was interrupted after it stopped making progress; its cache was moved
 to a workspace backup, preserved intact, before a fresh-cache retry.
 Repository-wide legacy lint was not rerun or claimed clean. Real PostgreSQL
 multi-process locking, live provider responses/permissions, official creative
