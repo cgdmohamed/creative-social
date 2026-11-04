@@ -46,6 +46,9 @@ const catalog = async (db: PGlite) =>
 beforeAll(async () => {
   pg = new PGlite();
   expected = new PGlite();
+  // The production PostgreSQL bootstrap creates the unprivileged application role.
+  // Mirror that prerequisite before applying release SQL ownership changes.
+  await pg.exec('CREATE ROLE creative;');
   const baseline = join(
     tmpdir(),
     `creative-social-main-${randomUUID()}.prisma`
