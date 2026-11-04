@@ -211,3 +211,27 @@ test('CSV/PDF export cap and schedule editing retain tenant authorization', asyn
   await expect(exporter.artifact({ groups: [], previous: {}, definitions: {} }, 'PDF')).rejects.toMatchObject({ status: 400 });
   await expect(reports.toggle('a', 'alice', 'foreign', false)).rejects.toMatchObject({ status: 403 });
 });
+
+test('client filter applies before the 100-account report cap', async () => {
+  await collect();
+  for (let i = 0; i < 101; i++) {
+    await fixture.db.adReportingAccount.create({ data: { id: `unrelated-${i}`, organizationId: 'a',
+      provider: 'META_ADS', externalAccountId: `act_${i + 200}`, name: 'Another client',
+      currency: 'USD', timezone: 'UTC', enabled: true, customerId: 'client-b' } });
+  }
+  const scoped = await analytics.report('a', 'alice', { ...query, customerId: 'client-a' });
+  expect(scoped.groups).toHaveLength(1);
+  expect(scoped.groups[0].accountId).toBe('account');
+  await expect(analytics.report('a', 'alice', query)).rejects.toMatchObject({ status: 400 });
+});
+
+test('successful reach refresh to unavailable invalidates previous exact-period snapshot', async () => {
+  await collect();
+  (paidInsights as jest.Mock).mockResolvedValueOnce([{ ...point, reach: '90' }]);
+  await sync.process(await job('REACH'));
+  expect(fixture.rows('paidReachSnapshot')).toHaveLength(1);
+  (paidInsights as jest.Mock).mockResolvedValueOnce([{ ...point, reach: null }]);
+  await sync.process(await job('REACH'));
+  expect(fixture.rows('paidReachSnapshot')).toHaveLength(0);
+  expect((await analytics.report('a', 'alice', query)).groups[0].current.reach).toBeNull();
+});
