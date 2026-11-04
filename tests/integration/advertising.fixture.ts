@@ -9,6 +9,10 @@ export function advertisingDatabase(extraTables: string[] = []) {
     if (key === 'AND') return value.every((condition: any) => matches(row, condition));
     if (key === 'organization') return matches({ deletedAt: null }, value);
     if (key === 'account') { const account = store.adReportingAccount.find((item) => item.id === row.accountId); return !!account && matches(account, value); }
+    if (key === 'dailyMetrics' || key === 'reachSnapshots') {
+      const table = key === 'dailyMetrics' ? 'adReportingDailyMetric' : 'paidReachSnapshot';
+      return !!value?.some && (store[table] || []).some((item) => item.accountId === row.id && matches(item, value.some));
+    }
     if (key === 'connection') { const connection = store.advertisingConnection.find((item) => item.id === row.connectionId); return !!connection && matches(connection, value); }
     if (key.includes('_') && typeof value === 'object' && !(key in row)) return matches(row, value);
     if (value && typeof value.getTime === 'function') return row[key]?.getTime() === value.getTime();
