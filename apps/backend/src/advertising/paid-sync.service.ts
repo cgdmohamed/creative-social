@@ -84,7 +84,7 @@ export class PaidSyncService {
             attributionWindow: job.attributionWindow, date: { gte: job.fromDate, lte: job.toDate } }, select: { externalEntityId: true, customerId: true }, take: 20001 });
           if (ownership.length > 20000) throw new Error('REPORT_TOO_LARGE');
           await tx.paidReachSnapshot.deleteMany({ where: { accountId: current.id, level: job.level, fromDate: job.fromDate,
-            toDate: job.toDate, attributionWindow: job.attributionWindow, externalEntityId: { notIn: result.value.map((r) => r.externalEntityId) } } });
+            toDate: job.toDate, attributionWindow: job.attributionWindow, externalEntityId: { notIn: result.value.filter((r) => r.reach !== null).map((r) => r.externalEntityId) } } });
           for (const point of result.value) {
             if (point.reach === null) continue;
             const key = { accountId: current.id, fromDate: job.fromDate, toDate: job.toDate, level: job.level,
