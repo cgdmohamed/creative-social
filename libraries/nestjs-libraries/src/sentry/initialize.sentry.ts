@@ -26,7 +26,7 @@ export const setSentryUserContext = (params: {
 };
 
 export const initializeSentry = (appName: string, allowLogs = false) => {
-  if (!process.env.NEXT_PUBLIC_SENTRY_DSN) {
+  if (!process.env.SENTRY_BACKEND_DSN) {
     return null;
   }
 
@@ -44,7 +44,7 @@ export const initializeSentry = (appName: string, allowLogs = false) => {
         },
       },
       environment: process.env.NODE_ENV || 'development',
-      dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
+      dsn: process.env.SENTRY_BACKEND_DSN,
       release: process.env.CREATIVE_REVISION || undefined,
       spotlight: process.env.SENTRY_SPOTLIGHT === '1',
       integrations: [

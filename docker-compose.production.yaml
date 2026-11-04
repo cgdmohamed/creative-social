@@ -20,6 +20,8 @@ x-public: &public
 
 x-runtime: &runtime
   <<: *public
+  # Server-only Sentry project; frontend must never inherit this DSN.
+  SENTRY_BACKEND_DSN: ${SENTRY_BACKEND_DSN:-}
   MAX_WORKSPACES_PER_USER: ${MAX_WORKSPACES_PER_USER:-10}
   DATABASE_URL: postgresql://creative:${APP_DB_PASSWORD:?Set a unique hexadecimal application DB password}@postgres:5432/creative?connection_limit=10&pool_timeout=30
   REDIS_URL: redis://:${REDIS_PASSWORD:?Set a unique hexadecimal Redis password}@redis:6379
