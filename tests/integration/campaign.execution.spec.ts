@@ -3,7 +3,7 @@ import { CampaignManagementApi } from '../../libraries/nestjs-libraries/src/adve
 import { CampaignMutationError } from '../../libraries/nestjs-libraries/src/advertising/campaigns/campaign.transport';
 import { campaignDigest, campaignConfirmation } from '../../libraries/nestjs-libraries/src/advertising/campaigns/campaign.specification';
 import { advertisingDatabase } from './advertising.fixture';
-import { campaignAccount, campaignSpecification } from './campaign.fixture';
+import { campaignAccount, campaignSpecification, googleMutationResponses } from './campaign.fixture';
 let fixture: ReturnType<typeof advertisingDatabase>, service: CampaignExecutionService, api: any, review: any, confirmation: string;
 const originalEnabled = process.env.ADVERTISING_WRITES_ENABLED;
 beforeEach(async () => {
@@ -36,7 +36,7 @@ test('Google Search executor validates then submits one atomic batch and records
   review = await fixture.db.adCampaignReview.update({ where: { id: review.id }, data: { snapshot, digest: campaignDigest(snapshot) } });
   const actual = new CampaignManagementApi(account, 'not-used');
   const google: any = { account, permissions: jest.fn(), verifyAccount: jest.fn(), googleTargeting: jest.fn(async () => ({ locationResources: ['geoTargetConstants/2840'], languageResources: [] })), confirmed: actual.confirmed.bind(actual) };
-  google.send = jest.fn(async (step, validateOnly) => ({ body: validateOnly ? {} : { mutateOperationResponses: step.body.mutateOperations.map((_operation: any, index: number) => ({ result: { resourceName: `customers/123/assets/${index + 100}` } })) } }));
+  google.send = jest.fn(async (step, validateOnly) => ({ body: validateOnly ? {} : { mutateOperationResponses: googleMutationResponses(step.body.mutateOperations) } }));
   service = new CampaignExecutionService(fixture.db, { withManagement: async (_org: string, _id: string, run: any) => run(google, account) } as any);
   const result: any = await submit(); expect(result.status).toBe('CONFIRMED');
   expect(google.send).toHaveBeenCalledTimes(2); expect(google.send.mock.calls[0][1]).toBe(true); expect(google.send.mock.calls[1][1]).toBeUndefined();

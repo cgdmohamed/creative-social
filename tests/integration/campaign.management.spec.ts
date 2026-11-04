@@ -4,7 +4,7 @@ import { executionPlan } from '../../libraries/nestjs-libraries/src/advertising/
 import { campaignSpec } from '../../libraries/nestjs-libraries/src/advertising/campaigns/campaign.specification';
 import { campaignMetadata } from '../../libraries/nestjs-libraries/src/advertising/campaigns/campaign.response';
 import { creativePreviewUrl } from '../../libraries/nestjs-libraries/src/advertising/campaigns/campaign.preview';
-import { campaignAccount, campaignSpecification } from './campaign.fixture';
+import { campaignAccount, campaignSpecification, googleMutationResponses } from './campaign.fixture';
 const originalFetch = global.fetch;
 const token = 'test-private-bearer-token';
 const reply = (body: any, status = 200, headers = {}) => new Response(JSON.stringify(body), { status, headers });
@@ -40,6 +40,24 @@ test('management permission is workspace-specific, not inferred from a broad inh
   const readonly = new CampaignManagementApi({ ...campaignAccount, managementAuthorized: false }, token);
   await expect(readonly.permissions()).rejects.toThrow('explicitly'); expect(mockFetch).not.toHaveBeenCalled();
   await api.permissions(); await api.verifyAccount(); expect(mockFetch).toHaveBeenCalledTimes(2);
+});
+
+test.each([
+  { assetResult: { resourceName: 'customers/123/assets/10' } },
+  { campaignResult: { resourceName: 'customers/123/assets/10' } },
+  { campaignResult: { resourceName: 'customers/999/campaigns/10' } },
+])('mismatched Google mutation result types, collections or tenants never confirm campaign creation', (result) => {
+  const google = new CampaignManagementApi({ ...campaignAccount, provider: 'GOOGLE_ADS', externalAccountId: '123' }, token);
+  const step: any = { response: 'GOOGLE_MUTATE', body: { mutateOperations: [{ campaignOperation: { create: {} } }] } };
+  expect(() => google.confirmed(step, { mutateOperationResponses: [result] })).toThrow('CREATED_IDS_NOT_CONFIRMED');
+  expect(google.confirmed(step, { mutateOperationResponses: [{ campaignResult: { resourceName: 'customers/123/campaigns/10' } }] })).toEqual({ resources: ['customers/123/campaigns/10'] });
+});
+
+test('Google image upload confirms an actual asset-result receipt and never logs or exposes its token', async () => {
+  const google = new CampaignManagementApi({ ...campaignAccount, provider: 'GOOGLE_ADS', externalAccountId: '123' }, token);
+  mockFetch.mockResolvedValueOnce(reply({ mutateOperationResponses: [{ assetResult: { resourceName: 'customers/123/assets/10' } }] }));
+  expect(await google.uploadAsset(Buffer.from('test-image-bytes'), 'image/png', 'CS-ASSET-test')).toMatchObject({ status: 'READY', providerId: 'customers/123/assets/10' });
+  expect(mockFetch.mock.calls[0][0]).not.toContain(token); expect(JSON.parse(mockFetch.mock.calls[0][1].body).mutateOperations[0].assetOperation.create.imageAsset.data).toBe(Buffer.from('test-image-bytes').toString('base64'));
 });
 test('Meta writes use authenticated form bodies, validate-only is explicit, tokens never enter URLs', async () => {
   mockFetch.mockImplementation(async (_url, options) => reply((options.body as URLSearchParams).has('execution_options') ? { success: true } : { id: '12345' }, 200, { 'x-fb-trace-id': 'safe-trace' }));
@@ -85,7 +103,7 @@ test('Google Search resolves official country constants, omits deprecated langua
     const body = JSON.parse(options.body);
     if (body.query?.includes('FROM geo_target_constant')) return reply({ results: [{ geoTargetConstant: { countryCode: 'US', resourceName: 'geoTargetConstants/2840' } }] });
     if (body.query?.includes('FROM language_constant')) return reply({ results: [{ languageConstant: { code: 'en', resourceName: 'languageConstants/1000' } }] });
-    return reply(body.validateOnly ? {} : { mutateOperationResponses: body.mutateOperations.map((operation: any, i: number) => ({ result: { resourceName: `customers/123/${Object.keys(operation)[0] === 'campaignOperation' ? 'campaigns' : 'assets'}/${100 + i}` } })) });
+    return reply(body.validateOnly ? {} : { mutateOperationResponses: googleMutationResponses(body.mutateOperations) });
   });
   const plan = await executionPlan(google, account, 'Search', campaignSpec(campaignSpecification(true), account), 'search-execution-123');
   const operations = plan[0].body.mutateOperations;

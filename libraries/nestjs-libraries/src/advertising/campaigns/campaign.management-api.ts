@@ -284,9 +284,10 @@ export class CampaignManagementApi {
   async uploadAsset(bytes: Buffer, mime: string, marker: string) {
     if (this.account.provider === 'GOOGLE_ADS') {
       if (mime === 'video/mp4') throw new BadRequestException('Google video assets require a YouTube video ID; binary video upload is not exposed by Google Ads');
-      const response = await this.send({ name: 'image-asset', edge: 'googleAds:mutate', response: 'GOOGLE_MUTATE', body: { mutateOperations: [{ assetOperation: { create: {
-        name: marker, imageAsset: { data: bytes.toString('base64') } } } }] } });
-      const confirmed = this.confirmed({ response: 'GOOGLE_MUTATE' } as CampaignStep, response.body);
+      const step: CampaignStep = { name: 'image-asset', edge: 'googleAds:mutate', response: 'GOOGLE_MUTATE', body: { mutateOperations: [{ assetOperation: { create: {
+        name: marker, imageAsset: { data: bytes.toString('base64') } } } }] } };
+      const response = await this.send(step);
+      const confirmed = this.confirmed(step, response.body);
       return { providerId: confirmed.resources[0] as string, status: 'READY', requestId: response.requestId };
     }
     const base = this.metaBase();
@@ -316,9 +317,15 @@ export class CampaignManagementApi {
       if (typeof id !== 'string' || !/^\d{1,30}$/.test(id)) throw new CampaignMutationError('UNKNOWN', 'CREATED_ID_NOT_CONFIRMED');
       return { id };
     }
-    if (!Array.isArray(body.mutateOperationResponses) || !body.mutateOperationResponses.length || step.body?.mutateOperations && body.mutateOperationResponses.length !== step.body.mutateOperations.length) throw new CampaignMutationError('UNKNOWN', 'CREATED_IDS_NOT_CONFIRMED');
-    const resources = body.mutateOperationResponses.map((entry: any) => Object.values(entry)[0] as any).map((entry: any) => entry?.resourceName);
-    if (resources.some((name: any) => typeof name !== 'string' || !new RegExp(`^customers/${campaignId(this.account.externalAccountId)}/[a-zA-Z]+/[0-9~]+$`).test(name))) throw new CampaignMutationError('UNKNOWN', 'CREATED_IDS_NOT_CONFIRMED');
+    const operations = step.body?.mutateOperations;
+    if (!Array.isArray(operations) || !Array.isArray(body.mutateOperationResponses) || !operations.length || body.mutateOperationResponses.length !== operations.length) throw new CampaignMutationError('UNKNOWN', 'CREATED_IDS_NOT_CONFIRMED');
+    const collections: Record<string, string> = { campaignBudgetOperation: 'campaignBudgets', campaignOperation: 'campaigns', adGroupOperation: 'adGroups', adGroupCriterionOperation: 'adGroupCriteria', adGroupAdOperation: 'adGroupAds', campaignCriterionOperation: 'campaignCriteria', adOperation: 'ads', assetOperation: 'assets', labelOperation: 'labels' };
+    const resources = body.mutateOperationResponses.map((entry: any, index: number) => {
+      const keys = Object.keys(operations[index]), key = keys[0], collection = collections[key];
+      const name = entry?.[key?.replace(/Operation$/, 'Result')]?.resourceName;
+      if (keys.length !== 1 || !collection || typeof name !== 'string' || !new RegExp(`^customers/${campaignId(this.account.externalAccountId)}/${collection}/[0-9]+(?:~[0-9]+)*$`).test(name)) throw new CampaignMutationError('UNKNOWN', 'CREATED_IDS_NOT_CONFIRMED');
+      return name;
+    });
     return { resources };
   }
 }
