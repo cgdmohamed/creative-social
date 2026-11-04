@@ -60,3 +60,34 @@ test('retrying a failed draft save reuses its creation key and never submits a p
   expect(bodies[0].key).toHaveLength(32); expect(bodies[0].key).toBe(bodies[1].key); expect(bodies[0].spec.operation).toBe('CREATE');
   expect(mockFetch.mock.calls.every(([url]) => url === '/campaign-manager/drafts')).toBe(true);
 });
+
+test('duplicate retries reuse one idempotency key after an ambiguous response failure', async () => {
+  mockData.drafts = [{ id: 'draft-a', accountId: 'account-a', revision: 1, name: 'First draft', creationKey: 'original', spec: campaignSpecification(), status: 'DRAFT' }];
+  mockFetch.mockResolvedValueOnce({ ok: false, json: async () => ({ message: 'Network outcome unknown' }) })
+    .mockResolvedValueOnce({ ok: true, json: async () => ({ id: 'copy-a' }) });
+  render(<CampaignManager />);
+  fireEvent.click(screen.getByRole('button', { name: 'Drafts' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Duplicate draft' }));
+  await waitFor(() => expect(screen.getByRole('alert').textContent).toContain('Network outcome unknown'));
+  fireEvent.click(screen.getByRole('button', { name: 'Duplicate draft' }));
+  await waitFor(() => expect(mockFetch).toHaveBeenCalledTimes(2));
+  const requests = mockFetch.mock.calls.map(([, options]) => JSON.parse(options.body));
+  expect(requests[0].key).toHaveLength(32);
+  expect(requests[1].key).toBe(requests[0].key);
+});
+
+test('late save response cannot overwrite an editor reset to another account', async () => {
+  let complete!: (value: any) => void;
+  mockData.accounts = [campaignAccount, { ...campaignAccount, id: 'account-b', name: 'Another account', currency: 'EUR' }];
+  mockFetch.mockReturnValueOnce(new Promise((resolve) => { complete = resolve; }));
+  render(<CampaignManager />);
+  fireEvent.change(screen.getByLabelText('Advertising account'), { target: { value: 'account-a' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Campaign Builder' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Save draft' }));
+  fireEvent.change(screen.getByLabelText('Advertising account'), { target: { value: 'account-b' } });
+  complete({ ok: true, json: async () => ({ id: 'old-draft', accountId: 'account-a', revision: 1, creationKey: 'old', name: 'Old campaign', spec: campaignSpecification() }) });
+  await waitFor(() => expect(mockReload).toHaveBeenCalled());
+  expect((screen.getByLabelText('Advertising account') as HTMLSelectElement).value).toBe('account-b');
+  expect(screen.getByText('Create draft')).toBeTruthy();
+  expect(screen.getByRole('button', { name: 'Campaign Builder' }).getAttribute('aria-pressed')).toBe('true');
+});
