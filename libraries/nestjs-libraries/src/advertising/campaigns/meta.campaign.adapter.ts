@@ -2,6 +2,7 @@ import { createHmac } from 'crypto';
 import { providerJson } from '../providers/advertising.http';
 import { AdsProviderError } from '../advertising.types';
 import { CampaignSpec, budgetUnits, campaignId } from './campaign.specification';
+import { campaignBudget, campaignText } from './campaign.response';
 
 export class MetaCampaignAdapter {
   async list(account: any, token: string, level: string, signal?: AbortSignal) {
@@ -20,9 +21,9 @@ export class MetaCampaignAdapter {
       for (const row of body.data) {
         const id = campaignId(row.id);
         rows.push({ id, campaignId: level === 'CAMPAIGN' ? id : campaignId(row.campaign_id), adGroupId: row.adset_id ? campaignId(row.adset_id) : null,
-          name: String(row.name || id).slice(0, 500), status: String(row.status || 'UNKNOWN').slice(0, 40), approval: String(row.effective_status || 'UNKNOWN').slice(0, 40),
+          name: campaignText(row.name, id), status: campaignText(row.status, 'UNKNOWN', 40), approval: campaignText(row.effective_status, 'UNKNOWN', 40),
           validationErrors: Array.isArray(row.issues_info) ? row.issues_info.slice(0, 20).map((issue: any) => ({ code: String(issue.error_code || issue.code || 'PROVIDER_ISSUE').slice(0, 40) })) : [],
-          objective: row.objective || null, dailyBudgetMinor: row.daily_budget || null, lifetimeBudgetMinor: row.lifetime_budget || null, start: row.start_time || null, end: row.stop_time || row.end_time || null });
+          objective: campaignText(row.objective, null, 80), dailyBudgetMinor: campaignBudget(row.daily_budget), lifetimeBudgetMinor: campaignBudget(row.lifetime_budget), start: campaignText(row.start_time, null, 100), end: campaignText(row.stop_time || row.end_time, null, 100) });
       }
       if (!body.paging?.next) return rows;
       after = body.paging?.cursors?.after;

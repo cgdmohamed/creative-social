@@ -1,6 +1,7 @@
 import { providerJson } from '../providers/advertising.http';
 import { AdsProviderError } from '../advertising.types';
 import { CampaignSpec, budgetUnits, campaignId } from './campaign.specification';
+import { campaignBudget, campaignText } from './campaign.response';
 
 export class GoogleCampaignAdapter {
   async list(account: any, token: string, level: string, signal?: AbortSignal) {
@@ -21,9 +22,9 @@ export class GoogleCampaignAdapter {
         const item = level === 'CAMPAIGN' ? row.campaign : level === 'AD_GROUP' ? row.adGroup : row.adGroupAd;
         const id = campaignId(level === 'AD' ? item?.ad?.id : item?.id);
         rows.push({ id: level === 'AD' ? `${campaignId(row.adGroup?.id)}~${id}` : id, campaignId: campaignId(row.campaign?.id), adGroupId: row.adGroup ? campaignId(row.adGroup.id) : null,
-          name: String(item?.name || item?.ad?.name || id).slice(0, 500), status: String(item?.status || 'UNKNOWN').slice(0, 40),
-          approval: item?.policySummary?.approvalStatus || 'UNAVAILABLE', reviewStatus: item?.policySummary?.reviewStatus || 'UNAVAILABLE', validationErrors: [],
-          objective: row.campaign?.advertisingChannelType || null, dailyBudgetMicros: row.campaignBudget?.amountMicros || null, start: row.campaign?.startDate || null, end: row.campaign?.endDate || null });
+          name: campaignText(item?.name || item?.ad?.name, id), status: campaignText(item?.status, 'UNKNOWN', 40),
+          approval: campaignText(item?.policySummary?.approvalStatus, 'UNAVAILABLE', 40), reviewStatus: campaignText(item?.policySummary?.reviewStatus, 'UNAVAILABLE', 40), validationErrors: [],
+          objective: campaignText(row.campaign?.advertisingChannelType, null, 80), dailyBudgetMicros: campaignBudget(row.campaignBudget?.amountMicros), start: campaignText(row.campaign?.startDate, null, 100), end: campaignText(row.campaign?.endDate, null, 100) });
       }
       if (!body.nextPageToken) return rows;
       if (typeof body.nextPageToken !== 'string' || body.nextPageToken.length > 2048) throw new AdsProviderError('INVALID_RESPONSE');

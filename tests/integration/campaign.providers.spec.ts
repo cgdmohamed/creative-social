@@ -2,10 +2,16 @@ import { campaignSpec, campaignDigest, budgetUnits } from '../../libraries/nestj
 import { MetaCampaignAdapter } from '../../libraries/nestjs-libraries/src/advertising/campaigns/meta.campaign.adapter';
 import { GoogleCampaignAdapter } from '../../libraries/nestjs-libraries/src/advertising/campaigns/google.campaign.adapter';
 import { campaignAccount, campaignSpecification } from './campaign.fixture';
+import { campaignBudget, campaignText } from '../../libraries/nestjs-libraries/src/advertising/campaigns/campaign.response';
 const originalFetch = global.fetch;
 test('review hashes survive JSONB key reordering but detect changed creative order', () => {
   expect(campaignDigest({ z: { b: 1, a: 2 }, a: ['one', 'two'] })).toBe(campaignDigest({ a: ['one', 'two'], z: { a: 2, b: 1 } }));
   expect(campaignDigest({ a: ['one', 'two'] })).not.toBe(campaignDigest({ a: ['two', 'one'] }));
+});
+test('unexpected provider objects are rejected rather than serialized into browser responses', () => {
+  expect(() => campaignText({ access_token: 'private' }, null)).toThrow('INVALID_RESPONSE');
+  expect(() => campaignBudget({ access_token: 'private' })).toThrow('INVALID_RESPONSE');
+  expect(campaignBudget('0')).toBe('0'); expect(campaignBudget(undefined)).toBeNull();
 });
 afterEach(() => { global.fetch = originalFetch; jest.restoreAllMocks(); });
 test.each([['USD', '1.23', '123', '1230000'], ['JPY', '12', '12', '12000000'], ['KWD', '1.234', '1234', '1234000']])('budgets respect %s minor units and exact Google micros', (currency, amount, minor, micros) => {

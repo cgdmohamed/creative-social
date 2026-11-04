@@ -139,7 +139,7 @@ AGPL licensing. No third-party SDK code was copied.
 
 ## Verification (2026-11-04)
 
-- Combined suites: 318 tests passed across 28 suites, including existing Inbox,
+- Combined suites: 319 tests passed across 28 suites, including existing Inbox,
   organic reporting, workspace, advertising connection and paid analytics tests.
 - Campaign lint and the eight modified supporting files: zero errors/warnings.
 - Standalone backend and frontend TypeScript checks passed.
