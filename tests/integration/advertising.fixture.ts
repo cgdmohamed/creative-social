@@ -56,6 +56,7 @@ export function advertisingDatabase(extraTables: string[] = []) {
       create: jest.fn(async ({ data, select }) => {
         const row = { id: `record-${++sequence}`, status: 'DISCONNECTED', revision: 0, credentialCiphertext: null,
           refreshLeaseUntil: null, retryAfter: null, expiresAt: null, usedAt: null, enabled: false,
+          ...(table.startsWith('adCampaign') ? { status: table === 'adCampaignDraft' ? 'DRAFT' : 'PENDING', revision: 0, createdAt: new Date(), updatedAt: new Date() } : {}),
           ...(table.startsWith('paid') || table === 'adReportingDailyMetric' ? { status: table === 'paidSyncJob' ? 'PENDING' : 'GENERATING',
             createdAt: new Date(), collectedAt: new Date(), attempts: 0, nextAttemptAt: new Date(0), leaseToken: null, leaseUntil: null,
             deliveryStatus: 'NOT_REQUESTED', artifact: null, definitionVersion: 'legacy', enabled: true, revision: 0 } : {}), ...data };

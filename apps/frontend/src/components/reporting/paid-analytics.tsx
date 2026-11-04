@@ -43,9 +43,9 @@ const AccountConfiguration = ({ account, clients, saved }: any) => {
     <Button type="button" disabled={pending} onClick={save}>Save account reporting settings</Button>{error && <p role="alert">{error}</p>}
   </div>;
 };
-export const PaidAnalytics = () => {
+export const PaidAnalytics = ({ initialSelection = {} }: { initialSelection?: Record<string, string> } = {}) => {
   const fetch = useFetch(), user = useUser(), manager = user?.role === 'ADMIN' || user?.role === 'SUPERADMIN';
-  const [query, setQuery] = useState<Record<string, string>>({ ...initialDates(), level: 'ACCOUNT' });
+  const [query, setQuery] = useState<Record<string, string>>({ ...initialDates(), level: 'ACCOUNT', ...initialSelection });
   const [error, setError] = useState(''), [pending, setPending] = useState(false), [notice, setNotice] = useState('');
   const [schedule, setSchedule] = useState({ name: 'Client paid advertising report', rollingDays: 7, cadenceDays: 7, format: 'PDF', delivery: 'ARCHIVE', recipient: '', requireFresh: true });
   const [editing, setEditing] = useState<string>();

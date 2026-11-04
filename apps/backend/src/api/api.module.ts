@@ -67,8 +67,11 @@ import { PaidAnalyticsController } from './routes/paid-analytics.controller';
 import { PaidAnalyticsService } from '../advertising/paid-analytics.service';
 import { PaidSyncService } from '../advertising/paid-sync.service';
 import { PaidReportsService } from '../advertising/paid-reports.service';
+import { CampaignManagerService } from '../advertising/campaign-manager.service';
+import { CampaignManagerController } from './routes/campaign-manager.controller';
 
 const authenticatedController = [
+  CampaignManagerController,
   PaidAnalyticsController,
   AdvertisingController,
   UsersController,
@@ -119,7 +122,7 @@ const authenticatedController = [
         ...authenticatedController,
       ],
   providers: [
-    PaidAnalyticsService, PaidSyncService, PaidReportsService,
+    CampaignManagerService, PaidAnalyticsService, PaidSyncService, PaidReportsService,
     AdvertisingService, MetaAdsProvider, GoogleAdsProvider,
     AuthService,
     StripeService,
