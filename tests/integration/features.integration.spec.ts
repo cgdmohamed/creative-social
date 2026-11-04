@@ -58,6 +58,7 @@ beforeAll(async () => {
       '002-analytics-reports.sql',
       '003-inbox-tenant-constraints.sql',
       '004-advertising-accounts.sql',
+      '005-paid-analytics.sql',
     ])
     {
       if (migration === '004-advertising-accounts.sql') {
@@ -91,6 +92,8 @@ test('advertising upgrade preserves old account references and metrics without a
   expect((await pg.query(`SELECT "connectionId","credentialReference",enabled FROM "AdReportingAccount" WHERE id='legacy-account'`)).rows)
     .toEqual([{ connectionId: null, credentialReference: 'vault:legacy-reference', enabled: false }]);
   expect((await pg.query(`SELECT impressions::text FROM "AdReportingDailyMetric" WHERE id='legacy-metric'`)).rows).toEqual([{ impressions: '17' }]);
+  expect((await pg.query(`SELECT "definitionVersion",currency,"purchaseConversionValue" FROM "AdReportingDailyMetric" WHERE id='legacy-metric'`)).rows)
+    .toEqual([{ definitionVersion: 'legacy', currency: null, purchaseConversionValue: null }]);
 });
 
 test('advertising database constraints reject cross-tenant/provider assignments and duplicate accounts', async () => {
@@ -108,6 +111,20 @@ test('advertising database constraints reject cross-tenant/provider assignments 
     VALUES ('ads-duplicate','ads-a','META_ADS','act_123','Duplicate','USD','UTC')`)).rejects.toThrow();
   await expect(pg.exec(`INSERT INTO "AdvertisingConnection" (id,"organizationId",provider,"updatedAt")
     VALUES ('ads-duplicate-grant','ads-a','META_ADS',now())`)).rejects.toThrow();
+});
+
+test('paid jobs and generated reports cannot link another workspace account or schedule', async () => {
+  await pg.exec(`
+    INSERT INTO "Organization" (id,name,"updatedAt") VALUES ('paid-a','Paid A',now()),('paid-b','Paid B',now());
+    INSERT INTO "AdReportingAccount" (id,"organizationId",provider,"externalAccountId",name,currency,timezone)
+      VALUES ('paid-account','paid-a','META_ADS','act_789','Account','USD','UTC');
+    INSERT INTO "PaidReportSchedule" (id,"organizationId","createdById",name,query,"rollingDays","cadenceDays",format,delivery,"nextRunAt")
+      VALUES ('paid-schedule','paid-a','creator','Report','{}',7,7,'CSV','ARCHIVE',now());
+  `);
+  await expect(pg.exec(`INSERT INTO "PaidSyncJob" (id,"organizationId","accountId","dedupeKey","reportingRevision",level,"fromDate","toDate","attributionWindow")
+    VALUES ('bad-paid-job','paid-b','paid-account','bad',0,'ACCOUNT','2026-01-01','2026-01-02','test')`)).rejects.toThrow();
+  await expect(pg.exec(`INSERT INTO "PaidReportRun" (id,"organizationId","scheduleId","periodKey",format)
+    VALUES ('bad-paid-run','paid-b','paid-schedule','bad-run','CSV')`)).rejects.toThrow();
 });
 
 test('Inbox read markers coexist with tenant-scoped reporting snapshots and cascading channel deletion', async () => {

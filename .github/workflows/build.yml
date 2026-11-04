@@ -67,6 +67,9 @@ jobs:
       - name: Advertising integrations lint
         run: pnpm run lint:advertising
 
+      - name: Paid analytics lint
+        run: pnpm run lint:paid
+
       - name: Combined Inbox and Reporting tests
         run: pnpm run test:combined
 

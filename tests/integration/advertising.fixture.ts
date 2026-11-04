@@ -1,17 +1,27 @@
 // Prisma-shaped unit-test storage. Real SQL constraints/migration preservation
 // are verified separately in advertising.database.spec.ts using PGlite.
-export function advertisingDatabase() {
+export function advertisingDatabase(extraTables: string[] = []) {
   let store: Record<string, any[]> = { advertisingConnection: [], advertisingOAuthState: [], adReportingAccount: [] };
+  for (const table of extraTables) store[table] = [];
   let allowed = true;
   const matches = (row: any, where: any): boolean => Object.entries(where || {}).every(([key, value]: any) => {
     if (key === 'OR') return value.some((condition: any) => matches(row, condition));
+    if (key === 'AND') return value.every((condition: any) => matches(row, condition));
+    if (key === 'organization') return matches({ deletedAt: null }, value);
+    if (key === 'account') { const account = store.adReportingAccount.find((item) => item.id === row.accountId); return !!account && matches(account, value); }
+    if (key === 'dailyMetrics' || key === 'reachSnapshots') {
+      const table = key === 'dailyMetrics' ? 'adReportingDailyMetric' : 'paidReachSnapshot';
+      return !!value?.some && (store[table] || []).some((item) => item.accountId === row.id && matches(item, value.some));
+    }
+    if (key === 'connection') { const connection = store.advertisingConnection.find((item) => item.id === row.connectionId); return !!connection && matches(connection, value); }
     if (key.includes('_') && typeof value === 'object' && !(key in row)) return matches(row, value);
-    if (value instanceof Date) return row[key]?.getTime() === value.getTime();
+    if (value && typeof value.getTime === 'function') return row[key]?.getTime() === value.getTime();
     if (value && typeof value === 'object') {
       if ('in' in value) return value.in.includes(row[key]);
       if ('notIn' in value) return !value.notIn.includes(row[key]);
       if ('gt' in value) return row[key] > value.gt;
       if ('lt' in value) return row[key] < value.lt;
+      if ('gte' in value || 'lte' in value) return (!('gte' in value) || row[key] >= value.gte) && (!('lte' in value) || row[key] <= value.lte);
     }
     return row[key] === value;
   });
@@ -37,10 +47,18 @@ export function advertisingDatabase() {
       findFirst: jest.fn(async (query) => find(query)),
       findUnique: jest.fn(async (query) => find(query)),
       findUniqueOrThrow: jest.fn(async (query) => { const row = find(query); if (!row) throw new Error('Missing fixture row'); return row; }),
-      findMany: jest.fn(async ({ where, select }) => store[table].filter((row) => matches(row, where)).map((row) => project(row, select))),
+      findMany: jest.fn(async ({ where, select, take, orderBy }) => {
+        let rows = store[table].filter((row) => matches(row, where));
+        if (orderBy) { const [key, direction] = Object.entries<any>(orderBy)[0]; rows = [...rows].sort((a, b) => (a[key] > b[key] ? 1 : a[key] < b[key] ? -1 : 0) * (direction === 'desc' ? -1 : 1)); }
+        return rows.slice(0, take).map((row) => project(row, select));
+      }),
+      count: jest.fn(async ({ where }) => store[table].filter((row) => matches(row, where)).length),
       create: jest.fn(async ({ data, select }) => {
         const row = { id: `record-${++sequence}`, status: 'DISCONNECTED', revision: 0, credentialCiphertext: null,
-          refreshLeaseUntil: null, retryAfter: null, expiresAt: null, usedAt: null, enabled: false, ...data };
+          refreshLeaseUntil: null, retryAfter: null, expiresAt: null, usedAt: null, enabled: false,
+          ...(table.startsWith('paid') || table === 'adReportingDailyMetric' ? { status: table === 'paidSyncJob' ? 'PENDING' : 'GENERATING',
+            createdAt: new Date(), collectedAt: new Date(), attempts: 0, nextAttemptAt: new Date(0), leaseToken: null, leaseUntil: null,
+            deliveryStatus: 'NOT_REQUESTED', artifact: null, definitionVersion: 'legacy', enabled: true, revision: 0 } : {}), ...data };
         store[table].push(row); return project(row, select);
       }),
       updateMany: jest.fn(async ({ where, data }) => {

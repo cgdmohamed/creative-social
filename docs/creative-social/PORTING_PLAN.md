@@ -59,3 +59,9 @@ switching, role checks, tenant-boundary changes and validation on the latest mai
 See [ADVERTISING_ACCOUNTS.md](ADVERTISING_ACCOUNTS.md) for read-only Meta/Google
 advertising OAuth, workspace account selection, encrypted credentials, the additive
 004 upgrade and provider approval/live-validation requirements.
+
+## Phase 3: paid analytics and client reports
+
+See [PAID_ANALYTICS.md](PAID_ANALYTICS.md) for separate paid metrics, provider
+definitions/attribution, daily synchronization, comparisons, client exports,
+scheduled private reports, upgrade 005 and validation limitations.

@@ -38,6 +38,8 @@ test.each([
   ['NOT_SECURED', 'false'],
   ['CREATIVE_REVISION', 'main'],
   ['INBOX_COLLECTION_ENABLED', 'yes'],
+  ['PAID_ANALYTICS_SYNC_ENABLED', 'yes'],
+  ['PAID_REPORT_SCHEDULES_ENABLED', 'yes'],
 ])('fails closed on invalid production setting %s', (key, value) => {
   expect(() =>
     validateProductionEnv('backend', { ...env(), [key]: value }, info)
@@ -210,6 +212,8 @@ test('resolved Compose keeps data private, pulls the reviewed Creative Social im
   expect(compose.services.frontend.environment.DATABASE_URL).toBe('');
   expect(compose.services.backend.environment.MAX_WORKSPACES_PER_USER).toBe('10');
   expect(compose.services.backend.environment.GOOGLE_ADS_API_VERSION).toBe('v26');
+  expect(compose.services.backend.environment.PAID_ANALYTICS_SYNC_ENABLED).toBe('false');
+  expect(compose.services.backend.environment.PAID_REPORT_SCHEDULES_ENABLED).toBe('false');
   expect(compose.services.frontend.environment.ADS_ENCRYPTION_KEY).toBe('');
   expect(compose.services.orchestrator.environment.ADS_ENCRYPTION_KEY).toBe('');
   expect(compose.services.backend.environment.INBOX_COLLECTION_ENABLED).toBe(

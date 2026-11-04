@@ -205,3 +205,13 @@ test('ciphertext copied from another workspace fails authenticated decryption', 
   await expect(service.discover('b', 'bob', 'google')).rejects.toMatchObject({ status: 503 });
   expect(api.accounts).not.toHaveBeenCalled();
 });
+test('internal paid reader cannot use another workspace account and returns only read result plus lease metadata', async () => {
+  await connect(); await service.select('a', 'alice', 'google', ['123']);
+  const id = fixture.rows('adReportingAccount')[0].id;
+  const reader = jest.fn(async (account, token) => { expect(account.organizationId).toBe('a'); expect(token).toBe('PRIVATE_ACCESS'); return { rows: 1 }; });
+  await expect(service.readForReporting('b', id, reader)).rejects.toMatchObject({ status: 403 });
+  expect(reader).not.toHaveBeenCalled();
+  const result = await service.readForReporting('a', id, reader);
+  expect(result.value).toEqual({ rows: 1 }); expect(result.connectionId).toBe(row().id);
+  expect(JSON.stringify(result)).not.toMatch(/PRIVATE_ACCESS|PRIVATE_REFRESH/);
+});
