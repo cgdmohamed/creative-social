@@ -76,7 +76,10 @@ function validateProductionEnv(role, env, buildInfo) {
       env.JWT_SECRET ||
       env.DATABASE_URL ||
       env.REDIS_URL ||
-      env.FACEBOOK_APP_SECRET
+      env.FACEBOOK_APP_SECRET ||
+      env.ADS_ENCRYPTION_KEY ||
+      env.META_ADS_APP_SECRET ||
+      env.GOOGLE_ADS_CLIENT_SECRET
     ) {
       throw new Error('Frontend must not receive backend credentials');
     }

@@ -64,6 +64,9 @@ jobs:
       - name: Workspace lint
         run: pnpm run lint:workspace
 
+      - name: Advertising integrations lint
+        run: pnpm run lint:advertising
+
       - name: Combined Inbox and Reporting tests
         run: pnpm run test:combined
 

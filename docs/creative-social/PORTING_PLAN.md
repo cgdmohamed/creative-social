@@ -53,3 +53,9 @@ review and explicit approval; no server deployment has been performed.
 
 See [MULTI_WORKSPACE.md](MULTI_WORKSPACE.md) for authenticated creation, quotas,
 switching, role checks, tenant-boundary changes and validation on the latest main.
+
+## Phase 2: advertising account integrations
+
+See [ADVERTISING_ACCOUNTS.md](ADVERTISING_ACCOUNTS.md) for read-only Meta/Google
+advertising OAuth, workspace account selection, encrypted credentials, the additive
+004 upgrade and provider approval/live-validation requirements.

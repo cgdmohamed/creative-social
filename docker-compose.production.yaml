@@ -228,7 +228,15 @@ services:
   backend:
     <<: [*image, *service]
     command: [backend]
-    environment: *runtime
+    environment:
+      <<: *runtime
+      ADS_ENCRYPTION_KEY: ${ADS_ENCRYPTION_KEY:-}
+      META_ADS_APP_ID: ${META_ADS_APP_ID:-}
+      META_ADS_APP_SECRET: ${META_ADS_APP_SECRET:-}
+      META_ADS_API_VERSION: ${META_ADS_API_VERSION:-}
+      GOOGLE_ADS_CLIENT_ID: ${GOOGLE_ADS_CLIENT_ID:-}
+      GOOGLE_ADS_CLIENT_SECRET: ${GOOGLE_ADS_CLIENT_SECRET:-}
+      GOOGLE_ADS_API_VERSION: ${GOOGLE_ADS_API_VERSION:-v26}
     volumes: [app-uploads:/app/uploads]
     networks: [web, data, temporal-data, egress]
     mem_limit: 2g
@@ -261,6 +269,9 @@ services:
       TEMPORAL_POSTGRES_ADMIN_PASSWORD: ''
       TEMPORAL_DB_PASSWORD: ''
       FACEBOOK_APP_SECRET: ''
+      ADS_ENCRYPTION_KEY: ''
+      META_ADS_APP_SECRET: ''
+      GOOGLE_ADS_CLIENT_SECRET: ''
       INSTAGRAM_APP_SECRET: ''
       YOUTUBE_CLIENT_SECRET: ''
       LINKEDIN_CLIENT_SECRET: ''
@@ -286,7 +297,11 @@ services:
   orchestrator:
     <<: [*image, *service]
     command: [orchestrator]
-    environment: *runtime
+    environment:
+      <<: *runtime
+      ADS_ENCRYPTION_KEY: ''
+      META_ADS_APP_SECRET: ''
+      GOOGLE_ADS_CLIENT_SECRET: ''
     volumes: [app-uploads:/app/uploads]
     networks: [data, temporal-data, egress]
     mem_limit: 4g

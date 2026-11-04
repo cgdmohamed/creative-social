@@ -54,6 +54,13 @@ test('frontend works without backend credentials and refuses accidental secret i
     )
   ).toThrow(/credentials/);
 });
+test.each(['ADS_ENCRYPTION_KEY', 'META_ADS_APP_SECRET', 'GOOGLE_ADS_CLIENT_SECRET'])(
+  'frontend refuses advertising secret %s', (key) => {
+    expect(() => validateProductionEnv('frontend', {
+      PUBLIC_URL: info.publicUrl, CREATIVE_REVISION: revision, [key]: 'synthetic-private',
+    }, info)).toThrow(/credentials/);
+  }
+);
 test('PostgreSQL tools receive passwords through environment, not command arguments', () => {
   const config = postgresEnvironment(env().DATABASE_URL, { PATH: 'synthetic' });
   expect(config.PGPASSWORD).toBe('a'.repeat(64));
@@ -202,6 +209,9 @@ test('resolved Compose keeps data private, pulls the reviewed Creative Social im
   expect(compose.services.frontend.environment.JWT_SECRET).toBe('');
   expect(compose.services.frontend.environment.DATABASE_URL).toBe('');
   expect(compose.services.backend.environment.MAX_WORKSPACES_PER_USER).toBe('10');
+  expect(compose.services.backend.environment.GOOGLE_ADS_API_VERSION).toBe('v26');
+  expect(compose.services.frontend.environment.ADS_ENCRYPTION_KEY).toBe('');
+  expect(compose.services.orchestrator.environment.ADS_ENCRYPTION_KEY).toBe('');
   expect(compose.services.backend.environment.INBOX_COLLECTION_ENABLED).toBe(
     'false'
   );
