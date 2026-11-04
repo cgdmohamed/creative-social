@@ -20,6 +20,24 @@ body * {
   outline: none !important;
 }
 
+/* Keyboard focus must stay visible (Apple HIG: Accessibility). Mouse clicks do not trigger :focus-visible. */
+body :is(button, a, summary, [role='button'], [role='tab'], [role='menuitem'], [tabindex]:not([tabindex='-1'])):focus-visible {
+  outline: 2px solid var(--new-btn-primary) !important;
+  outline-offset: 2px;
+}
+
+/* Respect the Reduce Motion setting (Apple HIG: Accessibility, Motion). Progress spinners keep rotating. */
+@media (prefers-reduced-motion: reduce) {
+  *:not([style*='spin']),
+  *:not([style*='spin'])::before,
+  *:not([style*='spin'])::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 .box {
   position: relative;
 }
