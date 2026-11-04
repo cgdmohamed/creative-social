@@ -70,6 +70,9 @@ jobs:
       - name: Paid analytics lint
         run: pnpm run lint:paid
 
+      - name: Campaign manager lint
+        run: pnpm run lint:campaigns
+
       - name: Combined Inbox and Reporting tests
         run: pnpm run test:combined
 

@@ -141,6 +141,11 @@ export const useMenuItem = () => {
       path: '/reports',
     },
     {
+      name: 'Advertising',
+      icon: <span aria-hidden="true">▤</span>,
+      path: '/advertising',
+    },
+    {
       name: 'Advertising Analytics',
       icon: <span aria-hidden="true">$</span>,
       path: '/advertising-analytics',

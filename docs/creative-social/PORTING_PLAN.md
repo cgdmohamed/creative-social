@@ -65,3 +65,9 @@ advertising OAuth, workspace account selection, encrypted credentials, the addit
 See [PAID_ANALYTICS.md](PAID_ANALYTICS.md) for separate paid metrics, provider
 definitions/attribution, daily synchronization, comparisons, client exports,
 scheduled private reports, upgrade 005 and validation limitations.
+
+## Phase 4: advertising campaign manager
+
+See [CAMPAIGN_MANAGER.md](CAMPAIGN_MANAGER.md) for scoped provider listing,
+local campaign drafts, provider-specific request plans, explicit owner reviews,
+audit history, upgrade 006 and the server-enforced block on all provider writes.

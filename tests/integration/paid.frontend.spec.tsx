@@ -49,6 +49,13 @@ test('collection disabled flag prevents requests while stored analytics stays vi
   expect((screen.getByText('Sync selected range and comparison') as HTMLButtonElement).disabled).toBe(true);
   expect(screen.getByText(/Stored reports remain readable/)).toBeTruthy(); expect(mockFetch).not.toHaveBeenCalled();
 });
+test('campaign manager performance link initializes scoped paid query without changing organic calculations', async () => {
+  mockFetch.mockResolvedValue({ ok: true, json: async () => ({ queued: 1 }) });
+  render(<PaidAnalytics initialSelection={{ accountId: 'account-a', campaignId: '123', level: 'AD' }} />);
+  fireEvent.click(screen.getByText('Sync selected range and comparison'));
+  await waitFor(() => expect(mockFetch).toHaveBeenCalled());
+  expect(JSON.parse(mockFetch.mock.calls[0][1].body)).toMatchObject({ accountId: 'account-a', campaignId: '123', level: 'AD' });
+});
 test('schedules expose archive/email choices and preserve freshness-required default', async () => {
   mockFetch.mockResolvedValue({ ok: true, json: async () => ({ id: 'schedule' }) }); render(<PaidAnalytics />);
   fireEvent.click(screen.getByText('Create report schedule from current filters'));

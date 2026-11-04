@@ -8,7 +8,60 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model AdCampaignDraft {
+  id String @id @default(uuid())
+  organizationId String
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  accountId String
+  account AdReportingAccount @relation(fields: [accountId, organizationId], references: [id, organizationId], onDelete: Restrict)
+  createdBy String
+  name String
+  status String @default("DRAFT")
+  revision Int @default(0)
+  spec Json
+  creationKey String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  reviews AdCampaignReview[]
+  @@unique([organizationId, creationKey])
+  @@unique([id, organizationId])
+  @@index([organizationId, updatedAt])
+}
+
+model AdCampaignReview {
+  id String @id @default(uuid())
+  organizationId String
+  draftId String
+  draft AdCampaignDraft @relation(fields: [draftId, organizationId], references: [id, organizationId], onDelete: Cascade)
+  revision Int
+  requestedBy String
+  approvedBy String?
+  status String @default("PENDING")
+  digest String
+  snapshot Json
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  approvedAt DateTime?
+  @@unique([draftId, revision])
+  @@index([organizationId, status])
+}
+
+model AdCampaignAudit {
+  id String @id @default(uuid())
+  organizationId String
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  actorId String
+  draftId String?
+  reviewId String?
+  action String
+  details Json
+  createdAt DateTime @default(now())
+  @@index([organizationId, createdAt])
+}
+
 model Organization {
+  adCampaignDrafts AdCampaignDraft[]
+  adCampaignAudits AdCampaignAudit[]
   paidReportSchedules PaidReportSchedule[]
   paidReportRuns PaidReportRun[]
   advertisingConnections AdvertisingConnection[]
@@ -1995,6 +2048,7 @@ enum AdReportingProvider {
   GOOGLE_ADS
 }
 model AdReportingAccount {
+  campaignDrafts AdCampaignDraft[]
   id String @id @default(uuid())
   organizationId String
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)

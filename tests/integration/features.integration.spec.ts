@@ -59,6 +59,7 @@ beforeAll(async () => {
       '003-inbox-tenant-constraints.sql',
       '004-advertising-accounts.sql',
       '005-paid-analytics.sql',
+      '006-advertising-campaign-manager.sql',
     ])
     {
       if (migration === '004-advertising-accounts.sql') {
@@ -125,6 +126,24 @@ test('paid jobs and generated reports cannot link another workspace account or s
     VALUES ('bad-paid-job','paid-b','paid-account','bad',0,'ACCOUNT','2026-01-01','2026-01-02','test')`)).rejects.toThrow();
   await expect(pg.exec(`INSERT INTO "PaidReportRun" (id,"organizationId","scheduleId","periodKey",format)
     VALUES ('bad-paid-run','paid-b','paid-schedule','bad-run','CSV')`)).rejects.toThrow();
+});
+
+test('campaign draft/review SQL ownership and idempotency constraints reject foreign and duplicate records', async () => {
+  await pg.exec(`INSERT INTO "Organization" (id,name,"updatedAt") VALUES ('campaign-a','A',now()),('campaign-b','B',now());
+    INSERT INTO "AdReportingAccount" (id,"organizationId",provider,"externalAccountId",name,currency,timezone)
+      VALUES ('campaign-account','campaign-a','META_ADS','act_999','Account','USD','UTC');
+    INSERT INTO "AdCampaignDraft" (id,"organizationId","accountId","createdBy",name,spec,"creationKey","updatedAt")
+      VALUES ('draft-owned','campaign-a','campaign-account','creator','Draft','{}','stable-key',now());`);
+  await expect(pg.exec(`INSERT INTO "AdCampaignDraft" (id,"organizationId","accountId","createdBy",name,spec,"creationKey","updatedAt")
+    VALUES ('draft-foreign','campaign-b','campaign-account','creator','Foreign','{}','key',now())`)).rejects.toThrow();
+  await expect(pg.exec(`INSERT INTO "AdCampaignDraft" (id,"organizationId","accountId","createdBy",name,spec,"creationKey","updatedAt")
+    VALUES ('draft-duplicate','campaign-a','campaign-account','creator','Duplicate','{}','stable-key',now())`)).rejects.toThrow();
+  await expect(pg.exec(`INSERT INTO "AdCampaignReview" (id,"organizationId","draftId",revision,"requestedBy",digest,snapshot,"expiresAt")
+    VALUES ('review-foreign','campaign-b','draft-owned',0,'creator','hash','{}',now())`)).rejects.toThrow();
+  await pg.exec(`INSERT INTO "AdCampaignReview" (id,"organizationId","draftId",revision,"requestedBy",digest,snapshot,"expiresAt")
+    VALUES ('review-owned','campaign-a','draft-owned',0,'creator','hash','{}',now())`);
+  await expect(pg.exec(`INSERT INTO "AdCampaignReview" (id,"organizationId","draftId",revision,"requestedBy",digest,snapshot,"expiresAt")
+    VALUES ('review-duplicate','campaign-a','draft-owned',0,'creator','hash','{}',now())`)).rejects.toThrow();
 });
 
 test('Inbox read markers coexist with tenant-scoped reporting snapshots and cascading channel deletion', async () => {

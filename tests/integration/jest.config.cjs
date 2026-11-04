@@ -1,6 +1,7 @@
 const config = require('../reporting/jest.config.cjs');
 module.exports = {
   ...config,
+  modulePathIgnorePatterns: ['<rootDir>/apps/frontend/.next/', '<rootDir>/apps/backend/dist/', '<rootDir>/apps/orchestrator/dist/'],
   moduleNameMapper: {
     ...config.moduleNameMapper,
     '^@gitroom/frontend/(.*)$': '<rootDir>/apps/frontend/src/$1',
