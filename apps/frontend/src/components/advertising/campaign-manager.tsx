@@ -54,6 +54,9 @@ const CampaignWorkspace = () => {
   const [draftId, setDraftId] = useState(''), [revision, setRevision] = useState(0), [key, setKey] = useState(''), [name, setName] = useState('New campaign'), [spec, setSpec] = useState<any>(fresh());
   const [error, setError] = useState(''), [notice, setNotice] = useState(''), [pending, setPending] = useState(false);
   const resourceRequest = useRef(0);
+  const editorGeneration = useRef(0);
+  // Preserve a duplication idempotency key through an ambiguous network failure.
+  const duplicateKeys = useRef(new Map<string, string>());
   const { data, error: loadError, mutate } = useSWR(['campaign-manager', user?.orgId], () => fetch('/campaign-manager/catalog').then(json), { revalidateOnFocus: false });
   const account = data?.accounts.find((a: any) => a.id === accountId), google = account?.provider === 'GOOGLE_ADS';
   const act = async (path: string, body: any) => {
@@ -62,9 +65,9 @@ const CampaignWorkspace = () => {
     catch (failure) { setError(failure instanceof Error ? failure.message : 'Advertising request failed'); }
     finally { setPending(false); }
   };
-  const edit = (draft: any) => { setDraftId(draft.id); setRevision(draft.revision); setKey(draft.creationKey); setName(draft.name); setSpec(draft.spec); setAccount(draft.accountId); setTab('Campaign Builder'); };
+  const edit = (draft: any) => { editorGeneration.current++; setDraftId(draft.id); setRevision(draft.revision); setKey(draft.creationKey); setName(draft.name); setSpec(draft.spec); setAccount(draft.accountId); setTab('Campaign Builder'); };
   const reset = (id: string) => {
-    resourceRequest.current++; const a = data?.accounts.find((item: any) => item.id === id); setAccount(id); setResources(undefined); setDraftId(''); setRevision(0); setKey(creationKey());
+    editorGeneration.current++; resourceRequest.current++; const a = data?.accounts.find((item: any) => item.id === id); setAccount(id); setResources(undefined); setDraftId(''); setRevision(0); setKey(creationKey());
     setSpec({ ...fresh(a?.provider === 'GOOGLE_ADS'), currency: a?.currency || 'USD' }); setName('New campaign');
   };
   const list = async () => {
@@ -87,8 +90,12 @@ const CampaignWorkspace = () => {
       {resources && <><p>Fetched {resources.fetchedAt}</p><div className="overflow-auto"><table className="w-full text-left"><thead><tr><th>Name / ID</th><th>Status</th><th>Provider approval</th><th>Performance</th></tr></thead><tbody>{resources.rows.map((row: any) => <tr key={row.id}><td>{row.name}<small className="block">{row.id}</small></td><td>{row.status}</td><td>{row.approval} {row.validationErrors.map((e: any) => e.code).join(', ')}</td><td><Link href={'/advertising-analytics?' + new URLSearchParams({ accountId, campaignId: row.campaignId, level: tab === 'Campaigns' ? 'CAMPAIGN' : tab === 'Ads' ? 'AD' : 'AD_GROUP' })}>View performance</Link></td></tr>)}</tbody></table></div>{!resources.rows.length && <p>No provider resources returned.</p>}
       {tab === 'Campaigns' && manager && <div><p>To propose pause/resume, use the Campaign Builder with the listed campaign ID. Account ownership is rechecked during review.</p></div>}</>}
     </section>}
-    {tab === 'Drafts' && <section><h2>Drafts</h2>{manager && <Button type="button" onClick={() => { reset(accountId); setTab('Campaign Builder'); }}>New draft</Button>}{data?.drafts.map((draft: any) => <article key={draft.id} className="border border-tableBorder p-3"><h3>{draft.name} · {draft.status} · revision {draft.revision}</h3>{manager && <div className="flex gap-3"><Button type="button" disabled={pending} onClick={() => edit(draft)}>Edit draft</Button><Button type="button" disabled={pending} onClick={() => act(`/drafts/${draft.id}/duplicate`, { key: creationKey() })}>Duplicate draft</Button><Button type="button" disabled={pending} onClick={async () => { if (await act(`/drafts/${draft.id}/review`, { revision: draft.revision })) setTab('Approval Queue'); }}>Request final review</Button></div>}</article>)}</section>}
-    {tab === 'Campaign Builder' && (manager ? <form className="space-y-3 max-w-3xl" onSubmit={async (e) => { e.preventDefault(); const result = await act('/drafts' + (draftId ? '/' + draftId : ''), { accountId, name, key: key || creationKey(), spec, ...(draftId ? { revision } : {}) }); if (result) { edit(result); setTab('Drafts'); } }}>
+    {tab === 'Drafts' && <section><h2>Drafts</h2>{manager && <Button type="button" onClick={() => { reset(accountId); setTab('Campaign Builder'); }}>New draft</Button>}{data?.drafts.map((draft: any) => <article key={draft.id} className="border border-tableBorder p-3"><h3>{draft.name} · {draft.status} · revision {draft.revision}</h3>{manager && <div className="flex gap-3"><Button type="button" disabled={pending} onClick={() => edit(draft)}>Edit draft</Button><Button type="button" disabled={pending} onClick={async () => {
+        let attemptKey = duplicateKeys.current.get(draft.id);
+        if (!attemptKey) { attemptKey = creationKey(); duplicateKeys.current.set(draft.id, attemptKey); }
+        if (await act(`/drafts/${draft.id}/duplicate`, { key: attemptKey })) duplicateKeys.current.delete(draft.id);
+      }}>Duplicate draft</Button><Button type="button" disabled={pending} onClick={async () => { if (await act(`/drafts/${draft.id}/review`, { revision: draft.revision })) setTab('Approval Queue'); }}>Request final review</Button></div>}</article>)}</section>}
+    {tab === 'Campaign Builder' && (manager ? <form className="space-y-3 max-w-3xl" onSubmit={async (e) => { e.preventDefault(); const generation = editorGeneration.current; const result = await act('/drafts' + (draftId ? '/' + draftId : ''), { accountId, name, key: key || creationKey(), spec, ...(draftId ? { revision } : {}) }); if (result && generation === editorGeneration.current) { edit(result); setTab('Drafts'); } }}>
       <h2>{draftId ? 'Edit draft' : 'Create draft'}</h2><label className="block">Campaign name<input className="bg-third p-2 block w-full" value={name} maxLength={100} onChange={(e) => setName(e.target.value)} /></label>
       <label className="block">Action<select className="bg-third p-2" value={spec.operation} onChange={(e) => { const value = { ...spec, operation: e.target.value }; if (e.target.value === 'CREATE') delete value.campaignId; setSpec(value); }}><option>CREATE</option><option>PAUSE</option><option>RESUME</option><option>UPDATE</option></select></label>
       {spec.operation !== 'CREATE' && field('Existing provider campaign ID', 'campaignId')}
