@@ -84,10 +84,10 @@ const ProviderAccounts = ({ connection, refresh }: { connection: Connection; ref
     </>}
     {!!connection.accounts.length && <div className="overflow-x-auto"><table>
       <caption>Workspace advertising accounts</caption>
-      <thead><tr><th>Name</th><th>Account ID</th><th>Currency</th><th>Timezone</th><th>Selection / availability</th></tr></thead>
+      <thead><tr><th className="border-b border-fifth p-3 text-left text-sm font-semibold">Name</th><th className="border-b border-fifth p-3 text-left text-sm font-semibold">Account ID</th><th className="border-b border-fifth p-3 text-left text-sm font-semibold">Currency</th><th className="border-b border-fifth p-3 text-left text-sm font-semibold">Timezone</th><th className="border-b border-fifth p-3 text-left text-sm font-semibold">Selection / availability</th></tr></thead>
       <tbody>{connection.accounts.map((account) => <tr key={account.id}>
-        <td>{account.name}</td><td>{account.externalAccountId}</td><td>{account.currency}</td><td>{account.timezone}</td>
-        <td>{account.enabled ? 'Selected' : 'Not selected'} · {account.providerStatus}</td>
+        <td className="border-b border-fifth p-3 align-top text-sm">{account.name}</td><td className="border-b border-fifth p-3 align-top text-sm">{account.externalAccountId}</td><td className="border-b border-fifth p-3 align-top text-sm">{account.currency}</td><td className="border-b border-fifth p-3 align-top text-sm">{account.timezone}</td>
+        <td className="border-b border-fifth p-3 align-top text-sm">{account.enabled ? 'Selected' : 'Not selected'} · {account.providerStatus}</td>
       </tr>)}</tbody>
     </table></div>}
   </section>;
