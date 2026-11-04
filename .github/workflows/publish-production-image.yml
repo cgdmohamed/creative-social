@@ -42,6 +42,7 @@ jobs:
           build-args: |
             PUBLIC_URL=https://smm.creativecode.com.eg
             SOURCE_REVISION=${{ github.sha }}
+            NEXT_PUBLIC_SENTRY_DSN=${{ vars.CREATIVE_SOCIAL_SENTRY_DSN }}
           provenance: mode=min
           cache-from: type=gha,scope=creative-social-production
           cache-to: type=gha,mode=max,scope=creative-social-production

@@ -81,6 +81,7 @@ export const initializeSentryBasic = (environment: string, dsn: string, extensio
       environment: environment || 'development',
       spotlight: process.env.SENTRY_SPOTLIGHT === '1',
       dsn,
+      release: process.env.NEXT_PUBLIC_APP_VERSION || undefined,
       sendDefaultPii: false,
       ...extension,
       debug: environment === 'development',

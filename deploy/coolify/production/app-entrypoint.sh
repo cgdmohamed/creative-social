@@ -15,6 +15,7 @@ case "${1:-backend}" in
       NODE_ENV="${NODE_ENV:-production}" \
       PUBLIC_URL="${PUBLIC_URL:-}" \
       CREATIVE_REVISION="${CREATIVE_REVISION:-}" \
+      NEXT_PUBLIC_SENTRY_DSN="${NEXT_PUBLIC_SENTRY_DSN:-}" \
       MAIN_URL="${MAIN_URL:-}" \
       FRONTEND_URL="${FRONTEND_URL:-}" \
       NEXT_PUBLIC_BACKEND_URL="${NEXT_PUBLIC_BACKEND_URL:-}" \

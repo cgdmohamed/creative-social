@@ -1,3 +1,5 @@
+import * as Sentry from '@sentry/nextjs';
+
 export async function register() {
   if (!process.env.NEXT_PUBLIC_SENTRY_DSN) {
     return;
@@ -9,3 +11,6 @@ export async function register() {
     await import('./sentry.edge.config');
   }
 }
+
+// Report unhandled App Router request errors from Next.js server runtimes.
+export const onRequestError = Sentry.captureRequestError;

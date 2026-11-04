@@ -4,6 +4,8 @@ x-public: &public
   NODE_ENV: production
   PUBLIC_URL: ${PUBLIC_URL:?Set the public HTTPS origin without a trailing slash}
   CREATIVE_REVISION: ${CREATIVE_REVISION:?Set the reviewed full Git commit SHA}
+  # Public ingest DSN only; never add a Sentry auth token to this Compose file.
+  NEXT_PUBLIC_SENTRY_DSN: ${NEXT_PUBLIC_SENTRY_DSN:-}
   MAIN_URL: ${PUBLIC_URL}
   FRONTEND_URL: ${PUBLIC_URL}
   NEXT_PUBLIC_BACKEND_URL: ${PUBLIC_URL}/api
