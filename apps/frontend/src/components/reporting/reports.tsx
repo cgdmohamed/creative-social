@@ -33,7 +33,7 @@ function Trend({ metric }: { metric: MetricResult }) {
   if (known.length < 2)
     return (
       <p className="text-sm opacity-60">
-        {t('reports_collect_more_observations', 'Collect more observations to see a trend.')}
+        {t('reports_collect_more_observations', 'Not enough data for a trend yet. Collect data over more days.')}
       </p>
     );
   const min = Math.min(0, ...known),
@@ -67,7 +67,7 @@ function Trend({ metric }: { metric: MetricResult }) {
       </svg>
       <p className="flex justify-between text-xs opacity-60">
         <span>{metric.series[0]?.date}</span>
-        <span>{t('reports_gaps_not_interpolated', 'Gaps are not interpolated')}</span>
+        <span>{t('reports_gaps_not_interpolated', 'Days without data are left blank')}</span>
         <span>{metric.series[metric.series.length - 1]?.date}</span>
       </p>
     </div>
@@ -120,7 +120,7 @@ export function Reports() {
           Array.isArray(body.message)
             ? body.message.join('; ')
             : body.message ||
-                t('reports_request_failed', 'Request failed')
+                t('reports_request_failed', 'The request did not go through. Check your connection and try again.')
         );
       }
       return result;
@@ -186,7 +186,7 @@ export function Reports() {
     } catch (err) {
       setError(err instanceof Error
           ? err.message
-          : t('reports_request_failed', 'Request failed'));
+          : t('reports_request_failed', 'The request did not go through. Check your connection and try again.'));
     } finally {
       setBusy(false);
     }
@@ -234,7 +234,7 @@ export function Reports() {
           ' - ' +
           t(
             'reports_collection_queued',
-            'Queued collection runs in the background. Build the report again to refresh stored data.'
+            'Data collection has started in the background. Build the report again when it finishes to see the new data.'
           )
       );
     });
@@ -345,11 +345,11 @@ export function Reports() {
             {!collectionEnabled &&
               t(
                 'reports_collection_disabled',
-                'Collection is disabled on this server. Contact an administrator.'
+                'Data collection is turned off. You can still view saved data. Ask an administrator to turn it on.'
               ) + ' '}
             {t(
               'reports_collection_limits',
-              'Collect up to 10 channels at a time. Existing history stays available. Paid Ads connectors are not connected.'
+              'You can update up to 10 channels at a time. Existing history stays available. Paid ads are not included.'
             )}
           </p>
         </aside>
@@ -394,7 +394,7 @@ export function Reports() {
                   {t('reports_channel_metrics', 'Channel metrics')}
                 </option>
                 <option value="POST">
-                  {t('reports_post_counter_changes', 'Post-counter changes')}
+                  {t('reports_post_counter_changes', 'Change in post totals')}
                 </option>
               </select>
             </label>
@@ -455,13 +455,13 @@ export function Reports() {
               <h2 className="text-xl">
                 {t(
                   'reports_build_from_stored',
-                  'Build a report from stored observations'
+                  'Build a report'
                 )}
               </h2>
               <p className="mt-3 text-sm opacity-70">
                 {t(
                   'reports_build_from_stored_hint',
-                  'Choose a client, channels and dates. A new installation has no history until collection runs. Missing metrics are not treated as zero.'
+                  'Choose a client, channels and dates. A new account has no history until data is collected. Missing data is not counted as zero.'
                 )}
               </p>
             </div>
@@ -501,7 +501,7 @@ export function Reports() {
                         ? undefined
                         : t(
                             'reports_pdf_not_enabled',
-                            'PDF export is not enabled on this server'
+                            'PDF export is turned off. Ask an administrator to turn it on.'
                           )
                     }
                     onClick={() => download('pdf')}
@@ -566,7 +566,7 @@ export function Reports() {
                   <p className="p-5 text-sm opacity-60">
                     {t(
                       'reports_no_observations_selection',
-                      'No stored observations for this selection. Collect data and check channel permissions.'
+                      'No saved data for this selection. Collect recent data and check the channel permissions.'
                     )}
                   </p>
                 )}
@@ -673,7 +673,7 @@ export function Reports() {
             <p className="my-3 text-xs opacity-60">
               {t(
                 'reports_create_campaign_hint',
-                'Group published posts for one client. The chosen dates become the report default. Choose a client or unassigned channels before selecting posts.'
+                'Group published posts for one client. The dates you choose become the default for the report. Pick a client or unassigned channels first, then select posts.'
               )}
             </p>
             <div className="flex flex-wrap gap-2">
