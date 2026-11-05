@@ -5,6 +5,7 @@ import useSWR from 'swr';
 import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
 import { useUser } from '@gitroom/frontend/components/layout/user.context';
 import { Button } from '@gitroom/react/form/button';
+import { deleteDialog } from '@gitroom/react/helpers/delete.dialog';
 
 type Account = { id: string; externalAccountId?: string; name: string; currency: string; timezone: string;
   status?: string; providerStatus?: string; enabled?: boolean; selected?: boolean };
@@ -29,7 +30,7 @@ const ProviderAccounts = ({ connection, refresh }: { connection: Connection; ref
     finally { setBusy(false); }
   };
   const connect = (management = false) => action(async () => {
-    if (management && !window.confirm('Authorize advertising management for this workspace? Provider writes still require operator enablement, owner review and explicit final submission. Reconnecting invalidates older approvals and requires account reselection.')) return;
+    if (management && !(await deleteDialog('Authorize advertising management for this workspace? Provider writes still require operator enablement, owner review and explicit final submission. Reconnecting invalidates older approvals and requires account reselection.', 'Authorize management', 'Authorize advertising management?', 'Cancel'))) return;
     const { url } = await result(await fetch(`/advertising/${connection.id}/authorize`, { method: 'POST', ...(management ? { body: JSON.stringify({ management: true }) } : {}) }));
     const target = new URL(url);
     if (target.protocol !== 'https:' || !['www.facebook.com', 'accounts.google.com'].includes(target.hostname)) throw new Error('Invalid authorization destination');
@@ -46,8 +47,8 @@ const ProviderAccounts = ({ connection, refresh }: { connection: Connection; ref
     setDiscovered(undefined); refresh();
   });
   const disconnect = (revoke: boolean) => {
-    if (revoke && !window.confirm('Revoke this provider grant? Provider revocation can also disconnect other workspaces or apps sharing this authorization. Campaigns will not be modified.')) return;
     return action(async () => {
+      if (revoke && !(await deleteDialog('Revoke this provider grant? Provider revocation can also disconnect other workspaces or apps sharing this authorization. Campaigns will not be modified.', 'Revoke grant', 'Revoke provider grant?', 'Cancel', true))) return;
       const response = await result(await fetch(`/advertising/${connection.id}/disconnect`, { method: 'POST', body: JSON.stringify({ revoke }) }));
       setDiscovered(undefined); refresh();
       if (revoke && response.revocation !== 'CONFIRMED') setError('Disconnected locally. Provider revocation was not confirmed; remove access in your provider settings.');

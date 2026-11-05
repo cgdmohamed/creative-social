@@ -1258,5 +1258,9 @@
   "paid_pause": "Pause",
   "paid_enable": "Enable",
   "paid_delivery_status": "Delivery {{status}}",
-  "paid_download_report": "Download generated report"
+  "paid_download_report": "Download generated report",
+  "advertising_upload_confirm_button": "Upload",
+  "advertising_upload_confirm_title": "Upload to provider?",
+  "advertising_submit_confirm_button": "Submit to provider",
+  "advertising_submit_confirm_title": "Submit to provider?"
 }

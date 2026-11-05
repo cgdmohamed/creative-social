@@ -54,7 +54,7 @@ const GenerateTab = observer(({ store }: any) => {
     });
     setLoading(false);
     if (!req.ok) {
-      alert('Something went wrong, please try again later...');
+      toast.show('Something went wrong, please try again later...', 'warning');
       return;
     }
     mutate();

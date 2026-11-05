@@ -8,6 +8,7 @@ import { hasExtension } from '@gitroom/helpers/utils/has.extension';
 import { useLaunchStore } from '@gitroom/frontend/components/new-launch/store';
 import { useVariables } from '@gitroom/react/helpers/variable.context';
 import { useModals } from '@gitroom/frontend/components/layout/new-modal';
+import { useToaster } from '@gitroom/react/toaster/toaster';
 import { MediaBox } from '@gitroom/frontend/components/media/media.component';
 const postUrlEmitter = new EventEmitter();
 
@@ -103,6 +104,7 @@ export const CreateThumbnail: FC<{
 }> = (props) => {
   const { onSelect, media } = props;
   const { backendUrl } = useVariables();
+  const toaster = useToaster();
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [currentTime, setCurrentTime] = useState(0);
@@ -195,13 +197,14 @@ export const CreateThumbnail: FC<{
         }
       } catch (fallbackError) {
         console.error('Fallback capture also failed:', fallbackError);
-        alert(
-          'Unable to capture frame. This might be due to CORS restrictions on the video source.'
+        toaster.show(
+          'Unable to capture frame. This might be due to CORS restrictions on the video source.',
+          'warning'
         );
         setIsCapturing(false);
       }
     }
-  }, [onSelect, currentTime]);
+  }, [onSelect, currentTime, toaster]);
 
   const formatTime = useCallback((seconds: number) => {
     const mins = Math.floor(seconds / 60);

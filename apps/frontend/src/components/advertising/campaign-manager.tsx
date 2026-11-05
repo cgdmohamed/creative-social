@@ -7,6 +7,7 @@ import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
 import { useUser } from '@gitroom/frontend/components/layout/user.context';
 import { Button } from '@gitroom/react/form/button';
 import { AdvertisingAssets } from './advertising-assets';
+import { deleteDialog } from '@gitroom/react/helpers/delete.dialog';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 
 const tabs = ['Campaigns', 'Ad Sets / Ad Groups', 'Ads', 'Creative Library', 'Drafts', 'Campaign Builder', 'Approval Queue', 'Change History'];
@@ -72,8 +73,8 @@ const Review = ({ review, canApprove, act, execution, enabled }: any) => {
       <p>{t('advertising_final_submission_notice', 'Final provider submission for {{account}}, {{currency}} {{amount}}/day, {{start}} to {{end}}. Resume can start spending.', { account: snapshot.account.name, currency: snapshot.spec.currency, amount: snapshot.spec.dailyBudget, start: snapshot.spec.start, end: snapshot.spec.end, interpolation: { escapeValue: false } })}</p>
       <code className="block break-all">{phrase}</code><label className="block">{t('advertising_final_submission_confirmation', 'Final submission confirmation')}<input className="w-full bg-third text-textColor border border-fifth rounded-[4px] p-2" value={submission} onChange={(e) => setSubmission(e.target.value)} /></label>
       <label><input type="checkbox" checked={authorizeSubmission} onChange={(e) => setAuthorizeSubmission(e.target.checked)} /> {t('advertising_authorize_operation', 'I authorize this provider operation for the account, budget, currency and schedule shown above.')}</label>
-      <Button type="button" disabled={!enabled || submission !== phrase || !authorizeSubmission || execution?.status === 'UNKNOWN' || execution?.status === 'RUNNING'} onClick={() => {
-        if (window.confirm(`${snapshot.confirmation}${snapshot.financialSummary ? `\n${t('advertising_existing_budgets', 'Existing budgets: {{summary}}', { summary: snapshot.financialSummary, interpolation: { escapeValue: false } })}` : ''}\n${t('advertising_submit_operation_to', 'Submit this operation to {{account}}?', { account: snapshot.account.name, interpolation: { escapeValue: false } })}`)) void act(`/reviews/${review.id}/submit`, { digest: review.digest, confirmation: submission });
+      <Button type="button" disabled={!enabled || submission !== phrase || !authorizeSubmission || execution?.status === 'UNKNOWN' || execution?.status === 'RUNNING'} onClick={async () => {
+        if (await deleteDialog(`${snapshot.confirmation}${snapshot.financialSummary ? ` ${t('advertising_existing_budgets', 'Existing budgets: {{summary}}', { summary: snapshot.financialSummary, interpolation: { escapeValue: false } })}` : ''} ${t('advertising_submit_operation_to', 'Submit this operation to {{account}}?', { account: snapshot.account.name, interpolation: { escapeValue: false } })}`, t('advertising_submit_confirm_button', 'Submit to provider'), t('advertising_submit_confirm_title', 'Submit to provider?'), t('cancel', 'Cancel'))) void act(`/reviews/${review.id}/submit`, { digest: review.digest, confirmation: submission });
       }}>{execution ? t('advertising_recover_remaining', 'Recover remaining confirmed-safe steps') : t('advertising_submit_confirmed', 'Submit confirmed change to provider')}</Button>
       {!enabled && <p>{t('advertising_operator_must_enable', 'The operator must enable advertising writes after configuring the integration.')}</p>}
     </div>}

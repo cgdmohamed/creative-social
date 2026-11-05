@@ -13,6 +13,7 @@ import Image from 'next/image';
 import ImageWithFallback from '@gitroom/react/helpers/image.with.fallback';
 import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
 import { useToaster } from '@gitroom/react/toaster/toaster';
+import { deleteDialog } from '@gitroom/react/helpers/delete.dialog';
 import { OpenClose } from '@gitroom/frontend/components/launches/launches.component';
 
 type Channel = {
@@ -738,10 +739,14 @@ export const Inbox: FC<{ mode: 'comments' | 'chats' }> = ({ mode }) => {
                   </button>
                   <button
                     className="text-[#B45309]"
-                    onClick={() => {
+                    onClick={async () => {
                       if (
-                        confirm(
-                          'Deleteac komentarz na stale? Tego nie da sie cofnac.'
+                        await deleteDialog(
+                          'Delete this comment permanently? This cannot be undone.',
+                          'Delete comment',
+                          'Delete comment?',
+                          'Cancel',
+                          true
                         )
                       ) {
                         act(
