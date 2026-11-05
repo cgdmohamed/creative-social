@@ -365,7 +365,7 @@ export const Check: FC<{
     <div
       onClick={() => onChange(!value)}
       className={clsx(
-        'text-[10px] font-[500] text-center flex border border-btnSimple rounded-[6px] min-w-[20px] min-h-[20px] w-[20px] h-[20px] justify-center items-center',
+        'text-[11px] font-[500] text-center flex border border-btnSimple rounded-[6px] min-w-[20px] min-h-[20px] w-[20px] h-[20px] justify-center items-center',
         value && 'bg-btnPrimary'
       )}
     >

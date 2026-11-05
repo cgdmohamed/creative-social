@@ -72,7 +72,7 @@ export const YoutubePreview: FC<{
           </div>
           <div className="flex flex-col">
             <div className="text-[14px] font-[500]">{integration?.name}</div>
-            <div className="text-[10px] font-[400]">16.7M subscribers</div>
+            <div className="text-[11px] font-[400]">16.7M subscribers</div>
           </div>
           <div>
             <div className="h-[32px] text-[12px] text-newBgColor font-[500] px-[14px] flex justify-center items-center bg-youtubeButton rounded-[16px]">

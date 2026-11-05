@@ -249,7 +249,7 @@ export const AiVideo: FC<{
               </defs>
             </svg>
           </div>
-          <div className="text-[10px] font-[600] iconBreak:hidden block">
+          <div className="text-[11px] font-[600] iconBreak:hidden block">
             {t('ai', 'AI')} Video
           </div>
         </div>

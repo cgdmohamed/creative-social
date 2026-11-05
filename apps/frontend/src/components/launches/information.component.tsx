@@ -201,7 +201,7 @@ export const InformationComponent: FC<{
       {!isGlobal && (
         <div
           className={clsx(
-            'text-[10px] mobile:text-[12px] font-[600] mobile:font-[500] flex justify-center items-center',
+            'text-[11px] mobile:text-[12px] font-[600] mobile:font-[500] flex justify-center items-center',
             isValid
               ? 'mobile:text-newTextColor/40'
               : 'text-white mobile:text-[#FF3F3F]'
@@ -213,7 +213,7 @@ export const InformationComponent: FC<{
       {isGlobal && globalDisplayLimit !== null && (
         <div
           className={clsx(
-            'text-[10px] mobile:text-[12px] font-[600] mobile:font-[500] flex justify-center items-center',
+            'text-[11px] mobile:text-[12px] font-[600] mobile:font-[500] flex justify-center items-center',
             isValid
               ? 'mobile:text-newTextColor/40'
               : 'text-white mobile:text-[#FF3F3F]'

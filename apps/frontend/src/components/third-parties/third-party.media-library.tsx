@@ -139,7 +139,7 @@ const ThirdPartyMediaLibraryBrowser: FC<{
                       </div>
                     )}
                     {item.name && (
-                      <div className="absolute bottom-[4px] start-[4px] text-[10px] text-white bg-black/50 px-[4px] rounded truncate max-w-[90%]">
+                      <div className="absolute bottom-[4px] start-[4px] text-[11px] text-white bg-black/50 px-[4px] rounded truncate max-w-[90%]">
                         {item.name}
                       </div>
                     )}

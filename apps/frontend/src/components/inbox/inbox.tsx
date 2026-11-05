@@ -232,7 +232,7 @@ const ChannelGroup: FC<{
             </span>
           </div>
           {unread > 0 && (
-            <span className="text-[10px] bg-customColor21 rounded-full px-[6px] min-w-[18px] text-center">
+            <span className="text-[11px] bg-customColor21 rounded-full px-[6px] min-w-[18px] text-center">
               {unread}
             </span>
           )}
@@ -592,12 +592,12 @@ export const Inbox: FC<{ mode: 'comments' | 'chats' }> = ({ mode }) => {
                     >
                       {item.who}
                     </span>
-                    <span className="text-[10px] text-textItemBlur ms-auto shrink-0">
+                    <span className="text-[11px] text-textItemBlur ms-auto shrink-0">
                       {when(item.at)}
                     </span>
                   </div>
                   {!!item.replyTo && (
-                    <div className="text-[10px] text-textItemBlur truncate">
+                    <div className="text-[11px] text-textItemBlur truncate">
                       reply to {item.replyTo}
                     </div>
                   )}
@@ -608,7 +608,7 @@ export const Inbox: FC<{ mode: 'comments' | 'chats' }> = ({ mode }) => {
                   >
                     {item.preview}
                   </div>
-                  <div className="text-[10px] text-textItemBlur truncate">
+                  <div className="text-[11px] text-textItemBlur truncate">
                     {item.channel.name}
                   </div>
                 </div>
@@ -795,7 +795,7 @@ export const Inbox: FC<{ mode: 'comments' | 'chats' }> = ({ mode }) => {
                       }`}
                     >
                       {m.text}
-                      <div className="text-[10px] opacity-60 mt-[3px]">
+                      <div className="text-[11px] opacity-60 mt-[3px]">
                         {when(m.createdAt)}
                       </div>
                     </div>

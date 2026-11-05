@@ -969,7 +969,7 @@ export const MultiMediaComponent: FC<{
                     <div>
                       <InsertMediaIcon className="mobile:w-[20px] mobile:h-[20px]" />
                     </div>
-                    <div className="text-[10px] font-[600] maxMedia:hidden block">
+                    <div className="text-[11px] font-[600] maxMedia:hidden block">
                       {t('insert_media', 'Insert Media')}
                     </div>
                   </div>
@@ -982,7 +982,7 @@ export const MultiMediaComponent: FC<{
                     <div>
                       <DesignMediaIcon />
                     </div>
-                    <div className="text-[10px] font-[600] iconBreak:hidden block">
+                    <div className="text-[11px] font-[600] iconBreak:hidden block">
                       {t('design_media', 'Design Media')}
                     </div>
                   </div>
