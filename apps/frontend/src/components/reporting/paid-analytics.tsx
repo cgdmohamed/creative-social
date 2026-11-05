@@ -66,11 +66,11 @@ export const PaidAnalytics = ({ initialSelection = {} }: { initialSelection?: Re
       query: Object.fromEntries(Object.entries(query).filter(([, value]) => value)), nextRunAt: new Date(Date.now() + 60000).toISOString() }) }));
     setEditing(undefined); setNotice('Schedule saved. First run is in one minute when the operator enables report scheduling.'); void reloadSchedules();
   });
-  return <main className="flex flex-col gap-[24px] p-[16px] text-textColor">
+  return <main className="app-form flex flex-col gap-[24px] p-[24px] text-textColor">
     <h1>Advertising Analytics</h1><p>Paid Meta Ads and Google Ads reporting. Organic metrics are separate. Each account/currency/timezone/attribution group has its own totals.</p>
     <nav aria-label="Advertising analysis" className="flex flex-wrap gap-2">{[['ACCOUNT', 'Overview'], ['CAMPAIGN', 'Campaign performance'], ['AD_GROUP', 'Ad set / ad group analysis'], ['AD', 'Individual ad performance']].map(([value, label]) =>
       <Button type="button" key={value} onClick={() => change('level', value)} aria-pressed={query.level === value}>{label}</Button>)}</nav>
-    <div className="flex flex-wrap gap-3">
+    <div className="flex flex-wrap items-end gap-4">
       <label>From <input type="date" value={query.from} onChange={(event) => change('from', event.target.value)} /></label>
       <label>To <input type="date" value={query.to} onChange={(event) => change('to', event.target.value)} /></label>
       <label>Client <select value={query.customerId || ''} onChange={(event) => change('customerId', event.target.value)} className="bg-third text-textColor border border-fifth rounded-[4px] p-2"><option value="">All clients</option>{catalog?.clients.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}</select></label>
