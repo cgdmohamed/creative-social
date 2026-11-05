@@ -103,7 +103,7 @@ export const SelectChannels: FC<{
         onClick={openClose}
         className={clsx(
           'relative z-[20] cursor-pointer h-[42px] rounded-[8px] px-[12px] border flex items-center',
-          open || !allSelected ? 'border-[#612BD3]' : 'border-newColColor'
+          open || !allSelected ? 'border-btnPrimary' : 'border-newColColor'
         )}
       >
         <FilterIcon />

@@ -156,11 +156,11 @@ const ChannelRow: FC<{
   >
     <Avatar channel={channel} size={36} />
     <div className="flex-1 min-w-0">
-      <div className={`text-[14px] truncate ${on ? '' : 'text-[#8B8B8B]'}`}>
+      <div className={`text-[14px] truncate ${on ? '' : 'text-textItemBlur'}`}>
         {channel.name}
       </div>
       {!supported && (
-        <div className="text-[11px] text-[#6f7889]">not available</div>
+        <div className="text-[11px] text-textItemBlur">not available</div>
       )}
     </div>
     {error ? (
@@ -227,7 +227,7 @@ const ChannelGroup: FC<{
             onClick={changeOpenClose}
           >
             <OpenClose isOpen={isOpen} />
-            <span className="text-[12px] uppercase tracking-wide text-[#8B8B8B] truncate">
+            <span className="text-[12px] uppercase tracking-wide text-textItemBlur truncate">
               {group.name || 'No client'}
             </span>
           </div>
@@ -501,9 +501,9 @@ export const Inbox: FC<{ mode: 'comments' | 'chats' }> = ({ mode }) => {
   );
 
   return (
-    <div className="flex gap-[12px] h-[calc(100vh-130px)]">
+    <div className="flex gap-[12px] p-[16px] h-[calc(100vh-130px)]">
       {/* Channels */}
-      <div className="w-[250px] shrink-0 border-e border-[#2a3040] pe-[12px] overflow-y-auto">
+      <div className="w-[250px] shrink-0 border-e border-newBorder pe-[12px] overflow-y-auto">
         <div className="flex items-center justify-between mb-[14px] px-[4px]">
           <span className="text-[18px] font-bold">Channels</span>
           <button
@@ -536,8 +536,8 @@ export const Inbox: FC<{ mode: 'comments' | 'chats' }> = ({ mode }) => {
       </div>
 
       {/* Lista */}
-      <div className="w-[340px] shrink-0 border-e border-[#2a3040] pe-[12px] flex flex-col overflow-hidden">
-        <div className="flex items-center gap-[8px] pb-[10px] mb-[4px] border-b border-[#2a3040]">
+      <div className="w-[340px] shrink-0 border-e border-newBorder pe-[12px] flex flex-col overflow-hidden">
+        <div className="flex items-center gap-[8px] pb-[10px] mb-[4px] border-b border-newBorder">
           <button
             onClick={() => setOnlyUnread(!onlyUnread)}
             className={`text-[12px] px-[10px] py-[5px] rounded-[7px] ${
@@ -546,7 +546,7 @@ export const Inbox: FC<{ mode: 'comments' | 'chats' }> = ({ mode }) => {
           >
             {onlyUnread ? 'Unread only' : 'All'}
           </button>
-          <span className="text-[12px] text-[#8B8B8B]">
+          <span className="text-[12px] text-textItemBlur">
             {anyLoading ? 'loading...' : `${unreadCount} unread`}
           </span>
           <button
@@ -573,7 +573,7 @@ export const Inbox: FC<{ mode: 'comments' | 'chats' }> = ({ mode }) => {
                 onClick={() => open(item)}
                 // Aktywny watek dostaje pasek akcentu i tlo - przy dlugiej liscie
                 // czatow samo przyciemnienie tla bylo za slabo widoczne.
-                className={`flex gap-[10px] py-[11px] pe-[6px] ps-[9px] cursor-pointer border-b border-[#232936] border-s-[3px] transition-colors ${
+                className={`flex gap-[10px] py-[11px] pe-[6px] ps-[9px] cursor-pointer border-b border-newBorder border-s-[3px] transition-colors ${
                   isActive
                     ? 'bg-customColor21/15 border-s-customColor21'
                     : 'border-s-transparent hover:bg-customColor2/30'
@@ -592,23 +592,23 @@ export const Inbox: FC<{ mode: 'comments' | 'chats' }> = ({ mode }) => {
                     >
                       {item.who}
                     </span>
-                    <span className="text-[10px] text-[#8B8B8B] ms-auto shrink-0">
+                    <span className="text-[10px] text-textItemBlur ms-auto shrink-0">
                       {when(item.at)}
                     </span>
                   </div>
                   {!!item.replyTo && (
-                    <div className="text-[10px] text-[#6f7889] truncate">
+                    <div className="text-[10px] text-textItemBlur truncate">
                       reply to {item.replyTo}
                     </div>
                   )}
                   <div
                     className={`text-[12px] truncate ${
-                      isRead ? 'text-[#8B8B8B]' : ''
+                      isRead ? 'text-textItemBlur' : ''
                     }`}
                   >
                     {item.preview}
                   </div>
-                  <div className="text-[10px] text-[#6f7889] truncate">
+                  <div className="text-[10px] text-textItemBlur truncate">
                     {item.channel.name}
                   </div>
                 </div>
@@ -617,7 +617,7 @@ export const Inbox: FC<{ mode: 'comments' | 'chats' }> = ({ mode }) => {
           })}
 
           {!anyLoading && !shown.length && (
-            <div className="text-center py-[40px] text-[#8B8B8B] text-[13px] px-[16px]">
+            <div className="text-center py-[40px] text-textItemBlur text-[13px] px-[16px]">
               {onlyUnread
                 ? 'Nothing unread. Switch to "All".'
                 : tab === 'comments'
@@ -631,25 +631,25 @@ export const Inbox: FC<{ mode: 'comments' | 'chats' }> = ({ mode }) => {
       {/* Szczegoly */}
       <div className="flex-1 min-w-0 ps-[6px] overflow-y-auto">
         {!active ? (
-          <div className="h-full flex items-center justify-center text-[#8B8B8B] text-[14px]">
+          <div className="h-full flex items-center justify-center text-textItemBlur text-[14px]">
             Select a {tab === 'comments' ? 'comment' : 'conversation'} from the
             list
           </div>
         ) : (
           <div className="flex flex-col gap-[14px]">
-            <div className="flex items-center gap-[10px] pb-[12px] border-b border-[#2a3040]">
+            <div className="flex items-center gap-[10px] pb-[12px] border-b border-newBorder">
               <Avatar channel={active.channel} size={34} />
               <div className="min-w-0">
                 <div className="text-[14px] font-bold truncate">
                   {active.who}
                 </div>
-                <div className="text-[11px] text-[#8B8B8B] truncate">
+                <div className="text-[11px] text-textItemBlur truncate">
                   {active.channel.name} &middot; {active.channel.provider}{' '}
                   &middot; {when(active.at)}
                 </div>
               </div>
               <button
-                className="ms-auto text-[12px] text-[#8B8B8B] hover:text-white shrink-0"
+                className="ms-auto text-[12px] text-textItemBlur hover:text-white shrink-0"
                 onClick={() => setReadState([active.id], !read.has(active.id))}
               >
                 {read.has(active.id) ? 'Mark as unread' : 'Mark as read'}
@@ -677,8 +677,8 @@ export const Inbox: FC<{ mode: 'comments' | 'chats' }> = ({ mode }) => {
                   if (!thread.length) return null;
 
                   return (
-                    <div className="flex flex-col gap-[8px] border-s-2 border-[#2a3040] ps-[12px]">
-                      <div className="text-[11px] text-[#8B8B8B] uppercase tracking-wide">
+                    <div className="flex flex-col gap-[8px] border-s-2 border-newBorder ps-[12px]">
+                      <div className="text-[11px] text-textItemBlur uppercase tracking-wide">
                         Thread
                       </div>
                       {thread.map((t) => (
@@ -690,7 +690,7 @@ export const Inbox: FC<{ mode: 'comments' | 'chats' }> = ({ mode }) => {
                               : 'bg-customColor2'
                           }`}
                         >
-                          <div className="text-[11px] text-[#8B8B8B] mb-[3px]">
+                          <div className="text-[11px] text-textItemBlur mb-[3px]">
                             {t.isOwn ? 'You' : t.authorName || 'unknown'}{' '}
                             &middot; {when(t.createdAt)}
                           </div>
@@ -704,7 +704,7 @@ export const Inbox: FC<{ mode: 'comments' | 'chats' }> = ({ mode }) => {
                 })()}
 
                 {active.comment.postText && (
-                  <div className="text-[12px] text-[#8B8B8B] bg-customColor2 rounded-[8px] p-[10px]">
+                  <div className="text-[12px] text-textItemBlur bg-customColor2 rounded-[8px] p-[10px]">
                     Under post: {active.comment.postText.slice(0, 160)}
                   </div>
                 )}
@@ -724,7 +724,7 @@ export const Inbox: FC<{ mode: 'comments' | 'chats' }> = ({ mode }) => {
                     </a>
                   )}
                   <button
-                    className="text-[#8B8B8B] hover:text-white"
+                    className="text-textItemBlur hover:text-white"
                     onClick={() =>
                       act(
                         `/inbox/comments/${active.channel.id}/moderate`,
