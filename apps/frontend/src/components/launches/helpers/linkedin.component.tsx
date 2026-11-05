@@ -136,6 +136,7 @@ export const LinkedinCompany: FC<{
             <TopTitle title={'Select Company'} />
           </div>
           <button
+            aria-label={t('close', 'Close')}
             onClick={onClose}
             className="outline-none absolute end-[20px] top-[20px] mantine-UnstyledButton-root mantine-ActionIcon-root bg-primary hover:bg-tableBorder cursor-pointer mantine-Modal-close mantine-1dcetaa"
             type="button"

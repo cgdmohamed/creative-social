@@ -207,6 +207,7 @@ export const TimeTable: FC<{
                   </span>
                 </div>
                 <button
+                  aria-label={t('remove_time_slot', 'Remove time slot')}
                   type="button"
                   onClick={removeSlot(index)}
                   className="opacity-0 group-hover:opacity-100 transition-opacity p-[8px] hover:bg-red-500/10 rounded-[6px] text-red-400 hover:text-red-500"

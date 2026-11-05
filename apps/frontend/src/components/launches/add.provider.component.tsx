@@ -71,6 +71,7 @@ export const AddProviderButton: FC<{
         </div>
       </button>
       <button
+        aria-label={t('invite_link', 'Send Invite Link to a customer to add channel')}
         onClick={invite}
         data-tooltip-id="tooltip"
         data-tooltip-content={t(
@@ -123,6 +124,7 @@ export const UrlModal: FC<{
     <div className="rounded-[4px] border border-customColor6 bg-sixth px-[16px] pb-[16px] relative">
       <TopTitle title={`Instance URL`} />
       <button
+        aria-label={t('close', 'Close')}
         onClick={close}
         className="outline-none absolute end-[20px] top-[20px] mantine-UnstyledButton-root mantine-ActionIcon-root hover:bg-tableBorder cursor-pointer mantine-Modal-close mantine-1dcetaa"
         type="button"
@@ -731,9 +733,10 @@ export const AddProviderComponent: FC<{
               >
                 <div>
                   {item.identifier === 'youtube' ? (
-                    <img src={`/icons/platforms/youtube.svg`} />
+                    <img alt="" src={`/icons/platforms/youtube.svg`} />
                   ) : (
                     <img
+                      alt=""
                       className={clsx(
                         'w-[32px] h-[32px]',
                         item.identifier !== 'google_my_business' &&

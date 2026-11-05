@@ -932,6 +932,7 @@ export const MultiMediaComponent: FC<{
                         <VideoFrame url={mediaDirectory.set(media?.path)} />
                       ) : (
                         <img
+                          alt={t('media_preview', 'Media preview')}
                           className="w-full h-full object-cover rounded-[4px] mobile:rounded-[8px]"
                           src={mediaDirectory.set(media?.path)}
                         />
@@ -1126,6 +1127,7 @@ export const MediaComponent: FC<{
       {!!currentMedia && (
         <div className="my-[20px] cursor-pointer w-[200px] h-[200px] border-2 border-tableBorder">
           <img
+            alt={t('media_preview', 'Media preview')}
             className="w-full h-full object-cover"
             src={currentMedia.path}
             onClick={() => window.open(mediaDirectory.set(currentMedia.path))}

@@ -1,5 +1,6 @@
 'use client';
 
+import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import { useCallback, useEffect, useState } from 'react';
 import useCookie from 'react-use-cookie';
 import EventEmitter from 'events';
@@ -7,6 +8,7 @@ import EventEmitter from 'events';
 export const modeEmitter = new EventEmitter();
 
 const ModeComponent = () => {
+  const t = useT();
   const [mode, setMode] = useCookie('mode', 'light');
 
   const changeMode = useCallback(() => {
@@ -19,7 +21,19 @@ const ModeComponent = () => {
     document.body.classList.add(mode);
   }, [mode]);
   return (
-    <div onClick={changeMode} className="select-none cursor-pointer">
+    <div
+      onClick={changeMode}
+      role="button"
+      tabIndex={0}
+      aria-label={t('toggle_theme', 'Toggle theme')}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          changeMode();
+        }
+      }}
+      className="select-none cursor-pointer"
+    >
       {mode === 'dark' ? (
         <svg
           xmlns="http://www.w3.org/2000/svg"

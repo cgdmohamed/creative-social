@@ -1,3 +1,4 @@
+import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import { FC, Fragment, useCallback, useEffect, useState } from 'react';
 import dayjs from 'dayjs';
 import { TopTitle } from '@gitroom/frontend/components/launches/helpers/top.title.component';
@@ -143,6 +144,7 @@ export const CommentComponent: FC<{
   date: dayjs.Dayjs;
 }> = (props) => {
   const { date } = props;
+  const t = useT();
   const { closeAll } = useModals();
   const [commentsList, setCommentsList] = useState<Comments[]>([]);
   const user = useUser();
@@ -269,6 +271,7 @@ export const CommentComponent: FC<{
     <div className="relative flex gap-[20px] flex-col flex-1 rounded-[4px] border border-customColor6 bg-sixth p-[16px] pt-0">
       <TopTitle title={`Comments for ${date.format('DD/MM/YYYY HH:mm')}`} />
       <button
+        aria-label={t('close', 'Close')}
         onClick={closeAll}
         className="outline-none absolute end-[20px] top-[15px] mantine-UnstyledButton-root mantine-ActionIcon-root hover:bg-tableBorder cursor-pointer mantine-Modal-close mantine-1dcetaa"
         type="button"

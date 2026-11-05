@@ -45,7 +45,19 @@ export const ThirdPartyMenuComponent: FC<{
   };
 
   return (
-    <div className="cursor-pointer relative select-none" onClick={changeShow}>
+    <div
+      className="cursor-pointer relative select-none"
+      role="button"
+      tabIndex={0}
+      aria-label={t('more_options', 'More options')}
+      onClick={changeShow}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          changeShow();
+        }
+      }}
+    >
       <svg
         xmlns="http://www.w3.org/2000/svg"
         width="24"

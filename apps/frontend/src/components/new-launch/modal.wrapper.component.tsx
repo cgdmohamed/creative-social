@@ -50,7 +50,19 @@ export const ModalWrapperComponent: FC<{
       >
         <div className="flex items-start mb-[24px]">
           <div className="flex-1 text-[24px]">{title}</div>
-          <div className="cursor-pointer" onClick={closeModal}>
+          <div
+            className="cursor-pointer"
+            role="button"
+            tabIndex={0}
+            aria-label={t('close', 'Close')}
+            onClick={closeModal}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                closeModal();
+              }
+            }}
+          >
             <svg
               xmlns="http://www.w3.org/2000/svg"
               width="21"

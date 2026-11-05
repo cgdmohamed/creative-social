@@ -133,6 +133,7 @@ export const MediaSettingsSection: FC = () => {
                     <VideoFrame url={mediaDirectory.set(media.path)} />
                   ) : (
                     <img
+                      alt={t('media_preview', 'Media preview')}
                       className="w-full h-full object-cover rounded-[4px] mobile:rounded-[8px]"
                       src={mediaDirectory.set(media.path)}
                     />

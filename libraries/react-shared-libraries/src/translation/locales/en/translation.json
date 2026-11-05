@@ -1271,5 +1271,16 @@
   "advertising_hint_meta_text": "Up to 500 characters.",
   "advertising_hint_destination_url": "Must start with https://",
   "advertising_hint_keywords": "1 to 20 keywords, one per line.",
-  "advertising_hint_negative_keywords": "Up to 20 words to keep your ads from showing for, one per line."
+  "advertising_hint_negative_keywords": "Up to 20 words to keep your ads from showing for, one per line.",
+  "remove_time_slot": "Remove time slot",
+  "move_up": "Move up",
+  "move_down": "Move down",
+  "upload_file": "Upload file",
+  "stop_generating": "Stop generating",
+  "logout": "Logout",
+  "toggle_theme": "Toggle theme",
+  "more_options": "More options",
+  "increase": "Increase",
+  "decrease": "Decrease",
+  "media_preview": "Media preview"
 }

@@ -25,6 +25,7 @@ const TimeField: FC<{
   pad?: boolean;
   onChange: (value: number) => void;
 }> = ({ value, min, max, pad, onChange }) => {
+  const t = useT();
   const [text, setText] = useState<string | null>(null);
   const format = (num: number) =>
     pad ? String(num).padStart(2, '0') : String(num);
@@ -35,7 +36,19 @@ const TimeField: FC<{
 
   return (
     <div className="w-[74px] min-w-[56px] flex flex-col items-center gap-[4px] text-textItemBlur">
-      <div onClick={step(1)} className="cursor-pointer">
+      <div
+        onClick={step(1)}
+        role="button"
+        tabIndex={0}
+        aria-label={t('increase', 'Increase')}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            step(1)();
+          }
+        }}
+        className="cursor-pointer"
+      >
         <DropdownArrowIcon rotated={true} />
       </div>
       <input
@@ -54,7 +67,19 @@ const TimeField: FC<{
         }}
         className="w-full h-[52px] rounded-[10px] border border-newColColor focus:border-btnPrimary bg-newBgColorInner text-center text-[14px] text-textColor outline-none"
       />
-      <div onClick={step(-1)} className="cursor-pointer">
+      <div
+        onClick={step(-1)}
+        role="button"
+        tabIndex={0}
+        aria-label={t('decrease', 'Decrease')}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            step(-1)();
+          }
+        }}
+        className="cursor-pointer"
+      >
         <DropdownArrowIcon />
       </div>
     </div>

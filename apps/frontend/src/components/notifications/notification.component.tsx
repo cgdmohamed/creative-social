@@ -147,6 +147,7 @@ export const NotificationOpenComponent = () => {
   );
 };
 const NotificationComponent = () => {
+  const t = useT();
   const fetch = useFetch();
   const [show, setShow] = useState(false);
   const loadNotifications = useCallback(async () => {
@@ -169,7 +170,19 @@ const NotificationComponent = () => {
   return (
     // on phones the popup spans the top bar instead of hanging off the bell
     <div className="relative mobile:static" ref={ref}>
-      <div className="cursor-pointer select-none" onClick={changeShow}>
+      <div
+        className="cursor-pointer select-none"
+        role="button"
+        tabIndex={0}
+        aria-label={t('notifications', 'Notifications')}
+        onClick={changeShow}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            changeShow();
+          }
+        }}
+      >
         <svg
           xmlns="http://www.w3.org/2000/svg"
           width="24"

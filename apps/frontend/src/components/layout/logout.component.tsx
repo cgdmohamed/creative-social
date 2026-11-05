@@ -33,7 +33,19 @@ export const LogoutComponent: FC<{ isIcon?: boolean }> = ({ isIcon }) => {
   }, []);
   return (
     <>
-      <div className="cursor-pointer" onClick={logout}>
+      <div
+        className="cursor-pointer"
+        role="button"
+        tabIndex={0}
+        aria-label={isIcon ? t('logout', 'Logout') : undefined}
+        onClick={logout}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            logout();
+          }
+        }}
+      >
         {isIcon ? (
           <svg
             width="24"

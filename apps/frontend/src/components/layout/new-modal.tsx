@@ -1,3 +1,4 @@
+import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import { create } from 'zustand';
 import { makeId } from '@gitroom/nestjs-libraries/services/make.is';
 import { useShallow } from 'zustand/react/shallow';
@@ -103,6 +104,7 @@ export const Component: FC<{
   modal: { id: string } & OpenModalInterface;
 }> = memo(({ isLast, modal, closeModal, zIndex }) => {
   const decision = useDecisionModal();
+  const t = useT();
   const closeModalFunction = useCallback(async () => {
     if (modal.askClose) {
       const open = await decision.open();
@@ -228,6 +230,7 @@ export const Component: FC<{
                 modal.withCloseButton ? (
                   <div className="cursor-pointer">
                     <button
+                      aria-label={t('close', 'Close')}
                       className="outline-none absolute end-[20px] top-[20px] mobile:end-[12px] mobile:top-[12px] mantine-UnstyledButton-root mantine-ActionIcon-root hover:bg-tableBorder cursor-pointer mantine-Modal-close mantine-1dcetaa"
                       type="button"
                       onClick={closeModalFunction}

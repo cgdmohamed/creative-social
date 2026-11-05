@@ -168,7 +168,7 @@ const Message: FC<UserMessageProps> = (props) => {
         return `<video controls class="h-[150px] w-[150px] rounded-[8px] mb-[10px]"><source src="${p1.trim()}" type="video/mp4">Your browser does not support the video tag.</video>`;
       })
       .replace(/Image: (http.*\n)/g, (match, p1) => {
-        return `<img src="${p1.trim()}" class="h-[150px] w-[150px] max-w-full border border-newBgColorInner" />`;
+        return `<img src="${p1.trim()}" alt="" class="h-[150px] w-[150px] max-w-full border border-newBgColorInner" />`;
       })
       .replace(/\[\-\-Media\-\-\](.*)\[\-\-Media\-\-\]/g, (match, p1) => {
         return `<div class="flex justify-center mt-[20px]">${p1}</div>`;
@@ -401,7 +401,17 @@ const OpenModal: FC<{
     startModal();
   }, []);
   return (
-    <div onClick={() => respond('continue')}>
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={() => respond('continue')}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          respond('continue');
+        }
+      }}
+    >
       Opening manually ${JSON.stringify(args)}
     </div>
   );

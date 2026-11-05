@@ -1,5 +1,6 @@
 'use client';
 
+import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import React, { FC, useCallback, useMemo, useState } from 'react';
 import useSWR from 'swr';
 import copy from 'copy-to-clipboard';
@@ -43,6 +44,7 @@ const safeParse = (value: string) => {
 
 const ErrorDetailsModal: FC<{ row: ErrorRow }> = ({ row }) => {
   const modal = useModals();
+  const t = useT();
   const toaster = useToaster();
   const parsedMessage = useMemo(() => safeParse(row.message), [row.message]);
   const parsedBody = useMemo(() => safeParse(row.body), [row.body]);
@@ -65,6 +67,7 @@ const ErrorDetailsModal: FC<{ row: ErrorRow }> = ({ row }) => {
         <div className="flex gap-[8px] items-center">
           <Button onClick={copyAll}>Copy Debug Code</Button>
           <button
+            aria-label={t('close', 'Close')}
             className="outline-none w-[28px] h-[28px] flex items-center justify-center hover:bg-tableBorder cursor-pointer rounded"
             type="button"
             onClick={() => modal.closeAll()}

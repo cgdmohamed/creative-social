@@ -72,7 +72,18 @@ export const TelegramProvider: FC<Web3ProviderInterface> = (props) => {
           )}
         </div>
         {!step ? (
-          <div className="w-full mt-[16px]" onClick={loadAll}>
+          <div
+            className="w-full mt-[16px]"
+            role="button"
+            tabIndex={0}
+            onClick={loadAll}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                loadAll();
+              }
+            }}
+          >
             <div
               className={`cursor-pointer bg-[#2EA6DD] h-[44px] rounded-[4px] flex justify-center items-center text-white gap-[4px]`}
             >
@@ -100,7 +111,18 @@ export const TelegramProvider: FC<Web3ProviderInterface> = (props) => {
             </div>
           </div>
         ) : (
-          <div className="w-full text-center" onClick={copyText}>
+          <div
+            className="w-full text-center"
+            role="button"
+            tabIndex={0}
+            onClick={copyText}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                copyText();
+              }
+            }}
+          >
             {t(
               'please_add_the_following_command_in_your_chat',
               'Please add the following command in your chat:'

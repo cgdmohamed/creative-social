@@ -63,6 +63,7 @@ const RenderRedditComponent: FC<{
                 target="_blank"
               >
                 <img
+                  alt={t('media_preview', 'Media preview')}
                   className="w-full h-full object-cover"
                   src={showMedia.set(image.path)}
                 />

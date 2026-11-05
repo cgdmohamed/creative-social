@@ -74,6 +74,7 @@ export const FinishTrial: FC<{ close: () => void }> = (props) => {
               <TopTitle title={'Finishing Trial'} />
             </div>
             <button
+              aria-label={t('close', 'Close')}
               onClick={props.close}
               className="outline-none absolute end-[10px] top-[10px] mantine-UnstyledButton-root mantine-ActionIcon-root bg-primary hover:bg-tableBorder cursor-pointer mantine-Modal-close mantine-1dcetaa"
               type="button"

@@ -51,6 +51,7 @@ export const BotPicture: FC<{
     <div className="rounded-[4px] border border-customColor6 bg-sixth px-[16px] pb-[16px] relative w-full">
       <TopTitle title={t('change_bot_picture_title', 'Change Bot Picture')} />
       <button
+        aria-label={t('close', 'Close')}
         className="outline-none absolute end-[20px] top-[20px] mantine-UnstyledButton-root mantine-ActionIcon-root hover:bg-tableBorder cursor-pointer mantine-Modal-close mantine-1dcetaa"
         type="button"
         onClick={() => modal.closeAll()}

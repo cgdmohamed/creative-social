@@ -1,3 +1,4 @@
+import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import React, { useMemo, useRef, useState } from 'react';
 import {
   useCopilotChatInternal,
@@ -18,6 +19,7 @@ export const Input = ({
   onChange,
 }: InputProps & { onChange: (value: string) => void }) => {
   const context = useChatContext();
+  const t = useT();
   const copilotContext = useCopilotContext();
   const showPoweredBy = !copilotContext.copilotApiConfig?.publicApiKey;
 
@@ -93,13 +95,14 @@ export const Input = ({
         />
         <div className="copilotKitInputControls">
           {onUpload && (
-            <button onClick={onUpload} className="copilotKitInputControlButton">
+            <button aria-label={t('upload_file', 'Upload file')} onClick={onUpload} className="copilotKitInputControlButton">
               {context.icons.uploadIcon}
             </button>
           )}
 
           <div style={{ flexGrow: 1 }} />
           <button
+            aria-label={canStop ? t('stop_generating', 'Stop generating') : t('send_message', 'Send Message')}
             disabled={sendDisabled}
             onClick={isInProgress && !hideStopButton ? onStop : send}
             data-copilotkit-in-progress={inProgress}

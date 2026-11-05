@@ -141,7 +141,18 @@ export const FirstBillingComponent = () => {
           )}
         </div>
 
-        <div className="flex" onClick={showYouTube}>
+        <div
+          className="flex"
+          role="button"
+          tabIndex={0}
+          onClick={showYouTube}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              showYouTube();
+            }
+          }}
+        >
           <div className="tablet:mb-[32px] cursor-pointer mt-[32px] flex gap-[10px] items-center underline hover:font-[700]">
             <div>
               <SafeImage

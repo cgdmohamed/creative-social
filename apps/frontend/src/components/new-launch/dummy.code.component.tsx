@@ -1,3 +1,4 @@
+import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import { TopTitle } from '@gitroom/frontend/components/launches/helpers/top.title.component';
 import { useModals } from '@gitroom/frontend/components/layout/new-modal';
 import React, { FC } from 'react';
@@ -7,6 +8,7 @@ import { useToaster } from '@gitroom/react/toaster/toaster';
 
 export const DummyCodeComponent: FC<{ code: any }> = ({ code }) => {
   const modal = useModals();
+  const t = useT();
   const toaster = useToaster();
 
   return (
@@ -23,6 +25,7 @@ export const DummyCodeComponent: FC<{ code: any }> = ({ code }) => {
         </Button>
       </TopTitle>
       <button
+        aria-label={t('close', 'Close')}
         className="outline-none absolute end-[20px] top-[20px] mantine-UnstyledButton-root mantine-ActionIcon-root hover:bg-tableBorder cursor-pointer mantine-Modal-close mantine-1dcetaa"
         type="button"
         onClick={() => modal.closeAll()}

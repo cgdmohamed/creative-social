@@ -1168,6 +1168,7 @@ export const CalendarColumn: FC<{
                         />
                         {selectedIntegrations.identifier === 'youtube' ? (
                           <img
+                            alt=""
                             src="/icons/platforms/youtube.svg"
                             className="absolute z-10 -bottom-[5px] -end-[5px]"
                             width={20}
@@ -1404,10 +1405,12 @@ const CalendarItem: FC<{
       >
         <div className={clsx('relative min-w-[20px]')}>
           <img
+            alt={post.integration?.name || ''}
             className="w-[20px] h-[20px] rounded-[8px]"
             src={post.integration.picture! || '/no-picture.jpg'}
           />
           <img
+            alt=""
             className="w-[12px] h-[12px] rounded-[8px] absolute z-10 top-[10px] end-0 border border-fifth"
             src={`/icons/platforms/${post.integration?.providerIdentifier}.png`}
           />

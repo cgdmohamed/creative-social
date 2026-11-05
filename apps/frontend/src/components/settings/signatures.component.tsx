@@ -205,6 +205,7 @@ const AddOrRemoveSignature: FC<{
       <form onSubmit={form.handleSubmit(callBack)}>
         <div className="relative flex gap-[20px] flex-col flex-1 rounded-[4px] pt-0">
           <button
+            aria-label={t('close', 'Close')}
             className="outline-none absolute end-[20px] top-[15px] mantine-UnstyledButton-root mantine-ActionIcon-root hover:bg-tableBorder cursor-pointer mantine-Modal-close mantine-1dcetaa"
             type="button"
             onClick={() => modal.closeCurrent()}

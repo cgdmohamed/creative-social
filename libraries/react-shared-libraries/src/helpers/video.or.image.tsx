@@ -22,6 +22,7 @@ export const VideoOrImage: FC<{
   }
   return (
     <img
+      alt=""
       className={clsx(
         isContain ? 'object-contain' : 'object-cover',
         'w-full h-full',
