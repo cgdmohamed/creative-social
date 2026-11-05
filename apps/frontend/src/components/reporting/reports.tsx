@@ -1,6 +1,7 @@
 'use client';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
+import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import type {
   OrganicReport,
   MetricResult,
@@ -20,28 +21,19 @@ type Post = {
   publishedAt: string;
 };
 const day = (stamp: number) => new Date(stamp).toISOString().slice(0, 10);
-const value = (number: number | null) =>
-  number === null
-    ? 'Not available'
-    : number.toLocaleString(undefined, { maximumFractionDigits: 2 });
-const semantics = {
-  FLOW: 'Daily total',
-  STOCK: 'Latest reading',
-  LEVEL: 'Observed change',
-  AVERAGE: 'Unweighted average',
-};
 const field =
   'rounded-lg border border-newTableBorder bg-newTableHeader p-2 text-sm';
 const button =
   'rounded-lg bg-customColor21 px-4 py-2 text-sm disabled:opacity-40';
 function Trend({ metric }: { metric: MetricResult }) {
+  const t = useT();
   const known = metric.series.flatMap((p) =>
     p.value === null ? [] : [p.value]
   );
   if (known.length < 2)
     return (
       <p className="text-sm opacity-60">
-        Collect more observations to see a trend.
+        {t('reports_collect_more_observations', 'Collect more observations to see a trend.')}
       </p>
     );
   const min = Math.min(0, ...known),
@@ -66,20 +58,34 @@ function Trend({ metric }: { metric: MetricResult }) {
         viewBox="0 0 700 150"
         className="h-40 w-full"
         role="img"
-        aria-label={`${metric.label} observed history`}
+        aria-label={t('reports_metric_observed_history', '{{metric}} observed history', {
+          metric: metric.label,
+          interpolation: { escapeValue: false },
+        })}
       >
         <path d={path} fill="none" stroke="#9581ff" strokeWidth="2" />
       </svg>
       <p className="flex justify-between text-xs opacity-60">
         <span>{metric.series[0]?.date}</span>
-        <span>Gaps are not interpolated</span>
+        <span>{t('reports_gaps_not_interpolated', 'Gaps are not interpolated')}</span>
         <span>{metric.series[metric.series.length - 1]?.date}</span>
       </p>
     </div>
   );
 }
 export function Reports() {
+  const t = useT();
   const fetch = useFetch();
+  const value = (number: number | null) =>
+    number === null
+      ? t('reports_not_available', 'Not available')
+      : number.toLocaleString(undefined, { maximumFractionDigits: 2 });
+  const semantics = {
+    FLOW: t('reports_semantics_flow', 'Daily total'),
+    STOCK: t('reports_semantics_stock', 'Latest reading'),
+    LEVEL: t('reports_semantics_level', 'Observed change'),
+    AVERAGE: t('reports_semantics_average', 'Unweighted average'),
+  };
   const [client, setClient] = useState('');
   const [collectionEnabled, setCollectionEnabled] = useState(false);
   const [pdfEnabled, setPdfEnabled] = useState(false);
@@ -113,12 +119,13 @@ export function Reports() {
         throw new Error(
           Array.isArray(body.message)
             ? body.message.join('; ')
-            : body.message || 'Request failed'
+            : body.message ||
+                t('reports_request_failed', 'Request failed')
         );
       }
       return result;
     },
-    [fetch]
+    [fetch, t]
   );
   useEffect(() => {
     let active = true;
@@ -132,7 +139,10 @@ export function Reports() {
         const available = data.channels;
         if (data.truncated)
           setNotice(
-            'Showing the first 1,000 channels. Choose a client to narrow the selection.'
+            t(
+              'reports_first_channels_shown',
+              'Showing the first 1,000 channels. Choose a client to narrow the selection.'
+            )
           );
         setCollectionEnabled(data.collectionEnabled);
         setPdfEnabled(data.pdfEnabled);
@@ -153,7 +163,7 @@ export function Reports() {
     return () => {
       active = false;
     };
-  }, [request, customer, client]);
+  }, [request, customer, client, t]);
   const query = useMemo(() => {
     const params = new URLSearchParams({
       from,
@@ -174,7 +184,9 @@ export function Reports() {
     try {
       await action();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Request failed');
+      setError(err instanceof Error
+          ? err.message
+          : t('reports_request_failed', 'Request failed'));
     } finally {
       setBusy(false);
     }
@@ -215,11 +227,15 @@ export function Reports() {
             (r: { integrationId: string; status: string }) =>
               `${
                 channels.find((c) => c.id === r.integrationId)?.name ||
-                'Channel'
+                t('reports_channel', 'Channel')
               }: ${r.status.replace('_', ' ')}`
           )
           .join(' / ') +
-          ' - Queued collection runs in the background. Build the report again to refresh stored data.'
+          ' - ' +
+          t(
+            'reports_collection_queued',
+            'Queued collection runs in the background. Build the report again to refresh stored data.'
+          )
       );
     });
   const selectedMetric = report?.metrics.find((m) => m.metric === metric);
@@ -227,18 +243,22 @@ export function Reports() {
     <div className="app-form mx-auto flex max-w-7xl flex-col gap-6 p-3 lg:p-6">
       <header>
         <p className="text-xs uppercase tracking-widest opacity-60">
-          Creative Social
+          {t('reports_brand', 'Creative Social')}
         </p>
-        <h1 className="mt-2 text-3xl font-semibold">Client reports</h1>
+        <h1 className="mt-2 text-3xl font-semibold">
+          {t('reports_title', 'Client reports')}
+        </h1>
         <p className="mt-2 text-sm opacity-70">
-          Historical content performance, equal-period comparisons, and
-          client-ready exports.
+          {t(
+            'reports_subtitle',
+            'Historical content performance, equal-period comparisons, and client-ready exports.'
+          )}
         </p>
       </header>
       <div className="grid gap-5 lg:grid-cols-[260px_1fr]">
         <aside className="flex flex-col gap-4 rounded-xl border border-newTableBorder p-4">
           <label className="flex flex-col gap-2 text-sm">
-            Client
+            {t('reports_client', 'Client')}
             <select
               className={field}
               value={client}
@@ -251,8 +271,10 @@ export function Reports() {
                 setClient(e.target.value);
               }}
             >
-              <option value="">All clients</option>
-              <option value="__unassigned">Unassigned channels</option>
+              <option value="">{t('reports_all_clients', 'All clients')}</option>
+              <option value="__unassigned">
+                {t('reports_unassigned_channels', 'Unassigned channels')}
+              </option>
               {clients.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.name}
@@ -261,14 +283,16 @@ export function Reports() {
             </select>
           </label>
           <div className="flex items-center justify-between">
-            <h2 className="font-medium">Channels</h2>
+            <h2 className="font-medium">{t('reports_channels', 'Channels')}</h2>
             <button
               className="text-xs underline"
               onClick={() =>
                 setSelected(selected.length ? [] : channels.map((c) => c.id))
               }
             >
-              {selected.length ? 'Clear' : 'Select all'}
+              {selected.length
+                ? t('reports_clear', 'Clear')
+                : t('reports_select_all', 'Select all')}
             </button>
           </div>
           {channels.map((c) => (
@@ -289,14 +313,20 @@ export function Reports() {
                 {c.name}
                 <span className="block text-xs opacity-60">
                   {c.provider}
-                  {!c.supported ? ' - collection unavailable' : ''}
+                  {!c.supported
+                    ? ' - ' +
+                      t('reports_collection_unavailable', 'collection unavailable')
+                    : ''}
                 </span>
               </span>
             </label>
           ))}
           {!channels.length && (
             <p className="text-sm opacity-60">
-              No connected channels for this client.
+              {t(
+                'reports_no_connected_channels',
+                'No connected channels for this client.'
+              )}
             </p>
           )}
           <button
@@ -309,19 +339,24 @@ export function Reports() {
             }
             onClick={collect}
           >
-            Collect recent data
+            {t('reports_collect_recent_data', 'Collect recent data')}
           </button>
           <p className="text-xs opacity-60">
             {!collectionEnabled &&
-              'Collection is disabled on this server. Contact an administrator. '}
-            Collect up to 10 channels at a time. Existing history stays
-            available. Paid Ads connectors are not connected.
+              t(
+                'reports_collection_disabled',
+                'Collection is disabled on this server. Contact an administrator.'
+              ) + ' '}
+            {t(
+              'reports_collection_limits',
+              'Collect up to 10 channels at a time. Existing history stays available. Paid Ads connectors are not connected.'
+            )}
           </p>
         </aside>
         <main className="flex min-w-0 flex-col gap-5">
           <div className="flex flex-wrap items-end gap-3 rounded-xl border border-newTableBorder p-4">
             <label className="flex flex-col gap-1 text-sm">
-              From
+              {t('reports_from', 'From')}
               <input
                 className={field}
                 type="date"
@@ -333,7 +368,7 @@ export function Reports() {
               />
             </label>
             <label className="flex flex-col gap-1 text-sm">
-              To
+              {t('reports_to', 'To')}
               <input
                 className={field}
                 type="date"
@@ -345,7 +380,7 @@ export function Reports() {
               />
             </label>
             <label className="flex flex-col gap-1 text-sm">
-              Performance
+              {t('reports_performance', 'Performance')}
               <select
                 className={field}
                 value={scope}
@@ -355,12 +390,16 @@ export function Reports() {
                   setReportResult(null);
                 }}
               >
-                <option value="CHANNEL">Channel metrics</option>
-                <option value="POST">Post-counter changes</option>
+                <option value="CHANNEL">
+                  {t('reports_channel_metrics', 'Channel metrics')}
+                </option>
+                <option value="POST">
+                  {t('reports_post_counter_changes', 'Post-counter changes')}
+                </option>
               </select>
             </label>
             <label className="flex flex-col gap-1 text-sm">
-              Campaign
+              {t('reports_campaign', 'Campaign')}
               <select
                 className={field}
                 value={campaign}
@@ -375,7 +414,9 @@ export function Reports() {
                   setReportResult(null);
                 }}
               >
-                <option value="">No campaign filter</option>
+                <option value="">
+                  {t('reports_no_campaign_filter', 'No campaign filter')}
+                </option>
                 {campaigns.map((c) => (
                   <option value={c.id} key={c.id}>
                     {c.name}
@@ -388,7 +429,9 @@ export function Reports() {
               disabled={busy || !selected.length}
               onClick={generate}
             >
-              {busy ? 'Working...' : 'Build report'}
+              {busy
+                ? t('reports_working', 'Working...')
+                : t('reports_build_report', 'Build report')}
             </button>
           </div>
           {error && (
@@ -410,12 +453,16 @@ export function Reports() {
           {!report && (
             <div className="rounded-xl bg-newTableHeader p-8">
               <h2 className="text-xl">
-                Build a report from stored observations
+                {t(
+                  'reports_build_from_stored',
+                  'Build a report from stored observations'
+                )}
               </h2>
               <p className="mt-3 text-sm opacity-70">
-                Choose a client, channels and dates. A new installation has no
-                history until collection runs. Missing metrics are not treated
-                as zero.
+                {t(
+                  'reports_build_from_stored_hint',
+                  'Choose a client, channels and dates. A new installation has no history until collection runs. Missing metrics are not treated as zero.'
+                )}
               </p>
             </div>
           )}
@@ -425,8 +472,17 @@ export function Reports() {
                 <div>
                   <h2 className="text-xl font-semibold">{report.name}</h2>
                   <p className="text-xs opacity-60">
-                    {report.from} to {report.to} / Compared with{' '}
-                    {report.previousFrom} to {report.previousTo}
+                    {t(
+                      'reports_period_comparison',
+                      '{{from}} to {{to}} / Compared with {{previousFrom}} to {{previousTo}}',
+                      {
+                        from: report.from,
+                        to: report.to,
+                        previousFrom: report.previousFrom,
+                        previousTo: report.previousTo,
+                        interpolation: { escapeValue: false },
+                      }
+                    )}
                   </p>
                 </div>
                 <div className="flex gap-2">
@@ -435,7 +491,7 @@ export function Reports() {
                     disabled={busy}
                     onClick={() => download('csv')}
                   >
-                    CSV
+                    {t('reports_csv', 'CSV')}
                   </button>
                   <button
                     className={button}
@@ -443,11 +499,14 @@ export function Reports() {
                     title={
                       pdfEnabled
                         ? undefined
-                        : 'PDF export is not enabled on this server'
+                        : t(
+                            'reports_pdf_not_enabled',
+                            'PDF export is not enabled on this server'
+                          )
                     }
                     onClick={() => download('pdf')}
                   >
-                    PDF report
+                    {t('reports_pdf_report', 'PDF report')}
                   </button>
                 </div>
               </div>
@@ -456,11 +515,11 @@ export function Reports() {
                   <thead className="bg-newTableHeader">
                     <tr>
                       {[
-                        'Metric',
-                        'Current',
-                        'Previous',
-                        'Change',
-                        'Coverage',
+                        t('reports_col_metric', 'Metric'),
+                        t('reports_col_current', 'Current'),
+                        t('reports_col_previous', 'Previous'),
+                        t('reports_col_change', 'Change'),
+                        t('reports_col_coverage', 'Coverage'),
                       ].map((h) => (
                         <th className="p-3" key={h}>
                           {h}
@@ -492,8 +551,11 @@ export function Reports() {
                           {m.observed}/{m.expected}
                           <small className="block opacity-60">
                             {m.complete
-                              ? 'Complete windows'
-                              : 'Partial / missing data'}
+                              ? t('reports_complete_windows', 'Complete windows')
+                              : t(
+                                  'reports_partial_data',
+                                  'Partial / missing data'
+                                )}
                           </small>
                         </td>
                       </tr>
@@ -502,15 +564,17 @@ export function Reports() {
                 </table>
                 {!report.metrics.length && (
                   <p className="p-5 text-sm opacity-60">
-                    No stored observations for this selection. Collect data and
-                    check channel permissions.
+                    {t(
+                      'reports_no_observations_selection',
+                      'No stored observations for this selection. Collect data and check channel permissions.'
+                    )}
                   </p>
                 )}
               </div>
               {!!report.metrics.length && (
                 <section className="rounded-xl border border-newTableBorder p-4">
                   <label className="flex items-center justify-between gap-2">
-                    <h3>Observed history</h3>
+                    <h3>{t('reports_observed_history', 'Observed history')}</h3>
                     <select
                       className={field}
                       value={metric}
@@ -527,7 +591,7 @@ export function Reports() {
                     <>
                       <Trend metric={selectedMetric} />
                       <details className="mt-4 text-xs">
-                        <summary>Daily observations</summary>
+                        <summary>{t('reports_daily_observations', 'Daily observations')}</summary>
                         <div className="mt-2 max-h-48 overflow-auto">
                           <table className="w-full">
                             <tbody>
@@ -546,7 +610,9 @@ export function Reports() {
                 </section>
               )}
               <section>
-                <h3 className="mb-2 font-medium">By channel</h3>
+                <h3 className="mb-2 font-medium">
+                  {t('reports_by_channel', 'By channel')}
+                </h3>
                 {report.channels.map((c) => (
                   <details
                     key={c.id}
@@ -564,7 +630,10 @@ export function Reports() {
                       ))}
                       {!c.metrics.length && (
                         <p className="text-sm opacity-60">
-                          No stored observations.
+                          {t(
+                            'reports_no_stored_observations',
+                            'No stored observations.'
+                          )}
                         </p>
                       )}
                     </div>
@@ -572,7 +641,9 @@ export function Reports() {
                 ))}
               </section>
               <section className="rounded-xl bg-newTableHeader p-4">
-                <h3 className="font-medium">Reading this report</h3>
+                <h3 className="font-medium">
+                  {t('reports_reading_this_report', 'Reading this report')}
+                </h3>
                 {report.warnings.map((w) => (
                   <p key={w} className="mt-2 text-xs opacity-70">
                     {w}
@@ -584,10 +655,11 @@ export function Reports() {
                       report.channels.find((ch) => ch.id === c.integrationId)
                         ?.name
                     }
-                    : {c.status.replace('_', ' ')} / Last success:{' '}
+                    : {c.status.replace('_', ' ')} /{' '}
+                    {t('reports_last_success', 'Last success:')}{' '}
                     {c.lastSuccessAt
                       ? new Date(c.lastSuccessAt).toLocaleString()
-                      : 'Never'}
+                      : t('reports_never', 'Never')}
                     {c.detail ? ' / ' + c.detail : ''}
                   </p>
                 ))}
@@ -596,18 +668,19 @@ export function Reports() {
           )}
           <details className="rounded-xl border border-newTableBorder p-4">
             <summary className="cursor-pointer font-medium">
-              Create a campaign report
+              {t('reports_create_campaign_report', 'Create a campaign report')}
             </summary>
             <p className="my-3 text-xs opacity-60">
-              Group published posts for one client. The chosen dates become the
-              report default. Choose a client or unassigned channels before
-              selecting posts.
+              {t(
+                'reports_create_campaign_hint',
+                'Group published posts for one client. The chosen dates become the report default. Choose a client or unassigned channels before selecting posts.'
+              )}
             </p>
             <div className="flex flex-wrap gap-2">
               <input
                 className={field}
-                placeholder="Campaign name"
-                aria-label="Campaign name"
+                placeholder={t('reports_campaign_name', 'Campaign name')}
+                aria-label={t('reports_campaign_name', 'Campaign name')}
                 maxLength={150}
                 value={campaignName}
                 onChange={(e) => setCampaignName(e.target.value)}
@@ -630,12 +703,15 @@ export function Reports() {
                     setPostIds([]);
                     if (result.truncated)
                       setNotice(
-                        'Showing the first 500 posts. Narrow channels to find older posts.'
+                        t(
+                          'reports_first_posts_shown',
+                          'Showing the first 500 posts. Narrow channels to find older posts.'
+                        )
                       );
                   })
                 }
               >
-                Load published posts
+                {t('reports_load_published_posts', 'Load published posts')}
               </button>
             </div>
             <div className="my-3 max-h-64 overflow-auto">
@@ -690,12 +766,17 @@ export function Reports() {
                   setScope('POST');
                   setReportResult(null);
                   setNotice(
-                    'Campaign saved. Build the report to compare its observed post performance.'
+                    t(
+                      'reports_campaign_saved',
+                      'Campaign saved. Build the report to compare its observed post performance.'
+                    )
                   );
                 })
               }
             >
-              Save campaign ({postIds.length} posts)
+              {t('reports_save_campaign', 'Save campaign ({{postCount}} posts)', {
+                postCount: postIds.length,
+              })}
             </button>
           </details>
         </main>
