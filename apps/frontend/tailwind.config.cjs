@@ -122,7 +122,15 @@ module.exports = {
         loginBg: 'url(/auth/bg-login.png)',
       },
       fontFamily: {
-        sans: ['Helvetica Neue'],
+        sans: [
+          '-apple-system',
+          'BlinkMacSystemFont',
+          'SF Pro Text',
+          'Inter',
+          'Helvetica Neue',
+          'Segoe UI',
+          'sans-serif',
+        ],
       },
       animation: {
         fade: 'fadeOut 0.5s ease-in-out',
