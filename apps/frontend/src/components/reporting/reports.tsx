@@ -224,7 +224,7 @@ export function Reports() {
     });
   const selectedMetric = report?.metrics.find((m) => m.metric === metric);
   return (
-    <div className="mx-auto flex max-w-7xl flex-col gap-6 p-3 lg:p-6">
+    <div className="app-form mx-auto flex max-w-7xl flex-col gap-6 p-3 lg:p-6">
       <header>
         <p className="text-xs uppercase tracking-widest opacity-60">
           Creative Social
